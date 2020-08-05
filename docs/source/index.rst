@@ -8,3 +8,4 @@ code for superconducting qubits design creation.
 .. toctree::
 
    guide/installation
+   guide/general_information
