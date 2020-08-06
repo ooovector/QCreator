@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.constants import epsilon_0, mu_0
-epsilon=11.75
+epsilon=11.45
 mu=1
 
 def points_coupler(elements):

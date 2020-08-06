@@ -7,4 +7,5 @@ code for superconducting qubits design creation.
 
 .. toctree::
 
-   guide/installation
+   guide/general_information
+   conformal_mapping/conformal_mapping_example.ipynb

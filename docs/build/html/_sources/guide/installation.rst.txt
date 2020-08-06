@@ -2,4 +2,4 @@ Installation
 ==========================
 These scripts can be downloaded from
 
-https://github.com/ooovector/QCircuit
+https://github.com/fizikaislove/QCreator
