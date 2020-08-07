@@ -1,7 +1,7 @@
 import gdspy
 import numpy as np
-import squid3JJ
-import JJ4q
+import libraries.squid3JJ as squid3JJ
+import libraries.JJ4q
 
 #common clases
 class coordinates:

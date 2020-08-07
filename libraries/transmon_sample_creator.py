@@ -1,6 +1,6 @@
 import numpy as np
 import gdspy
-import general_design_functions as gdf
+import libraries.general_design_functions as gdf
 
 
 
@@ -12,6 +12,7 @@ class Sample:
         self.total_cell = gdspy.Cell(self.name)
 
         self.restricted_area_cell = gdspy.Cell(self.name + 'resctricted area')
+        self.label_cell = gdspy.Cell(self.name + ' labels')
         self.cell_to_remove = gdspy.Cell(self.name + ' remove')
         self.total_layer = 0
         self.restricted_area_layer = 100
@@ -35,8 +36,13 @@ class Sample:
         self.gridline_x_layer = 16
         self.gridline_y_layer = 17
 
+    def numerate(self, name, number, size, coordinate, layer):
+        vtext = gdspy.Text(name + str(number), size, coordinate, horizontal=True, layer=layer)
+        label = gdspy.Label(name + str(number), coordinate, texttype=25)
+        self.label_cell.add(vtext)
     def add_pad(self, TL_core, TL_gap, TL_ground, coordinate):
         self.pads.append(gdf.Pads(TL_core, TL_gap, TL_ground, coordinate))
+        self.numerate("Pad", len(self.pads)-1, 40,coordinate,10)
 
     def generate_sample_edges_and_pads(self):
         results_total, restricted_area = gdf.Pads.generate_ground(self.pads,
@@ -45,16 +51,17 @@ class Sample:
         self.total_cell.add(results_total)
         self.restricted_area_cell.add(restricted_area)
 
-    def generate_coaxmon(self, center_point, r1, r2, r3, r4, outer_ground, Couplers, JJ, angle=0, mirror=False):
-        self.coaxmons.append(Coaxmon(center_point, r1, r2, r3, r4, outer_ground, self.total_layer,
+    def add_coaxmon(self, center_point, r1, r2, r3, r4, outer_ground, Couplers, JJ, angle=0, mirror=False):
+        self.coaxmons.append(gdf.Coaxmon(center_point, r1, r2, r3, r4, outer_ground, self.total_layer,
                                      self.restricted_area_layer, self.JJ_layer, Couplers, JJ))
         qubit_total, restricted_area, JJ_total = self.coaxmons[-1].generate_qubit()
         self.total_cell.add(qubit_total.rotate(angle, (center_point.x, center_point.y)))
         self.total_cell.add(JJ_total)  # .rotate(angle,(center_point.x,center_point.y))
         self.restricted_area_cell.add(restricted_area)
+        self.numerate("Coax", len(self.coaxmons) - 1, 40, (center_point.x, center_point.y), 10)
 
     def generate_line(self, points, core, gap, ground, nodes=None, end=None, R=40, corner_type='round'):
-        self.lines.append(Feedline(points, core, gap, ground, nodes, self.total_layer, self.restricted_area_layer, R))
+        self.lines.append(gdf.Feedline(points, core, gap, ground, nodes, self.total_layer, self.restricted_area_layer, R))
         line = self.lines[-1].generate_feedline(corner_type)
         if end is not None:
             end_line = self.lines[-1].generate_end(end)
@@ -77,7 +84,7 @@ class Sample:
         self.cell_to_remove.add([line[2], JJ[2]])
 
     def generate_bridge(self, point, width, length, padsize, angle, line_type=None):
-        self.bridges.append(Airbridge(width, length, padsize, point, angle, line_type))
+        self.bridges.append(gdf.Airbridge(width, length, padsize, point, angle, line_type))
         bridge = self.bridges[-1].generate_bridge(self.AirbridgesPadLayer, self.AirbridgesLayer)
         self.total_cell.add(bridge)
         self.result.add(gdspy.boolean(bridge[0], bridge[0], 'or', layer=self.total_layer))
@@ -85,13 +92,13 @@ class Sample:
 
     def generate_narrowing_part(self, firstline, secondline):
         narrowing_length = 15
-        narrowing1 = Narrowing(firstline.end[0], firstline.end[1],
+        narrowing1 = gdf.Narrowing(firstline.end[0], firstline.end[1],
                                firstline.core, firstline.gap, firstline.ground,
                                secondline[0], secondline[1], secondline[2],
                                narrowing_length, firstline.angle + np.pi)
         line1 = narrowing1.generate_narrowing()
         self.total_cell.add(line1[0])
-        self.restricted_area_cell.add(line1[1])
+        self.restricted_area_cell.add(gdspy.boolean(line1[1],line1[1],'or',layer=self.restricted_area_layer))
         self.cell_to_remove.add(line1[2])
         return (firstline.end[0] + narrowing_length * np.cos(firstline.angle),
                 firstline.end[1] + narrowing_length * np.sin(firstline.angle))
