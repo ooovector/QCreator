@@ -1,7 +1,7 @@
 import gdspy
 import numpy as np
 import libraries.squid3JJ as squid3JJ
-import libraries.JJ4q
+import libraries.JJ4q as JJ4q
 
 #common clases
 class coordinates:
@@ -105,14 +105,14 @@ class Coaxmon:
         self.JJ_params=JJ
         self.JJ = None
     def generate_qubit(self):
-        ground = gdspy.Round((self.center.x,self.center.y), self.outer_ground, self.R4, initial_angle=0, final_angle=2*np.pi)
-        restricted_area = gdspy.Round((self.center.x,self.center.y), self.outer_ground,  layer=self.restricted_area_layer)
-        core = gdspy.Round((self.center.x,self.center.y), self.R1, inner_radius=0, initial_angle=0, final_angle=2*np.pi)
+        ground = gdspy.Round(self.center, self.outer_ground, self.R4, initial_angle=0, final_angle=2*np.pi)
+        restricted_area = gdspy.Round(self.center, self.outer_ground,  layer=self.restricted_area_layer)
+        core = gdspy.Round(self.center, self.R1, inner_radius=0, initial_angle=0, final_angle=2*np.pi)
         result = gdspy.boolean(ground, core, 'or', layer=self.total_layer)
         if len(self.Couplers) != 0:
             for Coupler in self.Couplers:
-                result = gdspy.boolean(Coupler.generate_coupler(self.center.x, self.center.y, self.R2, self.R3, self.R4,), result, 'or', layer=self.total_layer)
-        self.JJ_coordinates = (self.center.x + self.R1*np.cos(self.JJ_params['angle_qubit']), self.center.y + self.R1*np.sin(self.JJ_params['angle_qubit']))
+                result = gdspy.boolean(Coupler.generate_coupler(self.center, self.R2, self.R3, self.R4,), result, 'or', layer=self.total_layer)
+        self.JJ_coordinates = (self.center[0] + self.R1*np.cos(self.JJ_params['angle_qubit']), self.center[1] + self.R1*np.sin(self.JJ_params['angle_qubit']))
         JJ,rect = self.generate_JJ()
         result = gdspy.boolean(result, rect, 'or')
         # self.AB1_coordinates = coordinates(self.center.x, self.center.y + self.R4)
@@ -139,13 +139,13 @@ class QubitCoupler:
         self.arc_finish = arc_finish
         self.phi = phi
         self.w = w
-    def generate_coupler(self,x,y,r_init,r_final,rect_end):
+    def generate_coupler(self,coordinate,r_init,r_final,rect_end):
         #to fix bug
         bug=5
-        result = gdspy.Round((x, y), r_init, r_final,
+        result = gdspy.Round(coordinate, r_init, r_final,
                               initial_angle=(self.arc_start) * np.pi, final_angle=(self.arc_finish) * np.pi)
-        rect = gdspy.Rectangle((x+r_final-bug,y-self.w/2),(x+rect_end+bug, y+self.w/2))
-        rect.rotate(self.phi*np.pi, (x,y))
+        rect = gdspy.Rectangle((coordinate[0]+r_final-bug,coordinate[1]-self.w/2),(coordinate[0]+rect_end+bug, coordinate[1]+self.w/2))
+        rect.rotate(self.phi*np.pi, coordinate)
         return gdspy.boolean(result,rect, 'or')
 
 class Airbridge:
@@ -470,8 +470,8 @@ class IlyaCoupler:
         self.squid_params = squid_params
 
     def generate_coupler(self):
-        vector2_x = self.Coaxmon2.center.x - self.Coaxmon1.center.x
-        vector2_y = self.Coaxmon2.center.y - self.Coaxmon1.center.y
+        vector2_x = self.Coaxmon2.center[0] - self.Coaxmon1.center[0]
+        vector2_y = self.Coaxmon2.center[1] - self.Coaxmon1.center[1]
         if vector2_x != 0 and vector2_x >= 0:
             tang_alpha = vector2_y / vector2_x
             self.angle = np.arctan(tang_alpha)
@@ -482,16 +482,16 @@ class IlyaCoupler:
             self.angle = np.pi / 2
         elif vector2_x == 0 and vector2_y < 0:
             self.angle = -np.pi / 2
-        bug=3
-        points=[(self.Coaxmon1.center.x+(self.Coaxmon1.R4-bug)*np.cos(self.angle),
-                 self.Coaxmon1.center.y+(self.Coaxmon1.R4-bug)*np.sin(self.angle)),
-        (self.Coaxmon2.center.x+(self.Coaxmon1.R4-bug)*np.cos(self.angle+np.pi),
-         self.Coaxmon2.center.y+(self.Coaxmon1.R4-bug)*np.sin(self.angle+np.pi))]
+        bug=3# there is a bug
+        points=[(self.Coaxmon1.center[0]+(self.Coaxmon1.R4-bug)*np.cos(self.angle),
+                 self.Coaxmon1.center[1]+(self.Coaxmon1.R4-bug)*np.sin(self.angle)),
+        (self.Coaxmon2.center[0]+(self.Coaxmon1.R4-bug)*np.cos(self.angle+np.pi),
+         self.Coaxmon2.center[1]+(self.Coaxmon1.R4-bug)*np.sin(self.angle+np.pi))]
         line = Feedline(points, self.core, self.gap, self.ground, None, self.total_layer, self.restricted_area_layer, 100)
         line = line.generate_feedline()
         JJ1 = self.generate_JJ()
-        self.JJ_params['indent'] = np.abs(self.Coaxmon2.center.y - self.Coaxmon1.center.y)+np.abs(self.Coaxmon2.center.x -
-                                    self.Coaxmon1.center.x) -2*self.Coaxmon1.R4 -self.JJ_params['indent']
+        self.JJ_params['indent'] = np.abs(self.Coaxmon2.center[1] - self.Coaxmon1.center[1])+np.abs(self.Coaxmon2.center[0] -
+                                    self.Coaxmon1.center[0]) -2*self.Coaxmon1.R4 -self.JJ_params['indent']
         JJ2 = self.generate_JJ()
         squid = self.generate_squid()
         JJ_0 = gdspy.boolean(JJ1[0],JJ2[0],'or',layer=self.JJ_layer)
@@ -504,12 +504,12 @@ class IlyaCoupler:
         return line,[JJ_0,JJ_1,JJ_2]
 
     def generate_JJ(self):
-        self.JJ_params['x'] = self.Coaxmon1.center.x + (self.Coaxmon1.R4+self.JJ_params['indent'])*np.cos(self.angle)
-        if self.Coaxmon1.center.x is not self.Coaxmon2.center.x:
-            self.JJ_params['y'] = self.Coaxmon1.center.y + (self.Coaxmon1.R4+
+        self.JJ_params['x'] = self.Coaxmon1.center[0] + (self.Coaxmon1.R4+self.JJ_params['indent'])*np.cos(self.angle)
+        if self.Coaxmon1.center[0] != self.Coaxmon2.center[0]:
+            self.JJ_params['y'] = self.Coaxmon1.center[1] + (self.Coaxmon1.R4+
                                                             self.JJ_params['indent'])*np.sin(self.angle)+(self.core/2+self.gap/2)
         else:
-            self.JJ_params['y'] = self.Coaxmon1.center.y + (self.Coaxmon1.R4 + self.JJ_params['indent']) * np.sin(self.angle)
+            self.JJ_params['y'] = self.Coaxmon1.center[1] + (self.Coaxmon1.R4 + self.JJ_params['indent']) * np.sin(self.angle)
         # print(self.angle)
         self.JJ = JJ4q.JJ_1(self.JJ_params['x'], self.JJ_params['y'],
                                 self.JJ_params['a1'], self.JJ_params['a2'],
@@ -527,23 +527,22 @@ class IlyaCoupler:
                                 self.JJ.y_end - 1),
                                (self.JJ.x_end + self.JJ.contact_pad_a /2 ,
                                 self.JJ.y_end - self.JJ.contact_pad_b - indent), layer=6)
-        if self.Coaxmon1.center.x != self.Coaxmon2.center.x:
-            # print(self.Coaxmon1.center.x,self.Coaxmon2.center.x)
+        if self.Coaxmon1.center[0] != self.Coaxmon2.center[0]:
             poly1 = gdspy.Polygon([(self.JJ_params['x'] - self.JJ.contact_pad_a / 2,
                                     self.JJ_params['y'] +indent),
                                    (self.JJ_params['x'] - self.JJ.contact_pad_a / 2,
                                     self.JJ_params['y'] + indent-self.JJ.contact_pad_b),
-                                   (self.JJ_params['x'] - self.JJ.contact_pad_a-indent,self.Coaxmon1.center.y-self.core/2),
-                                   (self.JJ_params['x'] - self.JJ.contact_pad_a-indent,self.Coaxmon1.center.y+self.core/2)
+                                   (self.JJ_params['x'] - self.JJ.contact_pad_a-indent,self.Coaxmon1.center[1]-self.core/2),
+                                   (self.JJ_params['x'] - self.JJ.contact_pad_a-indent,self.Coaxmon1.center[1]+self.core/2)
                                    ])
             poly2 = gdspy.Polygon([(self.JJ.x_end + self.JJ.contact_pad_a / 2,
                                     self.JJ.y_end -indent-self.JJ.contact_pad_b),
                                    (self.JJ.x_end + self.JJ.contact_pad_a / 2,
                                     self.JJ.y_end - indent ),
                                    (self.JJ.x_end + self.JJ.contact_pad_a + indent,
-                                    self.Coaxmon1.center.y + self.core / 2),
+                                    self.Coaxmon1.center[1] + self.core / 2),
                                    (self.JJ.x_end + self.JJ.contact_pad_a + indent,
-                                    self.Coaxmon1.center.y - self.core / 2)
+                                    self.Coaxmon1.center[1] - self.core / 2)
                                    ])
         else:
             poly1 = []
@@ -568,10 +567,10 @@ class IlyaCoupler:
                                (self.squid_params['x'] + self.squid.contact_pad_a_outer / 2,
                                 self.squid_params['y'] - self.squid.contact_pad_b_outer), layer=self.total_layer)
 
-        if self.Coaxmon1.center.x == self.Coaxmon2.center.x:
+        if self.Coaxmon1.center[0] == self.Coaxmon2.center[0]:
             path1=gdspy.Polygon([(self.squid_params['x'], self.squid_params['y'] ),
-                                 (self.Coaxmon1.center.x, self.squid_params['y'] ),
-                                 (self.Coaxmon1.center.x, self.squid_params['y'] - self.squid.contact_pad_b_outer),
+                                 (self.Coaxmon1.center[0], self.squid_params['y'] ),
+                                 (self.Coaxmon1.center[0], self.squid_params['y'] - self.squid.contact_pad_b_outer),
                                  (self.squid_params['x'], self.squid_params['y'] - self.squid.contact_pad_b_outer)])
             rect=gdspy.boolean(rect,path1,'or',layer=self.total_layer)
 
