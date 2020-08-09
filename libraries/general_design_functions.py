@@ -111,7 +111,10 @@ class Coaxmon:
         result = gdspy.boolean(ground, core, 'or', layer=self.total_layer)
         if len(self.Couplers) != 0:
             for Coupler in self.Couplers:
-                result = gdspy.boolean(Coupler.generate_coupler(self.center, self.R2, self.R3, self.R4,), result, 'or', layer=self.total_layer)
+                if Coupler.grounded == True:
+                    result = gdspy.boolean(Coupler.generate_coupler(self.center, self.R2, self.outer_ground,self.R4 ), result, 'or', layer=self.total_layer)
+                else:
+                    result = gdspy.boolean(Coupler.generate_coupler(self.center, self.R2, self.R3, self.R4), result, 'or', layer=self.total_layer)
         self.JJ_coordinates = (self.center[0] + self.R1*np.cos(self.JJ_params['angle_qubit']), self.center[1] + self.R1*np.sin(self.JJ_params['angle_qubit']))
         JJ,rect = self.generate_JJ()
         result = gdspy.boolean(result, rect, 'or')
@@ -134,16 +137,17 @@ class Coaxmon:
         rect.rotate(angle,(self.JJ_coordinates[0],self.JJ_coordinates[1]))
         return result,rect
 class QubitCoupler:
-    def __init__(self, arc_start, arc_finish, phi, w):
+    def __init__(self, arc_start, arc_finish, phi, w, grounded=False):
         self.arc_start = arc_start
         self.arc_finish = arc_finish
         self.phi = phi
         self.w = w
+        self.grounded = grounded
     def generate_coupler(self,coordinate,r_init,r_final,rect_end):
         #to fix bug
         bug=5
         result = gdspy.Round(coordinate, r_init, r_final,
-                              initial_angle=(self.arc_start) * np.pi, final_angle=(self.arc_finish) * np.pi)
+                                  initial_angle=(self.arc_start) * np.pi, final_angle=(self.arc_finish) * np.pi)
         rect = gdspy.Rectangle((coordinate[0]+r_final-bug,coordinate[1]-self.w/2),(coordinate[0]+rect_end+bug, coordinate[1]+self.w/2))
         rect.rotate(self.phi*np.pi, coordinate)
         return gdspy.boolean(result,rect, 'or')
