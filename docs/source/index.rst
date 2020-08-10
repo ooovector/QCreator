@@ -9,3 +9,4 @@ code for superconducting qubits design creation.
 
    guide/installation
    guide/general_information
+   guide/meshpy_information
