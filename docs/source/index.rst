@@ -6,7 +6,9 @@ code for superconducting qubits design creation.
 
 
 .. toctree::
+   :maxdepth: 1
 
    guide/installation
    guide/general_information
    guide/meshpy_information
+   ipynb/ipynb_examples

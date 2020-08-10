@@ -1,0 +1,9 @@
+Here ipynb examples
+==========================
+smth
+
+
+.. toctree::
+   :maxdepth: 2
+
+   ipynb\mesh_test

@@ -1,33 +1,35 @@
 Running C:\Program Files (x86)\LayoutEditor\bin\fastcap.exe LayoutEditor 0.1 (fastlc)
   Input: E:\Github\QCreator\Meshing\1_attempt
-  Date: Sat Aug  8 21:46:48 2020
+  Date: Tue Aug 11 00:17:48 2020
 
 INPUT SUMMARY
   Expansion order: 2
-  Number of partitioning levels: 8
+  Number of partitioning levels: 9
   Overall permittivity factor: 1
 Title: `'
-  Total number of panels: 14666
-    Number of conductor panels: 14666
+  Total number of panels: 66351
+    Number of conductor panels: 66351
     Number of dielectric interface panels: 0
     Number of thin conductor on dielectric interface panels: 0
   Number of conductors: 4
-No expansions at level 8 (lowest)
-Percentage of multiplies done by multipole: 98.8%
+No expansions at level 9 (lowest)
+Percentage of multiplies done by multipole: 87.5%
 
 ITERATION DATA
 Starting on column 1 (1.0%GROUP1)
-1 2 3 4 5 6 7 8 9 10 11 12 
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 
+16 
 Starting on column 2 (2.0%GROUP1)
-1 2 3 4 5 6 7 8 9 10 11 12 
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 
+16 
 Starting on column 3 (3.0%GROUP1)
-1 2 3 4 5 6 7 8 9 10 11 
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 
 Starting on column 4 (4.0%GROUP1)
-1 2 3 4 5 6 7 8 9 10 11 
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 
 
 CAPACITANCE MATRIX, picofarads
                        1            2            3            4 
-1.0%GROUP1 1    6.798e+04   -2.016e+04        -7437        -7468
-2.0%GROUP1 2   -2.016e+04    2.491e+04        -1176        -1178
-3.0%GROUP1 3        -7437        -1176    1.016e+04       -20.76
-4.0%GROUP1 4        -7468        -1178       -20.76    1.019e+04
+1.0%GROUP1 1     6.88e+04    -2.08e+04        -7486        -7517
+2.0%GROUP1 2    -2.08e+04    2.559e+04        -1189        -1189
+3.0%GROUP1 3        -7486        -1189    1.022e+04        -20.7
+4.0%GROUP1 4        -7517        -1189        -20.7    1.024e+04
