@@ -146,18 +146,10 @@ class transmission_line_coupler:
 
 
         for mode_pair_id, mode_pair in enumerate(self.propagating_modes()):
-            '''
             boundary_condition_matrix[       0:self.n,  self.n*4+mode_pair_id] = -np.asarray(mode_pair[1][:self.n])
-            boundary_condition_matrix[  self.n:self.n*2,self.n*4+mode_pair_id] = -np.asarray(mode_pair[1][:self.n])*np.exp(mode_pair[0]*self.l*omega)
+            boundary_condition_matrix[  self.n:self.n*2,self.n*4+mode_pair_id] = -np.asarray(mode_pair[1][:self.n])*np.exp(1j*mode_pair[0]*self.l*omega)
             boundary_condition_matrix[self.n*2:self.n*3,self.n*4+mode_pair_id] = np.asarray(mode_pair[1][self.n:])
-            boundary_condition_matrix[self.n*3:        ,self.n*4+mode_pair_id] = -np.asarray(mode_pair[1][self.n:])*np.exp(mode_pair[0]*self.l*omega)
-            '''
-
-
-            boundary_condition_matrix[       0:self.n,  self.n*4+mode_pair_id] = -np.asarray(mode_pair[1][:self.n])
-            boundary_condition_matrix[  self.n:self.n*2,self.n*4+mode_pair_id] = -np.asarray(mode_pair[1][:self.n])*(complex(np.round(np.cos(mode_pair[0]*self.l*omega), 4)) + complex(1j*np.round(np.sin(mode_pair[0]*self.l*omega), 4)))
-            boundary_condition_matrix[self.n*2:self.n*3,self.n*4+mode_pair_id] = np.asarray(mode_pair[1][self.n:])
-            boundary_condition_matrix[self.n*3:        ,self.n*4+mode_pair_id] = -np.asarray(mode_pair[1][self.n:])*(complex(np.round(np.cos(mode_pair[0]*self.l*omega), 4)) + complex(1j*np.round(np.sin(mode_pair[0]*self.l*omega), 4)))
+            boundary_condition_matrix[self.n*3:        ,self.n*4+mode_pair_id] = -np.asarray(mode_pair[1][self.n:])*np.exp(1j*mode_pair[0]*self.l*omega)
         #print(mode_pair)
         return boundary_condition_matrix
 

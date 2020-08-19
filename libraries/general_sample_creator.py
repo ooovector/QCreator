@@ -23,6 +23,7 @@ class Sample:
         self.label_cell = gdspy.Cell(self.name + ' labels')
         self.cell_to_remove = gdspy.Cell(self.name + ' remove')
 
+        self.layer_configurations = layer_configurations
         self.total_layer = layer_configurations['total']
         self.restricted_area_layer = layer_configurations['restricted area']
         self.layer_to_remove = layer_configurations['for removing']
@@ -37,12 +38,12 @@ class Sample:
         self.sample_horizontal_size = None
 
         self.pads = []
-        self.coaxmons = []
+        self.qubits = []
         self.lines = []
         self.bridges = []
         self.couplers = []
-
-        self.MinDist = 4 / np.pi
+        self.resonators = []
+        self.purcells = []
 
     # General methods for all qubit classes
     def numerate(self, name, number, coordinate):
@@ -57,7 +58,7 @@ class Sample:
 
     def generate_sample_edges_and_pads(self):
         results_total, restricted_area = gdf.Pads.generate_ground(self.pads,
-                                                              self.sample_vertical_size, self.sample_horizontal_size, self.total_layer,
+                                                              self.sample_horizontal_size, self.sample_vertical_size, self.total_layer,
                                                               self.restricted_area_layer)
         self.total_cell.add(results_total)
         self.restricted_area_cell.add(restricted_area)
@@ -167,12 +168,19 @@ class Sample:
         return (firstline.end[0] + 2 * narrowing_length + airbridge[0] * 2 + airbridge[1], firstline.end[1]), None
 
     def finish_him(self):
+        # self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.total_layer, 0)],
+        #                               self.total_cell.get_polygons(by_spec=True)[(self.total_layer, 0)], 'or',
+        #                               layer=self.total_layer))
         self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.total_layer, 0)],
                                       self.cell_to_remove.get_polygons(by_spec=True)[(2, 0)], 'not',
                                       layer=self.total_layer))
-        self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.total_layer, 0)],
-                                      self.cell_to_remove.get_polygons(by_spec=True)[(2, 0)], 'not',
-                                      layer=self.total_layer))
+        self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.AirbridgesLayer, 0)],
+                                      self.total_cell.get_polygons(by_spec=True)[(self.AirbridgesLayer, 0)], 'or',
+                                      layer=self.AirbridgesLayer))
+        self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.AirbridgesPadLayer, 0)],
+                                      self.total_cell.get_polygons(by_spec=True)[(self.AirbridgesPadLayer, 0)], 'or',
+                                      layer=self.AirbridgesPadLayer))
+        #
         # костыль
 
     #         self.result.add(gdspy.boolean(sample.total_cell.get_polygons(by_spec=True)[(self.total_layer,0)],
@@ -205,17 +213,20 @@ class Sample:
         while gap * i + width * (i + 1) < self.sample_horizontal_size:
             rect_x = gdspy.Rectangle((gap * i + width * i, 0), (gap * i + width * (i + 1), self.sample_vertical_size),
                                      layer=self.gridline_x_layer)
+            i += 1
+            result_x = gdspy.boolean(rect_x, result_x, 'or')
+        i = 0
+        while gap * i + width * (i + 1) < self.sample_vertical_size:
             rect_y = gdspy.Rectangle((0, gap * i + width * i), (self.sample_horizontal_size, gap * i + width * (i + 1)),
                                      layer=self.gridline_y_layer)
             i += 1
-            result_x = gdspy.boolean(rect_x, result_x, 'or')
             result_y = gdspy.boolean(rect_y, result_y, 'or')
         result_x = gdspy.boolean(result_x, result_y, 'not', layer=self.gridline_y_layer)
         rest_area = self.restricted_area_cell.get_polygons(by_spec=True)[(self.restricted_area_layer, 0)]
         result_x = gdspy.boolean(result_x, rest_area, 'not', layer=self.gridline_x_layer)
         result_y = gdspy.boolean(result_y, rest_area, 'not', layer=self.gridline_y_layer)
-        self.result.add(result_x)
-        self.result.add(result_y)
+        if result_x != None: self.result.add(result_x)
+        if result_y != None: self.result.add(result_y)
 
 
     # Resonator + Purcell methods
@@ -284,6 +295,9 @@ class Sample:
 
         return res_begin, res_end
 
+
+
+
     def generate_coupler_purcell_resonator(self, point1, point2, resonator_params, purcell_params, l, h, h_ground):
         import Coupler_purcell_resonator_idea1 as coup
         coupler = coup.Coupler_resonator_purcell(point1, point2,
@@ -296,14 +310,16 @@ class Sample:
 
 
     #Specific methods
-    def add_coaxmon(self, coordinate, r1, r2, r3, r4, outer_ground, Couplers, JJ, angle=0, mirror=False):
-        self.coaxmons.append(gdf.Coaxmon(coordinate, r1, r2, r3, r4, outer_ground, self.total_layer,
+    def add_qubit(self,Qubit,*args, **kwargs,):
+        angle=kwargs['angle']
+
+        self.qubits.append(gdf.Coaxmon(coordinate, r1, r2, r3, r4, outer_ground, self.total_layer,
                                          self.restricted_area_layer, self.JJ_layer, Couplers, JJ))
-        qubit_total, restricted_area, JJ_total = self.coaxmons[-1].generate_qubit()
-        self.total_cell.add(qubit_total.rotate(angle, coordinate))
+        qubit_total, restricted_area, JJ_total = self.qubits[-1].generate_qubit()
+        self.total_cell.add(qubit_total.rotate(angle, args[0]))
         self.total_cell.add(JJ_total)  # .rotate(angle,(center_point.x,center_point.y))
         self.restricted_area_cell.add(restricted_area)
-        self.numerate("Coax", len(self.coaxmons) - 1, coordinate)
+        self.numerate("Qb", len(self.qubits) - 1, args[0])
 
     def add_qubit_coupler(self, core, gap, ground, Coaxmon1, Coaxmon2, JJ, squid):
         coupler = gdf.IlyaCoupler(core, gap, ground, Coaxmon1, Coaxmon2, JJ, squid,
@@ -315,6 +331,71 @@ class Sample:
         self.restricted_area_cell.add(line[1])
         self.cell_to_remove.add([line[2], JJ[2]])
         self.numerate("IlCoup", len(self.couplers) - 1, ((Coaxmon1.center[0]+Coaxmon2.center[0])/2, (Coaxmon1.center[1]+Coaxmon2.center[1])/2))
+
+    def generate_round_resonator(self, frequency, initial_point,
+                               core, gap, ground,
+                               open_end_length,open_end, coupler_length,
+                               l1, l2, l3,l4,l5, h_end, corner_type='round',angle=0,
+                               bridge_params=None):
+        resonator = gdf.RoundResonator(frequency, initial_point,
+                               core, gap, ground,
+                               open_end_length,open_end, coupler_length,
+                               l1, l2, l3,l4,l5, h_end,corner_type, self.total_layer, self.restricted_area_layer)
+        self.resonators.append(resonator)
+        line,line1,open_end, points = resonator.generate_resonator()
+        if bridge_params is not None:
+            distance, offset, width, length, padsize, line_type = bridge_params
+            for num_line in range(len(points) - 1):
+                start, finish = points[num_line], points[num_line + 1]
+                if finish[0] - start[0] == 0:
+                    line_angle = np.pi / 2
+                else:
+                    line_angle = np.arctan((finish[1] - start[1]) / (finish[0] - start[0]))
+                if finish[1] - start[1] < 0 or finish[1] - start[1] == 0 and finish[0] - start[0] < 0:
+                    line_angle += np.pi
+                line_length = np.sqrt((finish[0] - start[0]) ** 2 + (finish[1] - start[1]) ** 2)
+                total_bridges = int((line_length - 2 * offset) / distance)
+                offset = (line_length - total_bridges * float(distance)) / 2
+                for num_bridge in range(int((line_length - 2 * offset) / distance) + 1):
+                    bridge_center = (start[0] + np.cos(line_angle) * (offset + num_bridge * distance),
+                                     start[1] + np.sin(line_angle) * (offset + num_bridge * distance))
+                    self.generate_bridge(bridge_center, width, length, padsize, line_angle + np.pi / 2,
+                                         line_type=line_type)
+        # self.total_cell.add(line)
+        # self.total_cell.add(end.rotate(angle))
+        # self.restricted_area_cell.add(end.rotate(angle))
+        # self.cell_to_remove.add(end)
+
+
+        for obj in [line, line1, open_end]:
+            self.total_cell.add(obj[0].rotate(angle,initial_point))
+            self.restricted_area_cell.add(obj[1].rotate(angle,initial_point))
+            self.cell_to_remove.add(obj[2].rotate(angle,initial_point))
+        # self.total_cell.add(line[1])
+        # self.cell_to_remove.add(line[2])
+        # res_end = resonator_end
+        # res_begin = resonator_begin
+        # return res_begin, res_end
+    def generate_array_of_bridges(self,points,bridge_params):
+        if bridge_params is not None:
+            distance, offset, width, length, padsize, line_type = bridge_params
+            for num_line in range(len(points) - 1):
+                start, finish = points[num_line], points[num_line + 1]
+                if finish[0] - start[0] == 0:
+                    line_angle = np.pi / 2
+                else:
+                    line_angle = np.arctan((finish[1] - start[1]) / (finish[0] - start[0]))
+                if finish[1] - start[1] < 0 or finish[1] - start[1] == 0 and finish[0] - start[0] < 0:
+                    line_angle += np.pi
+                line_length = np.sqrt((finish[0] - start[0]) ** 2 + (finish[1] - start[1]) ** 2)
+                total_bridges = int((line_length - 2 * offset) / distance)
+                offset = (line_length - total_bridges * float(distance)) / 2
+                for num_bridge in range(int((line_length - 2 * offset) / distance) + 1):
+                    bridge_center = (start[0] + np.cos(line_angle) * (offset + num_bridge * distance),
+                                     start[1] + np.sin(line_angle) * (offset + num_bridge * distance))
+                    self.generate_bridge(bridge_center, width, length, padsize,line_angle+np.pi/2,
+                    line_type = line_type)
+        return True
 def calculate_total_length(points):
     i0, j0 = points[0]
     length = 0

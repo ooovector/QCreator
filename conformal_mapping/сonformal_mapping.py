@@ -164,6 +164,6 @@ class ConformalMapping:
 
         L = C_inv*(epsilon + 1)*epsilon_0/(1/(mu*mu_0)+1/mu_0)
 
-        #Z = np.dot(L, C_inv)
+        # Z = np.sqrt(np.dot(L,C_inv))
 
         return C, L

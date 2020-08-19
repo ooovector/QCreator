@@ -2,7 +2,7 @@ import gdspy
 import numpy as np
 import libraries.squid3JJ as squid3JJ
 import libraries.JJ4q as JJ4q
-
+from copy import deepcopy
 #common clases
 class coordinates:
     def __init__(self, x, y):
@@ -377,17 +377,21 @@ class Feedline:
     def generate_open_end(self,end):
         end_gap = end['gap']
         end_ground_length = end['ground']
-        x_begin = self.end[0]
-        y_begin = self.end[1]
-
+        if end['end']:
+            x_begin = self.end[0]
+            y_begin = self.end[1]
+            additional_rotation = -np.pi/2
+        if end['begin']:
+            x_begin = self.points[0][0]
+            y_begin = self.points[0][1]
+            additional_rotation = -np.pi / 2
         restricted_area = gdspy.Rectangle((x_begin-self.core/2-self.gap-self.ground,y_begin),
-                                         (x_begin+self.core/2+self.gap+self.ground,y_begin+end_gap+end_ground_length))
+                                         (x_begin+self.core/2+self.gap+self.ground,y_begin+end_gap+end_ground_length),layer=10)#fix it
         rectangle_for_removing = gdspy.Rectangle((x_begin-self.core/2-self.gap,y_begin),
-                                         (x_begin+self.core/2+self.gap, y_begin+end_gap))
+                                         (x_begin+self.core/2+self.gap, y_begin+end_gap),layer=2)
         total = gdspy.boolean(restricted_area,rectangle_for_removing,'not')
-        total.rotate(-np.pi/2+self.angle, self.end)
-        restricted_area.rotate(-np.pi/2+self.angle, self.end)
-        rectangle_for_removing.rotate(-np.pi/2+self.angle, self.end)
+        for obj in [total,restricted_area,rectangle_for_removing]:
+            obj.rotate(additional_rotation+self.angle,(x_begin,y_begin))
         return total, restricted_area , rectangle_for_removing
 
 class Narrowing:
@@ -588,88 +592,118 @@ class IlyaCoupler:
 
 
 
-# class Resonator:
-#
-#     def __init__(self, frequency, initial_point, width_central, width_gap, width_ground, open_end_length, coupler_length, l3, l4, l5, h_end):
-#         self._x = initial_point[0] + coupler_length/2
-#         self._y = initial_point[1]-open_end_length
-#         self._width_central = width_central
-#         self._width_ground = width_ground
-#         self._distance_between = width_gap
-#         self._l1 = open_end_length
-#         self._l2 = coupler_length
-#         self._l3 = l3
-#         self._l4 = l4
-#         self._l5 = l5
-#         self.f = frequency
-#         self.c = 299792458
-#         self.epsilon_eff = (11.45+1)/2
-#         self._L = self.c/(4*np.sqrt(self.epsilon_eff)*frequency)*1e6 - self._l1-self._l2-self._l3-self._l4-self._l5
-#         self._h_end = h_end
-#
-#     def Generate_resonator(self,angle):
-#         const = self._width_ground + self._distance_between + self._width_central/2
-#         offset=self._distance_between+(self._width_central+self._width_ground)/2
-#
-#         x1=self._l1+const
-#         x2=self._l3+2*const
-#         x3=self._l5-const
-#
-#         element1=x1-x2-x3-2*const
-#         element2=self._x-(self._x-self._l2+self._l4)
-#         element=element1+element2
-#         D=element2
-#
-#         L_new=self._L-const
-#         N = int(np.floor((L_new)/(element)))
-#         tail=L_new-N*element
-#
-#         Number_of_points=[((self._x-self._l2+self._l4,self._y+self._l1-self._l3-self._l5))]
-#         i=1
-#         while i < N+1:
-#
-#             if i%2!=0:
-#                 list1=[(self._x-self._l2+self._l4-(i-1)*D,self._y+self._width_ground+self._distance_between+self._width_central/2),
-#                       (self._x-self._l2+self._l4-i*D,self._y+self._width_ground+self._distance_between+self._width_central/2)]
-#
-#                 Number_of_points.extend(list1)
-#
-#             else:
-#                 list2=[(self._x-self._l2+self._l4-(i-1)*D,self._y+self._l1-self._l3-self._l5-(self._width_ground+self._distance_between+self._width_central/2)),
-#                        (self._x-self._l2+self._l4-i*D,self._y+self._l1-self._l3-self._l5-(self._width_ground+self._distance_between+self._width_central/2))]
-#                 Number_of_points.extend(list2)
-#             i = i + 1
-#
-#         if (N)%2!=0:
-#                 tail1=Number_of_points[2*N][1]+tail-const
-#                 list_add_tail1=[(Number_of_points[2*N][0],tail1)]
-#
-#                 Number_of_points.extend(list_add_tail1)
-#
-#         else:
-#                 tail2=Number_of_points[2*N][1]-tail-const
-#                 list_add_tail2=[(Number_of_points[2*N][0],tail2) ]
-#                 Number_of_points.extend(list_add_tail2)
-#
-#         if (N)%2!=0:
-#
-#
-#             end1=(Number_of_points[2*N+1][0]+const, Number_of_points[2*N+1][1])
-#             end2=(Number_of_points[2*N+1][0]+const, Number_of_points[2*N+1][1]+self._h_end)
-#             end3=(Number_of_points[2*N+1][0]-const, Number_of_points[2*N+1][1]+self._h_end)
-#             end4=(Number_of_points[2*N+1][0]-const, Number_of_points[2*N+1][1])
-#
-#         else:
-#             end1=(Number_of_points[2*N+1][0]+const, Number_of_points[2*N+1][1])
-#             end2=(Number_of_points[2*N+1][0]+const, Number_of_points[2*N+1][1]-self._h_end)
-#             end3=(Number_of_points[2*N+1][0]-const, Number_of_points[2*N+1][1]-self._h_end)
-#             end4=(Number_of_points[2*N+1][0]-const, Number_of_points[2*N+1][1])
-#
-#         line = gdspy.FlexPath([(self._x, self._y), (self._x, self._y+self._l1), (self._x-self._l2,self._y+self._l1),(self._x-self._l2, self._y+self._l1-self._l3),(self._x-self._l2+self._l4,self._y+self._l1-self._l3), (self._x-self._l2+self._l4,self._y+self._l1-self._l3-self._l5)],[self._width_ground, self._width_central, self._width_ground],offset,ends=["flush", "flush", "flush"],precision=0.1)
-#         line1 = gdspy.FlexPath(Number_of_points,[self._width_ground, self._width_central, self._width_ground],offset,ends=["flush", "flush", "flush"])
-#
-#         end = gdspy.Polygon([end1,end2,end3,end4])
-#
-#         result = gdspy.boolean(line, line1, 'or')
-#         result = gdspy.boolean(end, result, 'or')
-#         return result.rotate(angle, (self._x,self._y))
+class RoundResonator:
+
+    def __init__(self, frequency, initial_point, core, gap, ground, open_end_length,open_end, coupler_length, l1, l2, l3,l4, l5, h_end,corner_type,
+                 total_layer, restricted_area_layer):
+        self._start_x = initial_point[0] + coupler_length/2
+        self._start_y = initial_point[1]-open_end_length
+        self.total_layer = total_layer
+        self.restricted_area_layer = restricted_area_layer
+        self.core = core
+        self.ground = ground
+        self.gap = gap
+        self.open_end_length = open_end_length
+        self.open_end = open_end
+        self.coupler_length = coupler_length
+        self._l1 = l1
+        self._l2 = l2
+        self._l3 = l3
+        self._l4 = l4
+        self._l5 = l5
+        self.f = frequency
+        self.c = 299792458
+        self.epsilon_eff = (11.45+1)/2
+        self.L = self.c/(4*np.sqrt(self.epsilon_eff)*frequency)*1e6
+        self._h_end = h_end
+        self.corner_type = corner_type
+        self.points = None
+    def generate_resonator(self):
+
+        # specify points to generate everything before a meander
+        points = [(self._start_x, self._start_y), (self._start_x, self._start_y + self.open_end_length),
+                  (self._start_x-self.coupler_length/2, self._start_y),
+                  (self._start_x-self.coupler_length/2, self._start_y - self._l1),
+                  (self._start_x-self.coupler_length/2 + self._l2,  self._start_y - self._l1),
+                  (self._start_x-self.coupler_length/2 + self._l2, self._start_y - self._l1-self._l3)]
+        # line0 = Feedline(points, self.core, self.gap, self.ground, None, self.total_layer, self.restricted_area_layer,
+        #                  R=40)
+        # line = line0.generate_feedline(self.corner_type)
+        # open_end = line0.generate_end(self.open_end)
+        # generate the meander
+        L_meander=self.L - self.open_end_length-self.coupler_length-self._l1-self._l2-self._l3-self._l4-self._l5
+        if L_meander <=0:
+            print("Error!Meander length for a resonator is less than zero")
+        meander_step = self._l4 + self._l5
+        N = int(L_meander // meander_step)
+        tail = np.floor(L_meander - N * meander_step)
+        print(tail)
+        # const = self.ground + self.gap + self.core/2
+        # offset=self.gap+(self.core+self.ground)/2
+        meander_points = deepcopy(points)
+        i = 1
+        while i < N + 1:
+            if i % 2 != 0:
+                list1 = [
+                    (meander_points[-1][0] - (i - 1) * self._l4, meander_points[-1][1]),
+                    (meander_points[-1][0] - i * self._l4, meander_points[-1][1])]
+                meander_points.extend(list1)
+
+            else:
+                list1 = [(meander_points[-1][0] - (i - 1) * self._l4,
+                          self._y + self._l1 - self._l3 - self._l5 - (self.ground + self.gap + self.core / 2)),
+                         (meander_points[-1][0] - (i - 1) * self._l4,
+                          self._y + self._l1 - self._l3 - self._l5 - (self.ground + self.gap + self.core / 2))]
+                meander_points.extend(list1)
+            i = i + 1
+        #
+        # if (N)%2!=0:
+        #         tail1=Number_of_points[2*N][1]+tail-const
+        #         list_add_tail1=[(Number_of_points[2*N][0],tail1)]
+        #         Number_of_points.extend(list_add_tail1)
+        # else:
+        #         tail2=Number_of_points[2*N][1]-tail-const
+        #         list_add_tail2=[(Number_of_points[2*N][0],tail2) ]
+        #         Number_of_points.extend(list_add_tail2)
+        # if (N)%2!=0:
+        #     end1=(Number_of_points[2*N+1][0]+const, Number_of_points[2*N+1][1])
+        #     end2=(Number_of_points[2*N+1][0]+const, Number_of_points[2*N+1][1]+self._h_end)
+        #     end3=(Number_of_points[2*N+1][0]-const, Number_of_points[2*N+1][1]+self._h_end)
+        #     end4=(Number_of_points[2*N+1][0]-const, Number_of_points[2*N+1][1])
+        # else:
+        #     end1=(Number_of_points[2*N+1][0]+const, Number_of_points[2*N+1][1])
+        #     end2=(Number_of_points[2*N+1][0]+const, Number_of_points[2*N+1][1]-self._h_end)
+        #     end3=(Number_of_points[2*N+1][0]-const, Number_of_points[2*N+1][1]-self._h_end)
+        #     end4=(Number_of_points[2*N+1][0]-const, Number_of_points[2*N+1][1])
+        # end = gdspy.Polygon([end1, end2, end3, end4])
+
+        # open_end_rects = gdspy.Polygon([
+        #     (self._x+self.core/2+self.gap, self._y),
+        #     (self._x+self.core/2+self.gap, self._y-self.open_end),
+        #     (self._x-self.core/2-self.gap, self._y-self.open_end),
+        #     (self._x+self.core/2+self.gap, self._y),
+        # ])
+
+
+
+
+        line1 = Feedline(deepcopy(Number_of_points), self.core, self.gap, self.ground, None, self.total_layer, self.restricted_area_layer,
+                        R=40)
+        line1 = line1.generate_feedline(self.corner_type)
+        line2 = []
+        line2.append(gdspy.boolean(line1[0],end,'or',layer=self.total_layer))
+        line2.append(gdspy.boolean(line1[1],end,'or',layer=self.restricted_area_layer))
+        line2.append(line1[2])
+        # line = gdspy.FlexPath(points,offset,
+        #                       corners=["circular bend", "circular bend", "circular bend"],
+        #                       bend_radius=[20,20, 20],ends=[end_type, end_type, end_type],precision=0.1)
+        # line1 = gdspy.FlexPath(Number_of_points,[self.ground, self.core, self.ground],offset,
+        #                        corners=["circular bend", "circular bend", "circular bend"],
+        #                        bend_radius=[20,20, 20], ends=[end_type, end_type, end_type])
+
+
+
+        # result = gdspy.boolean(line, line1, 'or')
+        # result = gdspy.boolean(end, result, 'or')
+        # return result.rotate(angle, (self._x,self._y))
+        return line,line2,open_end, Number_of_points
