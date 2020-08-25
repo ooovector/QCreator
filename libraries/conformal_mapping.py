@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.constants import epsilon_0, mu_0
-epsilon=11.45
-mu=1
+
 
 def points_coupler(elements):
     '''
@@ -84,12 +83,17 @@ def gauss_chebyshev(numerator_points, denumerator_points, limits, n=100):
     #print('y', y)
     return np.sum(y)*np.pi/n
 
-class ConformalMapping:
 
+class ConformalMapping:
     def __init__(self, elements):
         self.elements = np.asarray(elements)
 
-    def cl_and_Ll(self, C=None):
+    def cl_and_Ll(self):
+
+        ##TODO: this is zashkvar
+        epsilon = 11.45
+        mu = 1
+
         points = points_coupler(self.elements)
         #print('Initial points', points)
 

@@ -1,115 +1,100 @@
 import numpy as np
-# import sympy
-# from scipy.optimize import fsolve
-from scipy.constants import epsilon_0, mu_0
-import math
 
-# from scipy.optimize import root
-# from scipy.optimize import minimize
 
-#def triangulation(M):
-
-# def sympy_to_numpy(Matrix):
-#     matrix = np.array(Matrix)
-#     x = np.zeros((np.shape(matrix)[0], np.shape(matrix)[1]))
-#     for i in range(np.shape(matrix)[0]):
-#         for j in range(np.shape(matrix)[1]):
-#             x[i][j] = matrix[i][j]
-#     return x
-
-def det_gauss_elimination(a):
-       '''
-       calculate determinant using gauss-elimination method
-       '''
-       a = np.copy(a)
-
-       assert(a.shape[0] == a.shape[1])
-       n = a.shape[0]
-
-       # Set up scale factors
-       s = np.zeros(n)
-
-       mult = 0
-       for i in range(n):
-           s[i] = max(np.abs(a[i,:])) # find the max of each row
-       for k in range(0, n-1): #pivot row
-           # Row interchange, if needed
-           p = np.argmax(np.abs(a[k:n,k])/s[k:n]) + k
-           if p != k:
-               a[[k,p],:] = a[[p, k],:]
-               s[k],s[p] = s[p],s[k]
-               mult = mult + 1
-
-           # convert a to upper triangular matrix
-           for i in range(k+1,n):
-               if a[i,k] != 0.0: # skip if a(i,k) is already zero
-                   lam = a [i,k]/a[k,k]
-                   a[i,k:n] = a[i,k:n] - lam*a[k,k:n]
-
-       determinant = np.prod(np.diag(a))* (-1)**mult
-       return determinant
-
-class resistor:
-    def num_terminals(self):
+class Resistor:
+    @staticmethod
+    def num_terminals():
         return 2
-    def num_degrees_of_freedom(self):
+
+    @staticmethod
+    def num_degrees_of_freedom():
         return 0
+
     def boundary_condition(self, omega):
-        return np.asarray([[1, -1, 0, self.R],[0,0,1,1]], dtype=complex)
-    def __init__(self, R=None):
-        self.R = R
+        return np.asarray([[1, -1, 0, self.R], [0, 0, 1, 1]], dtype=complex)
+
+    def __init__(self, r=None):
+        self.R = r
         pass
 
-class capacitor:
-    def num_terminals(self):
+
+class Capacitor:
+    @staticmethod
+    def num_terminals():
         return 2
-    def num_degrees_of_freedom(self):
+
+    @staticmethod
+    def num_degrees_of_freedom():
         return 0
+
     def boundary_condition(self, omega):
         return np.asarray([[1j*omega*self.C, -1j*omega*self.C, 0, 1], [0,0,1,1]], dtype=complex)
-    def __init__(self, C=None):
-        self.C = C
-        pass
-class inductor:
-    def num_terminals(self):
-        return 2
-    def num_degrees_of_freedom(self):
-        return 0
-    def boundary_condition(self, omega):
-        return np.asarray([[1, -1, 0, 1j*omega*self.L], [0,0,1,1]], dtype=complex)
-    def __init__(self, L=None):
-        self.L = L
+
+    def __init__(self, c=None):
+        self.C = c
         pass
 
-class short:
-    def num_terminals(self):
-        return 1
-    def num_degrees_of_freedom(self):
+
+class Inductor:
+    @staticmethod
+    def num_terminals():
+        return 2
+
+    @staticmethod
+    def num_degrees_of_freedom():
         return 0
+
     def boundary_condition(self, omega):
+        return np.asarray([[1, -1, 0, 1j*omega*self.L], [0,0,1,1]], dtype=complex)
+
+    def __init__(self, l=None):
+        self.L = l
+        pass
+
+
+class Short:
+    @staticmethod
+    def num_terminals():
+        return 1
+
+    @staticmethod
+    def num_degrees_of_freedom():
+        return 0
+
+    @staticmethod
+    def boundary_condition(omega):
         return np.asarray([[1, 0]], dtype=complex)
+
     def __init__(self):
         pass
 
 
-class port:
-    def num_terminals(self):
+class Port:
+    @staticmethod
+    def num_terminals():
         return 1
-    def num_degrees_of_freedom(self):
+
+    @staticmethod
+    def num_degrees_of_freedom():
         return 1
+
     def boundary_condition(self, omega):
         return np.asarray([[1,0,self.Z0], [0,-1,1]], dtype=complex)
-    def __init__(self, Z0=None):
-        self.Z0 = Z0
 
-class transmission_line_coupler:
+    def __init__(self, z0=None):
+        self.Z0 = z0
+
+
+class TLCoupler:
     '''
     Here n is a number of conductors in  TL CPW coupler
     '''
     def num_terminals(self):
         return self.n*2
+
     def num_degrees_of_freedom(self):
         return self.n*2
+
     def propagating_modes(self):
         '''
         numpy.hstack puts together two matrix horizontally
@@ -144,7 +129,6 @@ class transmission_line_coupler:
         boundary_condition_matrix = np.zeros((self.num_terminals()*2, self.num_terminals()*2+self.num_degrees_of_freedom()), dtype=complex)
         boundary_condition_matrix[:, :self.num_terminals()*2] = np.identity(self.num_terminals()*2)
 
-
         for mode_pair_id, mode_pair in enumerate(self.propagating_modes()):
             boundary_condition_matrix[       0:self.n,  self.n*4+mode_pair_id] = -np.asarray(mode_pair[1][:self.n])
             boundary_condition_matrix[  self.n:self.n*2,self.n*4+mode_pair_id] = -np.asarray(mode_pair[1][:self.n])*np.exp(1j*mode_pair[0]*self.l*omega)
@@ -153,19 +137,17 @@ class transmission_line_coupler:
         #print(mode_pair)
         return boundary_condition_matrix
 
-    def __init__(self, n=2, l=None, Ll=None, Cl=None, Rl=None, Gl=None):
+    def __init__(self, n=2, l=None, ll=None, cl=None, rl=None, gl=None):
         self.n = n
         self.l = l
-        self.Ll = Ll
-        self.Cl = Cl
-        self.Rl = Rl
-        self.Gl = Gl
+        self.Ll = ll
+        self.Cl = cl
+        self.Rl = rl
+        self.Gl = gl
         pass
 
 
-
-
-class transmission_line_system:
+class TLSystem:
     def __init__(self):
         self.nodes = []   #list of all nodes [0,1,2...]
         self.elements = []   #list of all elements [<transmission_line_simulator_new.name_of_element>, ...]
@@ -182,7 +164,6 @@ class transmission_line_system:
             self.node_multiplicity[node] += 1
         self.terminal_node_mapping.append(nodes)
         return
-
 
     def create_boundary_problem_matrix(self, omega):
         # count nodes
@@ -271,11 +252,7 @@ class transmission_line_system:
                 print('Problem')
                 break
         result = x
-
-
-
         return result
-
 
     def res(self):
         print('self.nodes', self.nodes)

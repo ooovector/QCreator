@@ -1,6 +1,8 @@
 import numpy as np
 import gdspy
-import libraries.general_design_functions as gdf
+#import libraries.general_design_functions as gdf
+from . import general_design_functions as gdf
+from . import transmission_line_simulator as tlsim
 from typing import NamedTuple, SupportsFloat, Any
 
 Bridges_over_line_param = NamedTuple('Bridge_params',
@@ -14,30 +16,19 @@ Bridges_over_line_param = NamedTuple('Bridge_params',
 
 class Sample:
 
-    def __init__(self, name, layer_configurations):
+    def __init__(self, name, configurations):
+        self.layer_configuration = gdf.LayerConfiguration(**configurations)
+        self.chip_geometry = gdf.ChipGeometry(**configurations)
         self.name = str(name)
-
         self.result = gdspy.Cell('result')
         self.total_cell = gdspy.Cell(self.name)
         self.restricted_area_cell = gdspy.Cell(self.name + 'resctricted area')
-        self.label_cell = gdspy.Cell(self.name + ' labels')
-        self.cell_to_remove = gdspy.Cell(self.name + ' remove')
+        #self.label_cell = gdspy.Cell(self.name + ' labels')
+        #self.cell_to_remove = gdspy.Cell(self.name + ' remove')
 
-        self.layer_configurations = layer_configurations
-        self.total_layer = layer_configurations['total']
-        self.restricted_area_layer = layer_configurations['restricted area']
-        self.layer_to_remove = layer_configurations['for removing']
-        self.JJ_layer = layer_configurations['JJs']
-        self.AirbridgesLayer = layer_configurations['air bridges']
-        self.AirbridgesPadLayer = layer_configurations['air bridge pads']
-        self.gridline_x_layer = layer_configurations['vertical gridlines']
-        self.gridline_y_layer = layer_configurations['horizontal gridlines']
+        self.objects = []
 
-
-        self.sample_vertical_size = None
-        self.sample_horizontal_size = None
-
-        self.pads = []
+        #self.pads = []
         self.qubits = []
         self.lines = []
         self.bridges = []
@@ -45,26 +36,96 @@ class Sample:
         self.resonators = []
         self.purcells = []
 
+        self.pads = gdf.Pads(self.objects)
+        self.connections = []
+
+    @staticmethod
+    def default_cpw_radius(w, s, g):
+        return 2*(w+2*s+2*g)
+
+    def add(self, object_):
+        self.objects.append(object_)
+
+    def draw_design(self):
+        for object_ in self.objects:
+            result = object_.get()
+            if 'positive' in result:
+                self.total_cell.add(result['positive'])
+
+    def connect_cpw(self, o1: gdf.DesignElement, o2: gdf.DesignElement, port1: str, port2: str, name: str, points: list):
+        if o1 not in self.objects:
+            raise ValueError('Object o1 not in sample')
+        if o2 not in self.objects:
+            raise ValueError('Object o2 not in sample')
+        t1 = o1.get_terminals()[port1]
+        t2 = o2.get_terminals()[port2]
+        assert t1.type == 'cpw'
+        assert t2.type == 'cpw'
+
+        connections_flat = [i for j in self.connections for i in j]
+        assert (o1, port1) not in connections_flat
+        assert (o2, port2) not in connections_flat
+
+        w = t1.core
+        s = t1.gap
+        g = t1.ground
+
+        assert w == t2.core
+        assert s == t2.gap
+        assert g == t2.ground
+
+        cpw = gdf.CPW(name, points, w, s, g, None, self.layer_configuration, corner_type='round',
+                  R=self.default_cpw_radius(w, s, g))
+        self.add(cpw)
+        self.connections.extend([((cpw, 'port1'), (o1, port1)), ((cpw, 'port2'), (o2, port2))])
+
+    def get_tls(self):
+        """
+        Create a transmission line system of the design
+        :return:
+        """
+        tls = tlsim.TLSystem()
+
+        connections_flat = {}
+        max_connection_id = 0 # ground connection
+        for connection in self.connections:
+            max_connection_id += 1
+            for terminal in connection:
+                connections_flat[terminal] = max_connection_id
+
+        for object_ in self.objects:
+            terminal_node_assignments = {}
+            for terminal_name, terminal in  object_.get_terminals().items():
+                if (object_, terminal_name) in connections_flat:
+                    terminal_node_assignments[terminal_name] = connections_flat[(object_, terminal_name)]
+                else:
+                    max_connection_id += 1
+                    connections_flat[max_connection_id] = (object_, terminal_name)
+                    terminal_node_assignments[terminal_name] = max_connection_id
+
+            object_.add_to_tls(tls, terminal_node_assignments)
+        return tls
+
     # General methods for all qubit classes
     def numerate(self, name, number, coordinate):
-        size=70
-        layer=51
+        size = 70
+        layer = 51
         vtext = gdspy.Text(name + str(number), size, coordinate, horizontal=True, layer=layer)
         # label = gdspy.Label(name + str(number), coordinate, texttype=25)
         self.label_cell.add(vtext)
-    def add_pad(self, TL_core, TL_gap, TL_ground, coordinate):
-        self.pads.append(gdf.Pads(TL_core, TL_gap, TL_ground, coordinate))
-        self.numerate("Pad", len(self.pads)-1,coordinate)
+
+    def add_pad(self, name, w, s, g, position):
+        self.pads.append(gdf.Pad(name, w, s, g, position))
+        self.numerate("Pad", len(self.pads) - 1, position)
 
     def generate_sample_edges_and_pads(self):
-        results_total, restricted_area = gdf.Pads.generate_ground(self.pads,
-                                                              self.sample_horizontal_size, self.sample_vertical_size, self.total_layer,
-                                                              self.restricted_area_layer)
+        results_total, restricted_area = gdf.Pad.generate_ground(self.pads, self.sample_horizontal_size,
+                                                                 self.sample_vertical_size, self.total_layer,
+                                                                 self.restricted_area_layer)
         self.total_cell.add(results_total)
         self.restricted_area_cell.add(restricted_area)
 
-
-    def generate_line(self, points, core, gap, ground, nodes=None, end=None, R=40, corner_type='round',bridge_params=None):
+    def generate_line(self, name, points, core, gap, ground, nodes=None, end=None, R=40, corner_type='round', bridge_params=None):
         """
                 :param bridge_params default is None. In this way there won't be created any addidtional bridges.
                 To create bridges crossing the line define "bridge_params" as a tuple with 5 elements in order:
@@ -93,10 +154,11 @@ class Sample:
                 for num_bridge in range(int((line_length - 2 * offset) / distance) + 1):
                     bridge_center = (start[0] + np.cos(line_angle) * (offset + num_bridge * distance),
                                      start[1] + np.sin(line_angle) * (offset + num_bridge * distance))
-                    self.generate_bridge(bridge_center, width, length, padsize, line_angle + np.pi / 2,
+                    self.generate_bridge('noname', bridge_center, width, length, padsize, line_angle + np.pi / 2,
                                          line_type=line_type)
 
-        self.lines.append(gdf.Feedline(points, core, gap, ground, nodes, self.total_layer, self.restricted_area_layer, R))
+        self.lines.append(gdf.Feedline(name, points, core, gap, ground, nodes, self.total_layer,
+                                       self.restricted_area_layer, R))
         line = self.lines[-1].generate_feedline(corner_type)
         if end is not None:
             end_line = self.lines[-1].generate_end(end)
@@ -108,50 +170,48 @@ class Sample:
         self.restricted_area_cell.add(line[1])
         self.cell_to_remove.add(line[2])
 
-
-
-    def generate_bridge(self, point, width, length, padsize, angle, line_type=None):
-        self.bridges.append(gdf.Airbridge(width, length, padsize, point, angle, line_type))
-        bridge = self.bridges[-1].generate_bridge(self.AirbridgesPadLayer, self.AirbridgesLayer)
+    def generate_bridge(self, name, point, width, length, padsize, angle, line_type=None):
+        self.bridges.append(gdf.Airbridge(name, width, length, padsize, point, angle, line_type))
+        bridge = self.bridges[-1].generate_bridge(self.airbridges_pad_layer, self.airbridges_layer)
         self.total_cell.add(bridge)
         self.result.add(gdspy.boolean(bridge[0], bridge[0], 'or', layer=self.total_layer))
         self.restricted_area_cell.add(gdspy.boolean(bridge[0], bridge[0], 'or', layer=self.restricted_area_layer))
 
-    def generate_narrowing_part(self, firstline, secondline):
+    def generate_narrowing_part(self, name, firstline, secondline):
         narrowing_length = 15
-        narrowing1 = gdf.Narrowing(firstline.end[0], firstline.end[1],
-                               firstline.core, firstline.gap, firstline.ground,
-                               secondline[0], secondline[1], secondline[2],
-                               narrowing_length, firstline.angle + np.pi)
+        narrowing1 = gdf.Narrowing(name, firstline.end[0], firstline.end[1],
+                                   firstline.core, firstline.gap, firstline.ground,
+                                   secondline[0], secondline[1], secondline[2],
+                                   narrowing_length, firstline.angle + np.pi)
         line1 = narrowing1.generate_narrowing()
         self.total_cell.add(line1[0])
-        self.restricted_area_cell.add(gdspy.boolean(line1[1],line1[1],'or',layer=self.restricted_area_layer))
+        self.restricted_area_cell.add(gdspy.boolean(line1[1], line1[1], 'or', layer=self.restricted_area_layer))
         self.cell_to_remove.add(line1[2])
         return (firstline.end[0] + narrowing_length * np.cos(firstline.angle),
                 firstline.end[1] + narrowing_length * np.sin(firstline.angle))
 
-    def generate_bridge_over_feedline(self, firstline, airbridge, secondline, distance_between_airbridges):
+    def generate_bridge_over_feedline(self, name, firstline, airbridge, secondline, distance_between_airbridges):
         narrowing_length = 15
         narrowing1 = gdf.Narrowing(firstline.end[0], firstline.end[1],
                                firstline.core, firstline.gap, firstline.ground,
                                airbridge[2], distance_between_airbridges, airbridge[2],
                                narrowing_length, np.pi + firstline.angle)
-        narrowing2 = gdf.Narrowing(
+        narrowing2 = gdf.Narrowing(name,
             firstline.end[0] + np.cos(firstline.angle) * (narrowing_length + airbridge[0] * 2 + airbridge[1]),
             firstline.end[1] + np.sin(firstline.angle) * (narrowing_length + airbridge[0] * 2 + airbridge[1]),
             airbridge[2], distance_between_airbridges, airbridge[2],
             secondline[0], secondline[1], secondline[2],
             narrowing_length, np.pi + firstline.angle)
-        self.generate_bridge((firstline.end[0] + np.cos(firstline.angle) * narrowing_length -
+        self.generate_bridge(name, (firstline.end[0] + np.cos(firstline.angle) * narrowing_length -
                               np.sin(firstline.angle) * (distance_between_airbridges + airbridge[2]),
                               firstline.end[1] + np.cos(firstline.angle) * (
                                           distance_between_airbridges + airbridge[2]) +
                               np.sin(firstline.angle) * narrowing_length),
                              airbridge[0], airbridge[1], airbridge[2], firstline.angle, 'line')
-        self.generate_bridge((firstline.end[0] + np.cos(firstline.angle) * narrowing_length,
+        self.generate_bridge(name, (firstline.end[0] + np.cos(firstline.angle) * narrowing_length,
                               np.sin(firstline.angle) * narrowing_length + firstline.end[1]),
                              airbridge[0], airbridge[1], airbridge[2], firstline.angle, 'line')
-        self.generate_bridge((firstline.end[0] + np.cos(firstline.angle) * narrowing_length +
+        self.generate_bridge(name, (firstline.end[0] + np.cos(firstline.angle) * narrowing_length +
                               np.sin(firstline.angle) * (distance_between_airbridges + airbridge[2]),
                               firstline.end[1] - np.cos(firstline.angle) * (
                                           distance_between_airbridges + airbridge[2]) +
@@ -174,12 +234,12 @@ class Sample:
         self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.total_layer, 0)],
                                       self.cell_to_remove.get_polygons(by_spec=True)[(2, 0)], 'not',
                                       layer=self.total_layer))
-        self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.AirbridgesLayer, 0)],
-                                      self.total_cell.get_polygons(by_spec=True)[(self.AirbridgesLayer, 0)], 'or',
-                                      layer=self.AirbridgesLayer))
-        self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.AirbridgesPadLayer, 0)],
-                                      self.total_cell.get_polygons(by_spec=True)[(self.AirbridgesPadLayer, 0)], 'or',
-                                      layer=self.AirbridgesPadLayer))
+        self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.airbridges_layer, 0)],
+                                      self.total_cell.get_polygons(by_spec=True)[(self.airbridges_layer, 0)], 'or',
+                                      layer=self.airbridges_layer))
+        self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.airbridges_pad_layer, 0)],
+                                      self.total_cell.get_polygons(by_spec=True)[(self.airbridges_pad_layer, 0)], 'or',
+                                      layer=self.airbridges_pad_layer))
         #
         # костыль
 
@@ -225,8 +285,10 @@ class Sample:
         rest_area = self.restricted_area_cell.get_polygons(by_spec=True)[(self.restricted_area_layer, 0)]
         result_x = gdspy.boolean(result_x, rest_area, 'not', layer=self.gridline_x_layer)
         result_y = gdspy.boolean(result_y, rest_area, 'not', layer=self.gridline_y_layer)
-        if result_x != None: self.result.add(result_x)
-        if result_y != None: self.result.add(result_y)
+        if result_x is not None:
+            self.result.add(result_x)
+        if result_y is not None:
+            self.result.add(result_y)
 
 
     # Resonator + Purcell methods
@@ -295,9 +357,6 @@ class Sample:
 
         return res_begin, res_end
 
-
-
-
     def generate_coupler_purcell_resonator(self, point1, point2, resonator_params, purcell_params, l, h, h_ground):
         import Coupler_purcell_resonator_idea1 as coup
         coupler = coup.Coupler_resonator_purcell(point1, point2,
@@ -314,7 +373,7 @@ class Sample:
         angle=kwargs['angle']
 
         self.qubits.append(gdf.Coaxmon(coordinate, r1, r2, r3, r4, outer_ground, self.total_layer,
-                                         self.restricted_area_layer, self.JJ_layer, Couplers, JJ))
+                                       self.restricted_area_layer, self.jj_layer, Couplers, JJ))
         qubit_total, restricted_area, JJ_total = self.qubits[-1].generate_qubit()
         self.total_cell.add(qubit_total.rotate(angle, args[0]))
         self.total_cell.add(JJ_total)  # .rotate(angle,(center_point.x,center_point.y))
@@ -323,7 +382,7 @@ class Sample:
 
     def add_qubit_coupler(self, core, gap, ground, Coaxmon1, Coaxmon2, JJ, squid):
         coupler = gdf.IlyaCoupler(core, gap, ground, Coaxmon1, Coaxmon2, JJ, squid,
-                              self.total_layer, self.restricted_area_layer, self.JJ_layer, self.layer_to_remove)
+                                  self.total_layer, self.restricted_area_layer, self.jj_layer, self.layer_to_remove)
         self.couplers.append(coupler)
         line, JJ = coupler.generate_coupler()
         self.total_cell.add([line[0], JJ[0], JJ[1]])
@@ -366,7 +425,6 @@ class Sample:
         # self.restricted_area_cell.add(end.rotate(angle))
         # self.cell_to_remove.add(end)
 
-
         for obj in [line, line1, open_end]:
             self.total_cell.add(obj[0].rotate(angle,initial_point))
             self.restricted_area_cell.add(obj[1].rotate(angle,initial_point))
@@ -376,6 +434,7 @@ class Sample:
         # res_end = resonator_end
         # res_begin = resonator_begin
         # return res_begin, res_end
+
     def generate_array_of_bridges(self,points,bridge_params):
         if bridge_params is not None:
             distance, offset, width, length, padsize, line_type = bridge_params
@@ -393,9 +452,10 @@ class Sample:
                 for num_bridge in range(int((line_length - 2 * offset) / distance) + 1):
                     bridge_center = (start[0] + np.cos(line_angle) * (offset + num_bridge * distance),
                                      start[1] + np.sin(line_angle) * (offset + num_bridge * distance))
-                    self.generate_bridge(bridge_center, width, length, padsize,line_angle+np.pi/2,
+                    self.generate_bridge('noname', bridge_center, width, length, padsize, line_angle + np.pi / 2,
                     line_type = line_type)
         return True
+
 def calculate_total_length(points):
     i0, j0 = points[0]
     length = 0
