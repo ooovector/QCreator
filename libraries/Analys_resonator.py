@@ -23,7 +23,7 @@ class ResonatorAnalyser():
 
 
     def get_conformal_tables(self,feedline, resonator):
-        import conformal_mapping.сonformal_mapping as cm
+        import libraries.conformal_mapping as cm
         result=cm.ConformalMapping(self.widths)
         C, L = result.cl_and_Ll()
         reduced_table_C = np.asarray([[C[feedline, feedline], C[feedline, resonator]],
@@ -46,19 +46,19 @@ class ResonatorAnalyser():
         else:
             self.frequency = np.linspace(complex(self.frequency_value-0.1e9), complex(self.frequency_value+0.1e9), self.nop)
         print(self.frequency)
-        import Sparameters.transmission_line_simulator as tls
-        claw = tls.capacitor()
+        import libraries.transmission_line_simulator as tls
+        claw = tls.Capacitor()
         # qubit_cap = capacitor()
         # qubit_inductor = inductor()
-        source = tls.port()
-        analyzer = tls.port()
+        source = tls.Port()
+        analyzer = tls.Port()
 
-        GND = tls.short()
-        resonator_short_end = tls.transmission_line_coupler(n=1)
-        resonator_claw_end = tls.transmission_line_coupler(n=1)
-        coupler = tls.transmission_line_coupler()
+        GND = tls.Short()
+        resonator_short_end = tls.TLCoupler(n=1)
+        resonator_claw_end = tls.TLCoupler(n=1)
+        coupler = tls.TLCoupler()
 
-        circuit = tls.transmission_line_system()
+        circuit = tls.TLSystem()
 
         circuit.add_element(source, [1])
         circuit.add_element(coupler, [1, 2, 3, 4])
@@ -118,7 +118,7 @@ class ResonatorAnalyser():
         return fr_numeric_num,Q_numeric_num
 
     def fit_S21(self):
-        from resonator_tools.circuit import notch_port, reflection_port
+        from resonator_tools.circuit import notch_port
         fitter = notch_port(f_data=self.frequency.real, z_data_raw=self.S21)
         fitter.autofit()
         return fitter

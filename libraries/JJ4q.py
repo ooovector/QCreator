@@ -13,7 +13,7 @@ class JJ_1:
 
 
 
-    def generate_JJ(self):
+    def generate_jj(self):
 
         #parametrs
 

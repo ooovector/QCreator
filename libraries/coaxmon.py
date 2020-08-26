@@ -93,7 +93,7 @@ class Coaxmon:
                     self.JJ_params['a1'], self.JJ_params['a2'],
                     self.JJ_params['b1'], self.JJ_params['b2'],
                     self.JJ_params['c1'],self.JJ_params['c2'])
-        result = self.JJ.generate_JJ()
+        result = self.JJ.generate_jj()
         result = gdspy.boolean(result, result, 'or', layer=self.JJ_layer)
         angle = self.JJ_params['angle_JJ']
         # print(self.JJ_coordinates[0],self.JJ_coordinates[1])
@@ -180,7 +180,7 @@ class IlyaCoupler:
         self.JJ = JJ4q.JJ_1(self.JJ_params['x'], self.JJ_params['y'],
                                 self.JJ_params['a1'], self.JJ_params['a2'],
                                 )
-        result = self.JJ.generate_JJ()
+        result = self.JJ.generate_jj()
         result = gdspy.boolean(result, result, 'or', layer=self.JJ_layer)
         angle = self.JJ_params['angle_JJ']
         result.rotate(angle, (self.JJ_params['x'], self.JJ_params['y']))
@@ -227,7 +227,7 @@ class IlyaCoupler:
                 self.squid_params['a1'], self.squid_params['a2'],
                 self.squid_params['b1'], self.squid_params['b2'],
                 self.squid_params['c1'], self.squid_params['c2'])
-        squid = self.squid.generate_JJ()
+        squid = self.squid.generate_jj()
         rect = gdspy.Rectangle((self.squid_params['x'] - self.squid.contact_pad_a_outer / 2,
                                 self.squid_params['y'] + 0*self.squid.contact_pad_b_outer/2),
                                (self.squid_params['x'] + self.squid.contact_pad_a_outer / 2,

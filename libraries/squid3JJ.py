@@ -13,7 +13,7 @@ class JJ_2:
         self._parametr6 = parametr6
 
 
-    def generate_JJ(self):
+    def generate_jj(self):
         contact_pad_a_outer = 10.5
         contact_pad_b_outer=3
         self.contact_pad_b_outer = contact_pad_b_outer
