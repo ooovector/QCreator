@@ -2,25 +2,32 @@ from .core import DesignElement, LayerConfiguration
 from .. import transmission_line_simulator as tlsim
 import numpy as np
 import gdspy
+from typing import Tuple
+
 
 # TODO: create some model for capacitances and inductances in tlsim
 class Airbridge(DesignElement):
-    def __init__(self, name: str, width: float, length: float, padsize: float, position: tuple, angle: float,
-                 layer_configuration: LayerConfiguration, line_type = None,
-                 l_over=0, l_under=0, c_over=0, c_under=0, c_over_under=0):
+    def __init__(self, name: str, position: Tuple[float, float], orientation: float, width: float, length: float,
+                 padsize: float, layer_configuration: LayerConfiguration, line_type: str = None, l_over: float = 0,
+                 l_under: float = 0, c_over: float = 0, c_under: float = 0, c_over_under: float = 0):
         """
-
+        Airbridge crossover element
         :param name: Design element name
+        :param position: position on chip
+        :param orientation: contact pad orientation
         :param width: air bridge width
         :param length: air bridge length
         :param padsize: ait bridge square contact pad edge size
-        :param position: position on chip
-        :param angle: contact pad orientation
         :param layer_configuration: LayerConfiguration object
-        :param line_type:
+        :param line_type: TODO: what does this do?
+        :param l_over: indutance of top electrode for tlsim
+        :param l_under: indutance of bottom electrode for tlsim
+        :param c_over: capacitance of top electrode for tlsim
+        :param c_under: capacitance of bottom electrode for tlsim
+        :param c_over_under: mutual capacitance between top and bottom electrodes for tlsim
         """
         super().__init__('airbridge', name)
-        self.orientation = angle
+        self.orientation = orientation
         self.position = np.asarray(position)
         self.padsize = padsize
         self.width = width
@@ -36,6 +43,7 @@ class Airbridge(DesignElement):
         #self.end = (None, None)
         self.tls_cache = []
 
+    @property
     def render(self):
         x, y = self.position
         if self.line_type == 'line':
@@ -58,7 +66,7 @@ class Airbridge(DesignElement):
                                  layer=self.layer_configuration.airbridges_layer)
         bridge.rotate(self.orientation, (x, y))
 
-        return {'positive':[contacts, bridge], 'restrict': restricted_area}
+        return {'positive': [contacts, bridge], 'restrict': restricted_area}
 
     def get_terminals(self) -> dict:
         return {'over_in': (self.position - self.length/2 - self.padsize/2, self.orientation),

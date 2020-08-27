@@ -1,12 +1,13 @@
 from .core import DesignElement, ChipGeometry, LayerConfiguration
 import gdspy
+from typing import List
 
 
 class GridGround(DesignElement):
     def __init__(self, chip_geometry: ChipGeometry, layer_configuration: LayerConfiguration,
-                 objects: list, width: float, period: float):
+                 objects: List[DesignElement], width: float, period: float):
         """
-        Grid for high-inductance, flux-vortex trapping ground electrode on the chip.
+        Grid for high-inductance, flux-vortex trapping g electrode on the chip.
         :param chip_geometry:
         :param layer_configuration:
         :param objects: all design objects, used to

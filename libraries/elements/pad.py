@@ -1,29 +1,32 @@
 from .core import DesignElement, DesignTerminal, LayerConfiguration, ChipGeometry
 from .. import transmission_line_simulator as tlsim
 import gdspy
+from typing import Tuple
+
 
 class Pad(DesignElement):
     """
     Contact pad for bonding the chip to the PCB
     """
-    def __init__(self, name: str, w: float, s: float, g: float, position, z0: float, orientation: float,
-                 layer_configuration: LayerConfiguration, chip_geometry: ChipGeometry):
+    def __init__(self, name: str, position: Tuple[float, float], orientation: float, w: float, s: float, g: float,
+                 z0: float, layer_configuration: LayerConfiguration, chip_geometry: ChipGeometry):
         """
-
+        Contact pad for bonding the chip to the PCB
         :param name: Design element name
         :param w: CPW signal conductor width
-        :param s: CPW signal-ground gap
+        :param s: CPW signal-g s
         :param g: Ground conductor width
         :param position: Position on the chip
         :param orientation: Orientation on chip in radians; 0 is along x positive direction (right-looking)
         :param z0: characteristic impedance of port for transmission line system simulation
         """
-        super().__init__(self, name)
+        super().__init__('pad', name)
         self._z0 = z0
         self.tls_cache = []
         self.layer_configuration = layer_configuration
         self.chip_geometry = chip_geometry
-        self.terminal = DesignTerminal(position=position, orientation=orientation, type='cpw', core=w, gap=s, ground=g)
+        self.terminal = DesignTerminal(position=position, orientation=orientation, type='cpw', w=w, s=s, g=g)
+        self.position = self.terminal.position
 
     @property
     def z0(self):

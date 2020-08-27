@@ -30,6 +30,13 @@ class Pads(DesignElement):
 
 class ChipEdgeGround(DesignElement):
     def __init__(self, chip_geometry: ChipGeometry, layer_configuration: LayerConfiguration, pads: Pads):
+        """
+        Element for creating a wide and solid ground electrode around the edges of the chip to wirebond for wirebonding
+        to PCB.
+        :param chip_geometry:
+        :param layer_configuration:
+        :param pads:
+        """
         super().__init__('chip_edge_ground', 'chip_edge_ground')
         self.chip_geometry = chip_geometry
         self.layer_configuration = layer_configuration
@@ -37,7 +44,7 @@ class ChipEdgeGround(DesignElement):
 
     def render(self):
         """
-        Draws edge ground metallization on chip
+        Draws edge g metallization on chip
         :return:
         """
         edge = 600 #  fundamental constant - edge length

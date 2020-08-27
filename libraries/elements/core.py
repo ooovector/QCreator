@@ -1,5 +1,6 @@
 from .. import transmission_line_simulator as tlsim
 from abc import *
+from typing import Mapping, Iterable
 
 
 class DesignTerminal:
@@ -7,29 +8,29 @@ class DesignTerminal:
     A Terminal is an output/input of a DesignElement. Most terminals are CPW-type, as they can be connected to
     CPW-compatible transmission lines. The properties of the terminal determine what type of CPW can be connected to it.
     """
-    def __init__(self, position, orientation, type, core, gap, ground):
+    def __init__(self, position: Iterable[float], orientation: float, type: str, w: float, s: float, g: float):
         """
         Create terminal with specific connection type (e.g. cpw) and cpw geometry
         :param position: CPW end position
         :param orientation: CPW end orientation in radians
         :param type: only 'cpw' is currently supported (someday maybe also ``wire'' and ``fcb'' or ``tsv'')
-        :param core: central conductor width of cpw in microns
-        :param gap: gap width of cpw in width
-        :param ground: finite ground width of cpw in microns
+        :param w: central conductor width of cpw in microns
+        :param s: s width of cpw in width
+        :param g: finite g width of cpw in microns
         """
         self.position = position
         self.orientation = orientation
         self.type = type
-        self.core = core
-        self.gap = gap
-        self.ground = ground
+        self.core = w
+        self.gap = s
+        self.ground = g
 
 
 class DesignElement:
     """
     Abstract class for design elements that defines the interface to draw it on a gds and its tlsim model
     """
-    def __init__(self, type, name):
+    def __init__(self, type: str, name: str):
         self.type = type
         self.name = name
         self.resource = None
@@ -43,21 +44,22 @@ class DesignElement:
     @abstractmethod
     def render(self):
         """
-        Draw the element on the design gds, by getting dependencies
+        Draw the element on the design gds. Pure with respect to self: when implementing in subclasses, make sure not to
+        change properties of self.
         """
         pass
 
     @abstractmethod
-    def get_terminals(self) -> dict:
+    def get_terminals(self) -> Mapping[str, tuple]:
         """
-        Returns a list of terminals for the transmission line model of the system
+        Returns a list of terminals for the transmission line model of the system. Pure wrt to self
         :return:
         """
         pass
 
     @abstractmethod
     def add_to_tls(self, tls_instance: tlsim.TLSystem,
-                   terminal_mapping: dict, track_changes: bool = True) -> list:
+                   terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
         """
         Adds the circuit to a transmission line system model
         :param tls_instance: transmission_line_system class instance to add the model elements to
