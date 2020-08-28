@@ -80,8 +80,8 @@ class Sample:
         assert s == t2.gap
         assert g == t2.ground
 
-        cpw = elements.CPW(name, points, w, s, g, None, self.layer_configuration, corner_type='round',
-                           R=self.default_cpw_radius(w, s, g))
+        cpw = elements.CPW(name, points, w, s, g, self.layer_configuration, r=self.default_cpw_radius(w, s, g),
+                           corner_type='round')
         self.add(cpw)
         self.connections.extend([((cpw, 'port1'), (o1, port1)), ((cpw, 'port2'), (o2, port2))])
 
@@ -136,7 +136,7 @@ class Sample:
         tls = tlsim.TLSystem()
 
         connections_flat = {}
-        max_connection_id = 0 # ground connection
+        max_connection_id = 0 # g connection
         for connection in self.connections:
             max_connection_id += 1
             for terminal in connection:
@@ -172,7 +172,7 @@ class Sample:
     def generate_narrowing_part(self, name, firstline, secondline):
         narrowing_length = 15
         narrowing1 = gdf.Narrowing(name, firstline.end[0], firstline.end[1],
-                                   firstline.core, firstline.gap, firstline.ground,
+                                   firstline.w, firstline.s, firstline.g,
                                    secondline[0], secondline[1], secondline[2],
                                    narrowing_length, firstline.angle + np.pi)
         line1 = narrowing1.generate_narrowing()
@@ -355,8 +355,8 @@ Beginning from here I have no idea what to this.
         self.restricted_area_cell.add(restricted_area)
         self.numerate("Qb", len(self.qubits) - 1, args[0])
 
-    def add_qubit_coupler(self, core, gap, ground, Coaxmon1, Coaxmon2, JJ, squid):
-        coupler = gdf.IlyaCoupler(core, gap, ground, Coaxmon1, Coaxmon2, JJ, squid,
+    def add_qubit_coupler(self, w, s, g, Coaxmon1, Coaxmon2, JJ, squid):
+        coupler = gdf.IlyaCoupler(w, s, g, Coaxmon1, Coaxmon2, JJ, squid,
                                   self.total_layer, self.restricted_area_layer, self.jj_layer, self.layer_to_remove)
         self.couplers.append(coupler)
         line, JJ = coupler.generate_coupler()
@@ -367,12 +367,12 @@ Beginning from here I have no idea what to this.
         self.numerate("IlCoup", len(self.couplers) - 1, ((Coaxmon1.center[0]+Coaxmon2.center[0])/2, (Coaxmon1.center[1]+Coaxmon2.center[1])/2))
 
     def generate_round_resonator(self, frequency, initial_point,
-                               core, gap, ground,
+                               w, s, g,
                                open_end_length,open_end, coupler_length,
                                l1, l2, l3,l4,l5, h_end, corner_type='round',angle=0,
                                bridge_params=None):
         resonator = gdf.RoundResonator(frequency, initial_point,
-                               core, gap, ground,
+                               w, s, g,
                                open_end_length,open_end, coupler_length,
                                l1, l2, l3,l4,l5, h_end,corner_type, self.total_layer, self.restricted_area_layer)
         self.resonators.append(resonator)

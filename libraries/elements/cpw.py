@@ -337,7 +337,7 @@ class Narrowing(DesignElement):
         polygon_to_remove = gdspy.boolean(restricted_area, result, 'not',
                                           layer=self.layer_configuration.layer_to_remove)
 
-        return {'positive': result, 'restricted': restricted_area, 'remove': polygon_to_remove}
+        return {'positive': result, 'restricted': [restricted_area], 'remove': polygon_to_remove}
 
     def get_terminals(self):
         return self.terminals

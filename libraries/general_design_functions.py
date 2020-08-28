@@ -194,7 +194,7 @@ class RoundResonator(DesignElement):
                   (self._start_x-self.coupler_length/2, self._start_y - self._l1),
                   (self._start_x-self.coupler_length/2 + self._l2,  self._start_y - self._l1),
                   (self._start_x-self.coupler_length/2 + self._l2, self._start_y - self._l1-self._l3)]
-        # line0 = Feedline(points, self.core, self.gap, self.ground, None, self.total_layer, self.restricted_area_layer,
+        # line0 = Feedline(points, self.w, self.s, self.g, None, self.total_layer, self.restricted_area_layer,
         #                  R=40)
         # line = line0.generate_feedline(self.corner_type)
         # open_end = line0.generate_end(self.open_end)
@@ -206,8 +206,8 @@ class RoundResonator(DesignElement):
         N = int(L_meander // meander_step)
         tail = np.floor(L_meander - N * meander_step)
         print(tail)
-        # const = self.ground + self.gap + self.core/2
-        # offset=self.gap+(self.core+self.ground)/2
+        # const = self.g + self.s + self.w/2
+        # offset=self.s+(self.w+self.g)/2
         meander_points = deepcopy(points)
         i = 1
         while i < N + 1:
@@ -246,10 +246,10 @@ class RoundResonator(DesignElement):
         # end = gdspy.Polygon([end1, end2, end3, end4])
 
         # open_end_rects = gdspy.Polygon([
-        #     (self._x+self.core/2+self.gap, self._y),
-        #     (self._x+self.core/2+self.gap, self._y-self.open_end),
-        #     (self._x-self.core/2-self.gap, self._y-self.open_end),
-        #     (self._x+self.core/2+self.gap, self._y),
+        #     (self._x+self.w/2+self.s, self._y),
+        #     (self._x+self.w/2+self.s, self._y-self.open_end),
+        #     (self._x-self.w/2-self.s, self._y-self.open_end),
+        #     (self._x+self.w/2+self.s, self._y),
         # ])
 
 
@@ -265,7 +265,7 @@ class RoundResonator(DesignElement):
         # line = gdspy.FlexPath(points,offset,
         #                       corners=["circular bend", "circular bend", "circular bend"],
         #                       bend_radius=[20,20, 20],ends=[end_type, end_type, end_type],precision=0.1)
-        # line1 = gdspy.FlexPath(Number_of_points,[self.ground, self.core, self.ground],offset,
+        # line1 = gdspy.FlexPath(Number_of_points,[self.g, self.w, self.g],offset,
         #                        corners=["circular bend", "circular bend", "circular bend"],
         #                        bend_radius=[20,20, 20], ends=[end_type, end_type, end_type])
 

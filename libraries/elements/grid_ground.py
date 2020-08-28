@@ -24,14 +24,14 @@ class GridGround(DesignElement):
     def render(self):
 
         # render rest of object in chip
-        rest = []
+        rest = None
         for object_ in self.objects:
             if object_ is self:
                 continue
             if 'positive' in object_.get():
-                rest.append(object_.get()['positive'])
+                rest = gdspy.boolean(rest, object_.get()['positive'], 'or')
             if 'restricted' in object_.get():
-                rest.append(object_.get()['restricted'])
+                rest = gdspy.boolean(rest, object_.get()['positive'], 'or')
 
         result_x = None
         result_y = None

@@ -1,13 +1,26 @@
 import numpy as np
+from abc import *
 
 
-class Resistor:
-    @staticmethod
-    def num_terminals():
+class TLSystemElement:
+    @abstractmethod
+    def num_terminals(self):
+        pass
+
+    @abstractmethod
+    def num_degrees_of_freedom(self):
+        pass
+
+    @abstractmethod
+    def boundary_condition(self, omega):
+        pass
+
+
+class Resistor(TLSystemElement):
+    def num_terminals(self):
         return 2
 
-    @staticmethod
-    def num_degrees_of_freedom():
+    def num_degrees_of_freedom(self):
         return 0
 
     def boundary_condition(self, omega):
@@ -18,13 +31,11 @@ class Resistor:
         pass
 
 
-class Capacitor:
-    @staticmethod
-    def num_terminals():
+class Capacitor(TLSystemElement):
+    def num_terminals(self):
         return 2
 
-    @staticmethod
-    def num_degrees_of_freedom():
+    def num_degrees_of_freedom(self):
         return 0
 
     def boundary_condition(self, omega):
@@ -35,13 +46,11 @@ class Capacitor:
         pass
 
 
-class Inductor:
-    @staticmethod
-    def num_terminals():
+class Inductor(TLSystemElement):
+    def num_terminals(self):
         return 2
 
-    @staticmethod
-    def num_degrees_of_freedom():
+    def num_degrees_of_freedom(self):
         return 0
 
     def boundary_condition(self, omega):
@@ -52,24 +61,21 @@ class Inductor:
         pass
 
 
-class Short:
-    @staticmethod
-    def num_terminals():
+class Short(TLSystemElement):
+    def num_terminals(self):
         return 1
 
-    @staticmethod
-    def num_degrees_of_freedom():
+    def num_degrees_of_freedom(self):
         return 0
 
-    @staticmethod
-    def boundary_condition(omega):
+    def boundary_condition(self, omega):
         return np.asarray([[1, 0]], dtype=complex)
 
     def __init__(self):
         pass
 
 
-class Port:
+class Port(TLSystemElement):
     @staticmethod
     def num_terminals():
         return 1
@@ -79,13 +85,13 @@ class Port:
         return 1
 
     def boundary_condition(self, omega):
-        return np.asarray([[1,0,self.Z0], [0,-1,1]], dtype=complex)
+        return np.asarray([[1, 0, self.Z0], [0, -1, 1]], dtype=complex)
 
     def __init__(self, z0=None):
         self.Z0 = z0
 
 
-class TLCoupler:
+class TLCoupler(TLSystemElement):
     '''
     Here n is a number of conductors in  TL CPW coupler
     '''
@@ -101,22 +107,8 @@ class TLCoupler:
         numpy.vstack puts together two matrix vertically
         '''
         M = np.hstack((np.vstack((self.Rl, self.Cl)), np.vstack((self.Ll, self.Gl))))
-        #print(M)
-
 
         cl, mode_amplitudes = np.linalg.eig(M)
-        # print('cl=',cl)
-        # print('mode_amplitudes=',mode_amplitudes)
-
-        # M = sympy.Matrix(M)
-        # mode_amplitudes, cl = M.diagonalize()
-        # cl = sympy.Matrix([cl[i,i] for i in range(M.shape[0])])
-        #
-        # cl = sympy_to_numpy(cl)
-        # mode_amplitudes = sympy_to_numpy(mode_amplitudes)
-
-        #print('cl=',cl)
-        #print('mode_amplitudes=',mode_amplitudes)
 
         gammas = -cl
         modes = []
