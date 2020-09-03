@@ -76,12 +76,10 @@ class Short(TLSystemElement):
 
 
 class Port(TLSystemElement):
-    @staticmethod
-    def num_terminals():
+    def num_terminals(self):
         return 1
 
-    @staticmethod
-    def num_degrees_of_freedom():
+    def num_degrees_of_freedom(self):
         return 1
 
     def boundary_condition(self, omega):

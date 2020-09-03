@@ -2,7 +2,7 @@ from .core import DesignElement, LayerConfiguration
 from .. import transmission_line_simulator as tlsim
 import numpy as np
 import gdspy
-from typing import Tuple
+from typing import Tuple, Mapping
 
 
 # TODO: create some model for capacitances and inductances in tlsim
@@ -74,7 +74,7 @@ class Airbridge(DesignElement):
                 'under_in': (self.position - self.padsize/2, self.orientation + np.pi/2),
                 'under_out': (self.position + self.padsize/2, self.orientation - np.pi/2)} #['over_in', 'over_out', 'under_in', 'under_out']
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
         l_over = tlsim.Inductor(l=self.l_over)
         l_under = tlsim.Inductor(l=self.l_under)
         c_over_in = tlsim.Capacitor(c=self.c_over / 2)
