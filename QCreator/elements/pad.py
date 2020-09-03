@@ -80,8 +80,8 @@ class Pad(DesignElement):
 
         pad.rotate(self.terminal.orientation, [coord_init_x, coord_init_y])
         restricted_pad.rotate(self.terminal.orientation, [coord_init_x, coord_init_y])
-
-        return {'positive': pad, 'restricted': restricted_pad}
+        result_restricted = gdspy.boolean(restricted_pad, restricted_pad, 'or', layer=self.layer_configuration.restricted_area_layer)
+        return {'positive': pad, 'restricted': result_restricted}
 
     def get_terminals(self) -> dict:
         return {'port': self.terminal}
