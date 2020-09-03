@@ -1,8 +1,6 @@
 import gdspy
 import numpy as np
-import libraries.squid3JJ as squid3JJ
-import libraries.JJ4q as JJ4q
-from copy import deepcopy
+
 #common clases
 class coordinates:
     def __init__(self, x, y):
@@ -90,69 +88,6 @@ class Pads  :
             restricted_area = gdspy.boolean(restricted_area, restricted_pad, 'or', layer=restricted_area_layer)
         return result, restricted_area
 
-class Coaxmon:
-    def __init__(self, center, r1, r2, r3, R4, outer_ground, Couplers, JJ,total_layer, restricted_area_layer,JJ_layer,):
-        self.center = center
-        self.R1 = r1
-        self.R2 = r2
-        self.R3 = r3
-        self.R4 = R4
-        self.outer_ground = outer_ground
-        self.Couplers = Couplers
-        self.restricted_area_layer = restricted_area_layer
-        self.total_layer = total_layer
-        self.JJ_layer = JJ_layer
-        self.JJ_params=JJ
-        self.JJ = None
-        self.type='Coaxmon'
-    def generate_qubit(self):
-        ground = gdspy.Round(self.center, self.outer_ground, self.R4, initial_angle=0, final_angle=2*np.pi)
-        restricted_area = gdspy.Round(self.center, self.outer_ground,  layer=self.restricted_area_layer)
-        core = gdspy.Round(self.center, self.R1, inner_radius=0, initial_angle=0, final_angle=2*np.pi)
-        result = gdspy.boolean(ground, core, 'or', layer=self.total_layer)
-        if len(self.Couplers) != 0:
-            for Coupler in self.Couplers:
-                if Coupler.grounded == True:
-                    result = gdspy.boolean(Coupler.generate_coupler(self.center, self.R2, self.outer_ground,self.R4 ), result, 'or', layer=self.total_layer)
-                else:
-                    result = gdspy.boolean(Coupler.generate_coupler(self.center, self.R2, self.R3, self.R4), result, 'or', layer=self.total_layer)
-        self.JJ_coordinates = (self.center[0] + self.R1*np.cos(self.JJ_params['angle_qubit']), self.center[1] + self.R1*np.sin(self.JJ_params['angle_qubit']))
-        JJ,rect = self.generate_JJ()
-        result = gdspy.boolean(result, rect, 'or')
-        # self.AB1_coordinates = coordinates(self.center.x, self.center.y + self.R4)
-        # self.AB2_coordinates = coordinates(self.center.x, self.center.y - self.outer_ground)
-        return result, restricted_area, JJ
-    def generate_JJ(self):
-        self.JJ = squid3JJ.JJ_2(self.JJ_coordinates[0],self.JJ_coordinates[1],
-                    self.JJ_params['a1'], self.JJ_params['a2'],
-                    self.JJ_params['b1'], self.JJ_params['b2'],
-                    self.JJ_params['c1'],self.JJ_params['c2'])
-        result = self.JJ.generate_JJ()
-        result = gdspy.boolean(result, result, 'or', layer=self.JJ_layer)
-        angle = self.JJ_params['angle_JJ']
-        # print(self.JJ_coordinates[0],self.JJ_coordinates[1])
-        # print((self.JJ_coordinates[0],self.JJ_coordinates[1]))
-        result.rotate(angle, (self.JJ_coordinates[0],self.JJ_coordinates[1]))
-        rect = gdspy.Rectangle((self.JJ_coordinates[0]-self.JJ.contact_pad_a_outer/2,self.JJ_coordinates[1]+self.JJ.contact_pad_b_outer),
-                               (self.JJ_coordinates[0]+self.JJ.contact_pad_a_outer/2,self.JJ_coordinates[1]-self.JJ.contact_pad_b_outer),layer=self.total_layer)
-        rect.rotate(angle,(self.JJ_coordinates[0],self.JJ_coordinates[1]))
-        return result,rect
-class QubitCoupler:
-    def __init__(self, arc_start, arc_finish, phi, w, grounded=False):
-        self.arc_start = arc_start
-        self.arc_finish = arc_finish
-        self.phi = phi
-        self.w = w
-        self.grounded = grounded
-    def generate_coupler(self,coordinate,r_init,r_final,rect_end):
-        #to fix bug
-        bug=5
-        result = gdspy.Round(coordinate, r_init, r_final,
-                                  initial_angle=(self.arc_start) * np.pi, final_angle=(self.arc_finish) * np.pi)
-        rect = gdspy.Rectangle((coordinate[0]+r_final-bug,coordinate[1]-self.w/2),(coordinate[0]+rect_end+bug, coordinate[1]+self.w/2))
-        rect.rotate(self.phi*np.pi, coordinate)
-        return gdspy.boolean(result,rect, 'or')
-
 class Airbridge:
     def __init__(self, width, length, padsize, point, angle,line_type = None):
         self.x = point[0]
@@ -172,16 +107,16 @@ class Airbridge:
             self.y += (self.length/2 + self.padsize/2)*np.sin(self.angle)
 
         #first the two contacts
-        contact_1 = gdspy.Rectangle((self.x - self.length/2 - self.padsize[0]/2, self.y-self.padsize[1]/2),
-                                    (self.x - self.length/2 + self.padsize[0]/2, self.y + self.padsize[1]/2))
-        contact_2 = gdspy.Rectangle((self.x + self.length/2 - self.padsize[0]/2, self.y-self.padsize[1]/2),
-                                    (self.x + self.length/2 + self.padsize[0]/2, self.y + self.padsize[1]/2))
+        contact_1 = gdspy.Rectangle((self.x - self.length/2 - self.padsize/2, self.y-self.padsize/2),
+                                    (self.x - self.length/2 + self.padsize/2, self.y + self.padsize/2))
+        contact_2 = gdspy.Rectangle((self.x + self.length/2 - self.padsize/2, self.y-self.padsize/2),
+                                    (self.x + self.length/2 + self.padsize/2, self.y + self.padsize/2))
         contacts = gdspy.boolean(contact_1, contact_2, 'or', layer=Padlayer)
         contacts.rotate(self.angle, (self.x, self.y))
         # add restricted area for holes
         self.restrictedArea.append(
-            gdspy.Rectangle((self.x - self.length / 2 - self.padsize[0] / 2, self.y - self.padsize[1] / 2),
-                            (self.x + self.length / 2 + self.padsize[0] / 2, self.y + self.padsize[1] / 2)))
+            gdspy.Rectangle((self.x - self.length / 2 - self.padsize / 2, self.y - self.padsize / 2),
+                            (self.x + self.length / 2 + self.padsize / 2, self.y + self.padsize / 2)))
         #now the bridge itself
         bridge = gdspy.Rectangle((self.x - self.length / 2, self.y - self.width / 2),
                                  (self.x + self.length / 2, self.y + self.width / 2),layer=Bridgelayer)
@@ -378,21 +313,17 @@ class Feedline:
     def generate_open_end(self,end):
         end_gap = end['gap']
         end_ground_length = end['ground']
-        if end['end']:
-            x_begin = self.end[0]
-            y_begin = self.end[1]
-            additional_rotation = -np.pi/2
-        if end['begin']:
-            x_begin = self.points[0][0]
-            y_begin = self.points[0][1]
-            additional_rotation = np.pi / 2
+        x_begin = self.end[0]
+        y_begin = self.end[1]
+
         restricted_area = gdspy.Rectangle((x_begin-self.core/2-self.gap-self.ground,y_begin),
-                                         (x_begin+self.core/2+self.gap+self.ground,y_begin+end_gap+end_ground_length),layer=10)#fix it
+                                         (x_begin+self.core/2+self.gap+self.ground,y_begin+end_gap+end_ground_length))
         rectangle_for_removing = gdspy.Rectangle((x_begin-self.core/2-self.gap,y_begin),
-                                         (x_begin+self.core/2+self.gap, y_begin+end_gap),layer=2)
+                                         (x_begin+self.core/2+self.gap, y_begin+end_gap))
         total = gdspy.boolean(restricted_area,rectangle_for_removing,'not')
-        for obj in [total,restricted_area,rectangle_for_removing]:
-            obj.rotate(additional_rotation+self.angle,(x_begin,y_begin))
+        total.rotate(-np.pi/2+self.angle, self.end)
+        restricted_area.rotate(-np.pi/2+self.angle, self.end)
+        rectangle_for_removing.rotate(-np.pi/2+self.angle, self.end)
         return total, restricted_area , rectangle_for_removing
 
 class Narrowing:
@@ -463,227 +394,92 @@ class Narrowing:
             polygon_to_remove=gdspy.boolean(restricted_area,result,'not',layer=2)
         return result, restricted_area, polygon_to_remove
 
-class IlyaCoupler:
-    def __init__(self,core,gap,ground,Coaxmon1,Coaxmon2,JJ_params,squid_params, total_layer, restricted_area_layer, JJ_layer,layer_to_remove):
-        self.core = core
-        self.gap = gap
-        self.ground = ground
-        self.Coaxmon1 = Coaxmon1
-        self.Coaxmon2 = Coaxmon2
-        self.total_layer = total_layer
-        self.restricted_area_layer = restricted_area_layer
-        self.angle = None
-        self.JJ_layer = JJ_layer
-        self.layer_to_remove = layer_to_remove
-        self.JJ_params = JJ_params
-        self.squid_params = squid_params
-
-    def generate_coupler(self):
-        vector2_x = self.Coaxmon2.center[0] - self.Coaxmon1.center[0]
-        vector2_y = self.Coaxmon2.center[1] - self.Coaxmon1.center[1]
-        if vector2_x != 0 and vector2_x >= 0:
-            tang_alpha = vector2_y / vector2_x
-            self.angle = np.arctan(tang_alpha)
-        elif vector2_x != 0 and vector2_x < 0:
-            tang_alpha = vector2_y / vector2_x
-            self.angle = np.arctan(tang_alpha) + np.pi
-        elif vector2_x == 0 and vector2_y > 0:
-            self.angle = np.pi / 2
-        elif vector2_x == 0 and vector2_y < 0:
-            self.angle = -np.pi / 2
-        bug=3# there is a bug
-        points=[(self.Coaxmon1.center[0]+(self.Coaxmon1.R4-bug)*np.cos(self.angle),
-                 self.Coaxmon1.center[1]+(self.Coaxmon1.R4-bug)*np.sin(self.angle)),
-        (self.Coaxmon2.center[0]+(self.Coaxmon1.R4-bug)*np.cos(self.angle+np.pi),
-         self.Coaxmon2.center[1]+(self.Coaxmon1.R4-bug)*np.sin(self.angle+np.pi))]
-        line = Feedline(points, self.core, self.gap, self.ground, None, self.total_layer, self.restricted_area_layer, 100)
-        line = line.generate_feedline()
-        JJ1 = self.generate_JJ()
-        self.JJ_params['indent'] = np.abs(self.Coaxmon2.center[1] - self.Coaxmon1.center[1])+np.abs(self.Coaxmon2.center[0] -
-                                    self.Coaxmon1.center[0]) -2*self.Coaxmon1.R4 -self.JJ_params['indent']
-        JJ2 = self.generate_JJ()
-        squid = self.generate_squid()
-        JJ_0 = gdspy.boolean(JJ1[0],JJ2[0],'or',layer=self.JJ_layer)
-        JJ_1 = gdspy.boolean(JJ1[1],JJ2[1],'or',layer=6)
-        JJ_2 = gdspy.boolean(JJ1[2],JJ2[2],'or',layer=self.layer_to_remove)
-
-        JJ_0 = gdspy.boolean(JJ_0, squid[0], 'or', layer=self.JJ_layer)
-        JJ_1 = gdspy.boolean(JJ_1, squid[1], 'or', layer=6)
-        # result = gdspy.boolean(JJ[1],line,'or',layer=self.total_layer)
-        return line,[JJ_0,JJ_1,JJ_2]
-
-    def generate_JJ(self):
-        self.JJ_params['x'] = self.Coaxmon1.center[0] + (self.Coaxmon1.R4+self.JJ_params['indent'])*np.cos(self.angle)
-        if self.Coaxmon1.center[0] != self.Coaxmon2.center[0]:
-            self.JJ_params['y'] = self.Coaxmon1.center[1] + (self.Coaxmon1.R4+
-                                                            self.JJ_params['indent'])*np.sin(self.angle)+(self.core/2+self.gap/2)
-        else:
-            self.JJ_params['y'] = self.Coaxmon1.center[1] + (self.Coaxmon1.R4 + self.JJ_params['indent']) * np.sin(self.angle)
-        # print(self.angle)
-        self.JJ = JJ4q.JJ_1(self.JJ_params['x'], self.JJ_params['y'],
-                                self.JJ_params['a1'], self.JJ_params['a2'],
-                                )
-        result = self.JJ.generate_JJ()
-        result = gdspy.boolean(result, result, 'or', layer=self.JJ_layer)
-        angle = self.JJ_params['angle_JJ']
-        result.rotate(angle, (self.JJ_params['x'], self.JJ_params['y']))
-        indent = 1
-        rect1 = gdspy.Rectangle((self.JJ_params['x'] - self.JJ.contact_pad_a / 2,
-                                self.JJ_params['y'] +indent),
-                               (self.JJ_params['x'] + self.JJ.contact_pad_a / 2,
-                                self.JJ_params['y'] - self.JJ.contact_pad_b+indent), layer=6)
-        rect2 = gdspy.Rectangle((self.JJ.x_end - self.JJ.contact_pad_a / 2,
-                                self.JJ.y_end - 1),
-                               (self.JJ.x_end + self.JJ.contact_pad_a /2 ,
-                                self.JJ.y_end - self.JJ.contact_pad_b - indent), layer=6)
-        if self.Coaxmon1.center[0] != self.Coaxmon2.center[0]:
-            poly1 = gdspy.Polygon([(self.JJ_params['x'] - self.JJ.contact_pad_a / 2,
-                                    self.JJ_params['y'] +indent),
-                                   (self.JJ_params['x'] - self.JJ.contact_pad_a / 2,
-                                    self.JJ_params['y'] + indent-self.JJ.contact_pad_b),
-                                   (self.JJ_params['x'] - self.JJ.contact_pad_a-indent,self.Coaxmon1.center[1]-self.core/2),
-                                   (self.JJ_params['x'] - self.JJ.contact_pad_a-indent,self.Coaxmon1.center[1]+self.core/2)
-                                   ])
-            poly2 = gdspy.Polygon([(self.JJ.x_end + self.JJ.contact_pad_a / 2,
-                                    self.JJ.y_end -indent-self.JJ.contact_pad_b),
-                                   (self.JJ.x_end + self.JJ.contact_pad_a / 2,
-                                    self.JJ.y_end - indent ),
-                                   (self.JJ.x_end + self.JJ.contact_pad_a + indent,
-                                    self.Coaxmon1.center[1] + self.core / 2),
-                                   (self.JJ.x_end + self.JJ.contact_pad_a + indent,
-                                    self.Coaxmon1.center[1] - self.core / 2)
-                                   ])
-        else:
-            poly1 = []
-            poly2 = []
-        rect = gdspy.boolean(rect1,[rect2,poly1,poly2], 'or', layer=6)
-        rect.rotate(angle, (self.JJ_params['x'], self.JJ_params['y']))
-        to_remove = gdspy.Polygon(self.JJ.points_to_remove,layer=self.layer_to_remove)
-        to_remove.rotate(angle, (self.JJ_params['x'], self.JJ_params['y']))
-        return result, rect , to_remove
 
 
-    def generate_squid(self):
-        # print(self.squid_params)
-        self.squid = squid3JJ.JJ_2(self.squid_params['x'],
-                                   self.squid_params['y'],
-                self.squid_params['a1'], self.squid_params['a2'],
-                self.squid_params['b1'], self.squid_params['b2'],
-                self.squid_params['c1'], self.squid_params['c2'])
-        squid = self.squid.generate_JJ()
-        rect = gdspy.Rectangle((self.squid_params['x'] - self.squid.contact_pad_a_outer / 2,
-                                self.squid_params['y'] + 0*self.squid.contact_pad_b_outer/2),
-                               (self.squid_params['x'] + self.squid.contact_pad_a_outer / 2,
-                                self.squid_params['y'] - self.squid.contact_pad_b_outer), layer=self.total_layer)
-
-        if self.Coaxmon1.center[0] == self.Coaxmon2.center[0]:
-            path1=gdspy.Polygon([(self.squid_params['x'], self.squid_params['y'] ),
-                                 (self.Coaxmon1.center[0], self.squid_params['y'] ),
-                                 (self.Coaxmon1.center[0], self.squid_params['y'] - self.squid.contact_pad_b_outer),
-                                 (self.squid_params['x'], self.squid_params['y'] - self.squid.contact_pad_b_outer)])
-            rect=gdspy.boolean(rect,path1,'or',layer=self.total_layer)
-
-        # point1 =
-        squid=gdspy.boolean(squid,squid,'or',layer=self.JJ_layer)
-        squid.rotate(self.squid_params['angle'],(self.squid_params['x'],
-                                   self.squid_params['y']))
-        return squid ,rect
 
 
-class RoundResonator:
-
-    def __init__(self, frequency, initial_point, core, gap, ground, open_end_length, open_end, coupler_length, l1, l2,
-                 l3, l4, l5, h_end, corner_type,
-                 total_layer, restricted_area_layer):
-        self.initial_point = initial_point
-        self.total_layer = total_layer
-        self.restricted_area_layer = restricted_area_layer
-        self.core = core
-        self.ground = ground
-        self.gap = gap
-        self.open_end_length = open_end_length
-        self.open_end = open_end
-        self.coupler_length = coupler_length
-        self._l1 = l1
-        self._l2 = l2
-        self._l3 = l3
-        self._l4 = l4
-        self._l5 = l5
-        self.f = frequency
-        self.c = 299792458
-        self.epsilon_eff = (11.45 + 1) / 2
-        self.L = self.c / (4 * np.sqrt(self.epsilon_eff) * frequency) * 1e6
-        self._h_end = h_end
-        self.corner_type = corner_type
-        self.points = None
-
-    def generate_resonator(self):
-        # specify points to generate everything before a meander
-        points = [(self.initial_point[0] + self.coupler_length / 2, self.initial_point[1] - self.open_end_length),
-                  (self.initial_point[0] + self.coupler_length / 2, self.initial_point[1]),
-                  (self.initial_point[0] - self.coupler_length / 2, self.initial_point[1]),
-                  (self.initial_point[0] - self.coupler_length / 2, self.initial_point[1] - self._l1),
-                  (self.initial_point[0] - self.coupler_length / 2+ self._l2, self.initial_point[1] - self._l1),
-                  (self.initial_point[0] - self.coupler_length / 2+ self._l2, self.initial_point[1] - self._l1 - self._l3)]
-        # generate the meander
-        L_meander = self.L - self.open_end_length - self.coupler_length - self._l1 - self._l2 - self._l3 - self._l4 - self._l5
-        if L_meander <= 0:
-            print("Error!Meander length for the resonator is less than zero")
-        meander_step = self._l4 + self._l5
-        N = int(L_meander // meander_step)
-        tail = np.floor(L_meander - N * meander_step)
-        meander_points = deepcopy(points)
-        for i in range(1, N + 2):
-            list = [(meander_points[-1][0] - self._l4, meander_points[-1][1]),
-                    (meander_points[-1][0] - self._l4, meander_points[-1][1] + (-1) ** (i % 2 + 1) * self._l5)]
-            meander_points.extend(list)
-        # generate the tail
-        if tail <= self._l4:
-            tail_points = [(meander_points[-1][0] - tail, meander_points[-1][1])]
-        elif tail > self._l4:
-            tail_points = [(meander_points[-1][0] - self._l4, meander_points[-1][1]),
-                    (meander_points[-1][0] - self._l4, meander_points[-1][1] + (-1) ** (N % 2+1) * (tail - self._l4))]
-        meander_points.extend(tail_points)
-        # generate the short end
-        const = self.ground + self.gap + self.core / 2
-        if tail <= self._l4:
-            short_end = gdspy.Polygon([(meander_points[-1][0] , meander_points[-1][1]+ const),
-                                   (meander_points[-1][0] - self._h_end,
-                                    meander_points[-1][1] + const),
-                                   (meander_points[-1][0] - self._h_end,
-                                    meander_points[-1][1] - const),
-                                   (meander_points[-1][0] , meander_points[-1][1]- const)])
-        elif tail > self._l4:
-            short_end = gdspy.Polygon([(meander_points[-1][0] + const, meander_points[-1][1]),
-                                       (meander_points[-1][0] + const,
-                                        meander_points[-1][1] + (-1) ** (N % 2+1) * self._h_end),
-                                       (meander_points[-1][0] - const,
-                                        meander_points[-1][1] + (-1) ** (N % 2+1) * self._h_end),
-                                       (meander_points[-1][0] - const, meander_points[-1][1])])
-        # generate resonator
-        self.points = deepcopy(meander_points)
-        resonator = Feedline(deepcopy(meander_points), self.core, self.gap, self.ground, None, self.total_layer,
-                            self.restricted_area_layer,
-                            R=40)
-        line = resonator.generate_feedline(self.corner_type)
-        line_total = [gdspy.boolean(line[0], short_end, 'or', layer=self.total_layer),
-                      gdspy.boolean(line[1], short_end, 'or', layer=self.restricted_area_layer), line[2]]
-        def generate_open_end(point, end):
-            end_gap = end['gap']
-            end_ground_length = end['ground']
-            if end['begin']:
-                x_begin = point[0]
-                y_begin = point[1]
-                additional_rotation =np.pi
-            restricted_area = gdspy.Rectangle((x_begin - self.core / 2 - self.gap - self.ground, y_begin),
-                                              (x_begin + self.core / 2 + self.gap + self.ground,
-                                               y_begin + end_gap + end_ground_length), layer=self.restricted_area_layer)
-            rectangle_for_removing = gdspy.Rectangle((x_begin - self.core / 2 - self.gap, y_begin),
-                                                     (x_begin + self.core / 2 + self.gap, y_begin + end_gap), layer=100) # fix it
-            total = gdspy.boolean(restricted_area, rectangle_for_removing, 'not')
-            for obj in [total, restricted_area, rectangle_for_removing]:
-                obj.rotate(additional_rotation, (x_begin, y_begin))
-            return total, restricted_area, rectangle_for_removing
-
-        open_end = generate_open_end(points[0], self.open_end)
-        return line_total, open_end, meander_points
+# class Resonator:
+#
+#     def __init__(self, frequency, initial_point, width_central, width_gap, width_ground, open_end_length, coupler_length, l3, l4, l5, h_end):
+#         self._x = initial_point[0] + coupler_length/2
+#         self._y = initial_point[1]-open_end_length
+#         self._width_central = width_central
+#         self._width_ground = width_ground
+#         self._distance_between = width_gap
+#         self._l1 = open_end_length
+#         self._l2 = coupler_length
+#         self._l3 = l3
+#         self._l4 = l4
+#         self._l5 = l5
+#         self.f = frequency
+#         self.c = 299792458
+#         self.epsilon_eff = (11.45+1)/2
+#         self._L = self.c/(4*np.sqrt(self.epsilon_eff)*frequency)*1e6 - self._l1-self._l2-self._l3-self._l4-self._l5
+#         self._h_end = h_end
+#
+#     def Generate_resonator(self,angle):
+#         const = self._width_ground + self._distance_between + self._width_central/2
+#         offset=self._distance_between+(self._width_central+self._width_ground)/2
+#
+#         x1=self._l1+const
+#         x2=self._l3+2*const
+#         x3=self._l5-const
+#
+#         element1=x1-x2-x3-2*const
+#         element2=self._x-(self._x-self._l2+self._l4)
+#         element=element1+element2
+#         D=element2
+#
+#         L_new=self._L-const
+#         N = int(np.floor((L_new)/(element)))
+#         tail=L_new-N*element
+#
+#         Number_of_points=[((self._x-self._l2+self._l4,self._y+self._l1-self._l3-self._l5))]
+#         i=1
+#         while i < N+1:
+#
+#             if i%2!=0:
+#                 list1=[(self._x-self._l2+self._l4-(i-1)*D,self._y+self._width_ground+self._distance_between+self._width_central/2),
+#                       (self._x-self._l2+self._l4-i*D,self._y+self._width_ground+self._distance_between+self._width_central/2)]
+#
+#                 Number_of_points.extend(list1)
+#
+#             else:
+#                 list2=[(self._x-self._l2+self._l4-(i-1)*D,self._y+self._l1-self._l3-self._l5-(self._width_ground+self._distance_between+self._width_central/2)),
+#                        (self._x-self._l2+self._l4-i*D,self._y+self._l1-self._l3-self._l5-(self._width_ground+self._distance_between+self._width_central/2))]
+#                 Number_of_points.extend(list2)
+#             i = i + 1
+#
+#         if (N)%2!=0:
+#                 tail1=Number_of_points[2*N][1]+tail-const
+#                 list_add_tail1=[(Number_of_points[2*N][0],tail1)]
+#
+#                 Number_of_points.extend(list_add_tail1)
+#
+#         else:
+#                 tail2=Number_of_points[2*N][1]-tail-const
+#                 list_add_tail2=[(Number_of_points[2*N][0],tail2) ]
+#                 Number_of_points.extend(list_add_tail2)
+#
+#         if (N)%2!=0:
+#
+#
+#             end1=(Number_of_points[2*N+1][0]+const, Number_of_points[2*N+1][1])
+#             end2=(Number_of_points[2*N+1][0]+const, Number_of_points[2*N+1][1]+self._h_end)
+#             end3=(Number_of_points[2*N+1][0]-const, Number_of_points[2*N+1][1]+self._h_end)
+#             end4=(Number_of_points[2*N+1][0]-const, Number_of_points[2*N+1][1])
+#
+#         else:
+#             end1=(Number_of_points[2*N+1][0]+const, Number_of_points[2*N+1][1])
+#             end2=(Number_of_points[2*N+1][0]+const, Number_of_points[2*N+1][1]-self._h_end)
+#             end3=(Number_of_points[2*N+1][0]-const, Number_of_points[2*N+1][1]-self._h_end)
+#             end4=(Number_of_points[2*N+1][0]-const, Number_of_points[2*N+1][1])
+#
+#         line = gdspy.FlexPath([(self._x, self._y), (self._x, self._y+self._l1), (self._x-self._l2,self._y+self._l1),(self._x-self._l2, self._y+self._l1-self._l3),(self._x-self._l2+self._l4,self._y+self._l1-self._l3), (self._x-self._l2+self._l4,self._y+self._l1-self._l3-self._l5)],[self._width_ground, self._width_central, self._width_ground],offset,ends=["flush", "flush", "flush"],precision=0.1)
+#         line1 = gdspy.FlexPath(Number_of_points,[self._width_ground, self._width_central, self._width_ground],offset,ends=["flush", "flush", "flush"])
+#
+#         end = gdspy.Polygon([end1,end2,end3,end4])
+#
+#         result = gdspy.boolean(line, line1, 'or')
+#         result = gdspy.boolean(end, result, 'or')
+#         return result.rotate(angle, (self._x,self._y))

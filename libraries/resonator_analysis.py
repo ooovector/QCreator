@@ -2,7 +2,7 @@ import sys
 import os
 import pandas as pd
 import numpy as np
-import scipy
+import scipy.optimize as optimize
 from scipy.constants import epsilon_0, mu_0
 epsilon=11.45
 mu=1
@@ -15,9 +15,9 @@ class ResonatorAnalyser():
         self.widths=None
         self.cap=None
         self.ind=None
-        self.coupler_l = Resonator._l2
-        self.short_end_l = Resonator.c/(4*np.sqrt(Resonator.epsilon_eff)*Resonator.f)*1e6-Resonator._l2-Resonator._l1
-        self.claw_end_l = Resonator._l1
+        self.coupler_l = Resonator.coupler_length
+        self.short_end_l = Resonator.L-Resonator.coupler_length-Resonator.open_end_length
+        self.claw_end_l = Resonator.open_end_length
         self.frequency=None
         self.nop=10000
 
@@ -44,8 +44,8 @@ class ResonatorAnalyser():
         if frequency is not None:
             self.frequency=frequency
         else:
-            self.frequency = np.linspace(complex(self.frequency_value-0.1e9), complex(self.frequency_value+0.1e9), self.nop)
-        print(self.frequency)
+            self.frequency = np.linspace(complex(self.frequency_value-0.02e9), complex(self.frequency_value+0.02e9), self.nop)
+        # print(self.frequency)
         import Sparameters.transmission_line_simulator as tls
         claw = tls.capacitor()
         # qubit_cap = capacitor()
@@ -80,24 +80,24 @@ class ResonatorAnalyser():
         coupler.Gl = np.zeros(coupler.Ll.shape, dtype=np.int)
 
         resonator_short_end.l = self.short_end_l/1e6
-        resonator_short_end.Cl = 140.453e-12
-        resonator_short_end.Ll = 491.157e-9
+        resonator_short_end.Cl = self.cap[1,1]
+        resonator_short_end.Ll = self.ind[1,1]
         resonator_short_end.Rl = 0
         resonator_short_end.Gl = 0
 
         resonator_claw_end.l = self.claw_end_l/1e6
-        resonator_claw_end.Cl = 140.453e-12
-        resonator_claw_end.Ll = 491.157e-9
+        resonator_claw_end.Cl = self.cap[1,1]
+        resonator_claw_end.Ll = self.ind[1,1]
         resonator_claw_end.Rl = 0
         resonator_claw_end.Gl = 0
 
-        claw.C = 2e-15
+        claw.C = 1e-15
         # qubit_cap.C=70e-15
         # qubit_inductor.L=19e-9
 
         # Simulate scattering parameter S21
         scale = np.asarray((2 * np.pi * self.frequency_value, 1e6))
-        solution = scipy.optimize.fsolve(lambda x: equation(*(x * scale)), (1, 1)) * scale
+        solution = optimize.fsolve(lambda x: equation(*(x * scale)), (1, 1)) * scale
         fr_numeric_num = solution[0] / np.pi / 2.
         Q_numeric_num = -solution[0] / (2 * solution[1])
         print('full numeric frequency, GHz: ', np.abs(solution[0] / np.pi / 2. / 1e9), ', Q: ',
