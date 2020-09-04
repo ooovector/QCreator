@@ -54,8 +54,15 @@ class Sample:
                 self.total_cell.add(result['grid_x'])
             if 'grid_y' in result:
                 self.total_cell.add(result['grid_y'])
-            if 'restricted' in result:
-                self.restricted_cell.add(result['restricted'])
+            if 'airbridges_pad_layer' in result:
+                self.total_cell.add(result['airbridges_pad_layer'])
+            if 'airbridges_layer' in result:
+                self.total_cell.add(result['airbridges_layer'])
+            if 'restrict' in result:
+                self.restricted_cell.add(result['restrict'])
+
+    def ground(self, element: elements.DesignElement, port: str):
+        self.connections.append(((element, port), ('gnd', 'gnd')))
 
     def connect_cpw(self, o1: elements.DesignElement, o2: elements.DesignElement, port1: str, port2: str, name: str,
                     points: list):
@@ -72,13 +79,13 @@ class Sample:
         assert (o1, port1) not in connections_flat
         assert (o2, port2) not in connections_flat
 
-        w = t1.core
-        s = t1.gap
-        g = t1.ground
+        w = t1.w
+        s = t1.s
+        g = t1.g
 
-        assert w == t2.core
-        assert s == t2.gap
-        assert g == t2.ground
+        assert w == t2.w
+        assert s == t2.s
+        assert g == t2.g
 
         cpw = elements.CPW(name, points, w, s, g, self.layer_configuration, r=self.default_cpw_radius(w, s, g),
                            corner_type='round')
@@ -86,6 +93,37 @@ class Sample:
         self.connections.extend([((cpw, 'port1'), (o1, port1)), ((cpw, 'port2'), (o2, port2))])
 
         return cpw
+
+    def get_tls(self):
+        """
+        Create a transmission line system of the design
+        :return:
+        """
+        tls = tlsim.TLSystem()
+        gnd = tlsim.Short()
+        tls.add_element(gnd, [0])
+
+        connections_flat = {}
+        max_connection_id = 0 # g connection
+
+        for connection in self.connections:
+            max_connection_id += 1
+            for terminal in connection:
+                connections_flat[terminal] = max_connection_id
+
+        for object_ in self.objects:
+            terminal_node_assignments = {}
+            for terminal_name, terminal in  object_.get_terminals().items():
+                if (object_, terminal_name) in connections_flat:
+                    terminal_node_assignments[terminal_name] = connections_flat[(object_, terminal_name)]
+                else:
+                    max_connection_id += 1
+                    connections_flat[max_connection_id] = (object_, terminal_name)
+                    terminal_node_assignments[terminal_name] = max_connection_id
+
+            object_.add_to_tls(tls, terminal_node_assignments)
+        return tls, connections_flat
+
 
     # TODO: Nice function for bridges over cpw, need to update
     def connect_bridged_cpw(self, name, points, core, gap, ground, nodes=None, end=None, R=40, corner_type='round', bridge_params=None):
@@ -127,33 +165,6 @@ class Sample:
         self.total_cell.add(line[0])
         self.restricted_area_cell.add(line[1])
         self.cell_to_remove.add(line[2])
-
-    def get_tls(self):
-        """
-        Create a transmission line system of the design
-        :return:
-        """
-        tls = tlsim.TLSystem()
-
-        connections_flat = {}
-        max_connection_id = 0 # g connection
-        for connection in self.connections:
-            max_connection_id += 1
-            for terminal in connection:
-                connections_flat[terminal] = max_connection_id
-
-        for object_ in self.objects:
-            terminal_node_assignments = {}
-            for terminal_name, terminal in  object_.get_terminals().items():
-                if (object_, terminal_name) in connections_flat:
-                    terminal_node_assignments[terminal_name] = connections_flat[(object_, terminal_name)]
-                else:
-                    max_connection_id += 1
-                    connections_flat[max_connection_id] = (object_, terminal_name)
-                    terminal_node_assignments[terminal_name] = max_connection_id
-
-            object_.add_to_tls(tls, terminal_node_assignments)
-        return tls, connections_flat
 
     '''
     Deprecated stuff?

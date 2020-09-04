@@ -1,6 +1,6 @@
 from .. import transmission_line_simulator as tlsim
 from abc import *
-from typing import Mapping, Iterable
+from typing import Mapping, Tuple, Iterable, Any
 
 
 class DesignTerminal:
@@ -8,7 +8,8 @@ class DesignTerminal:
     A Terminal is an output/input of a DesignElement. Most terminals are CPW-type, as they can be connected to
     CPW-compatible transmission lines. The properties of the terminal determine what type of CPW can be connected to it.
     """
-    def __init__(self, position: Iterable[float], orientation: float, type: str, w: float, s: float, g: float):
+    def __init__(self, position: Tuple[float, float], orientation: float, type: str, w: float, s: float, g: float,
+                 disconnected: str = 'short'):
         """
         Create terminal with specific connection type (e.g. cpw) and cpw geometry
         :param position: CPW end position
@@ -17,13 +18,15 @@ class DesignTerminal:
         :param w: central conductor width of cpw in microns
         :param s: s width of cpw in width
         :param g: finite g width of cpw in microns
+        :param disconnected: terimnal behaviour in transmission line model if disconnected, either 'short' or 'open'
         """
         self.position = position
         self.orientation = orientation
         self.type = type
-        self.core = w
-        self.gap = s
-        self.ground = g
+        self.w = w
+        self.s = s
+        self.g = g
+        self.disconnected = disconnected
 
 
 class DesignElement:
@@ -50,7 +53,7 @@ class DesignElement:
         pass
 
     @abstractmethod
-    def get_terminals(self) -> Mapping[str, tuple]:
+    def get_terminals(self) -> Mapping[str, DesignTerminal]:
         """
         Returns a list of terminals for the transmission line model of the system. Pure wrt to self
         :return:
