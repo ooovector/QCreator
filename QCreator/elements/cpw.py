@@ -8,7 +8,7 @@ from typing import List, Tuple, Mapping
 
 class CPW(DesignElement):
     def __init__(self, name: str, points: List[Tuple[float, float]], w: float, s: float, g: float,
-                 layer_configuration: LayerConfiguration, r: float, corner_type: str = 'round'):
+                 layer_configuration: LayerConfiguration, r:float, corner_type: str = 'round'):
         """
         Create a coplanar waveguide (CPW) through points.
         :param name: element identifier
@@ -83,12 +83,10 @@ class CPW(DesignElement):
                                           [self.g, self.w,
                                            self.g], offset, ends=["flush", "flush", "flush"],
                                           corners=["circular bend", "circular bend", "circular bend"],
-                                          bend_radius=[r1, self.r, r2], precision=0.001,
-                                          layer=self.layer_configuration.total_layer)
+                                          bend_radius=[r1, self.r, r2], precision=0.001, layer=0)
                     restricted_line = gdspy.FlexPath([point1, point2, point3], width_restricted_line, offset=0,
                                                      ends="flush", corners="circular bend", bend_radius=self.r,
-                                                     precision=0.001,
-                                                     layer=self.layer_configuration.restricted_area_layer)
+                                                     precision=0.001, layer=1)
                     line_new = gdspy.FlexPath([point1, point2, point3], [width_new, width_new], offset=offset_new,
                                               ends=["flush", "flush"], corners=["circular bend", "circular bend"],
                                               bend_radius=[r1_new, r2_new], precision=0.001, layer=2)
@@ -101,20 +99,17 @@ class CPW(DesignElement):
                                           [self.g, self.w,
                                            self.g], offset, ends=["flush", "flush", "flush"],
                                           corners=["circular bend", "circular bend", "circular bend"],
-                                          bend_radius=[r2, self.r, r1], precision=0.001,
-                                          layer=self.layer_configuration.total_layer)
+                                          bend_radius=[r2, self.r, r1], precision=0.001, layer=0)
                     restricted_line = gdspy.FlexPath([point1, point2, point3], width_restricted_line, offset=0,
                                                      ends="flush", corners="circular bend", bend_radius=self.r,
-                                                     precision=0.001,
-                                                     layer=self.layer_configuration.restricted_area_layer)
+                                                     precision=0.001, layer=1)
                     line_new = gdspy.FlexPath([point1, point2, point3], [width_new, width_new], offset=offset_new,
                                               ends=["flush", "flush"], corners=["circular bend", "circular bend"],
                                               bend_radius=[r2_new, r1_new], precision=0.001, layer=2)
 
                     # self.end = line.x
                 result = gdspy.boolean(line, result, 'or', layer=self.layer_configuration.total_layer)
-                result_restricted = gdspy.boolean(restricted_line, result_restricted, 'or',
-                                                  layer=self.layer_configuration.restricted_area_layer)
+                result_restricted = gdspy.boolean(restricted_line, result_restricted, 'or', layer=self.layer_configuration.restricted_area_layer)
                 result_new = gdspy.boolean(line_new, result_new, 'or', layer=2)
                 # self.restricted_area = gdspy.boolean(rectricted_line, self.restricted_area, 'or', layer = self.restricted_area_layer)
 
@@ -258,14 +253,14 @@ class Narrowing(DesignElement):
         :param position: position of center
         :param orientation: orientation in radians
         :param w1: signal conductor width of port 1
-        :param s1: signal-g s of port 1
-        :param g1: finite g width of port 1
+        :param s1: signal-ground gap of port 1
+        :param g1: finite ground width of port 1
         :param w2: signal conductor width of port 2
-        :param s2: signal-g s of port 2
-        :param g2: finite g width of port 2
+        :param s2: signal-ground gap of port 2
+        :param g2: finite ground width of port 2
         :param layer_configuration:
         :param length: height of trapezoid
-        :param c: signal-to-g capacitance
+        :param c: signal-to-ground capacitance
         :param l: port 1 to port 2 inductance
         """
         super().__init__('narrowing', name)
@@ -342,7 +337,7 @@ class Narrowing(DesignElement):
         polygon_to_remove = gdspy.boolean(restricted_area, result, 'not',
                                           layer=self.layer_configuration.layer_to_remove)
 
-        return {'positive': result, 'restrict': [restricted_area], 'remove': polygon_to_remove}
+        return {'positive': result, 'restricted': [restricted_area], 'remove': polygon_to_remove}
 
     def get_terminals(self):
         return self.terminals

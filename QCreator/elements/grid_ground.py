@@ -1,6 +1,6 @@
-from .core import DesignElement, DesignTerminal, ChipGeometry, LayerConfiguration
+from .core import DesignElement, ChipGeometry, LayerConfiguration
 import gdspy
-from typing import List, Mapping, Any
+from typing import List
 
 
 class GridGround(DesignElement):
@@ -30,8 +30,8 @@ class GridGround(DesignElement):
                 continue
             if 'positive' in object_.get():
                 rest = gdspy.boolean(rest, object_.get()['positive'], 'or')
-            if 'restrict' in object_.get():
-                rest = gdspy.boolean(rest, object_.get()['restrict'], 'or')
+            if 'restricted' in object_.get():
+                rest = gdspy.boolean(rest, object_.get()['positive'], 'or')
 
 
         result_x = None
@@ -57,7 +57,7 @@ class GridGround(DesignElement):
 
         return {'grid_x': result_x, 'grid_y': result_y}
 
-    def get_terminals(self) -> Mapping[str, DesignTerminal]:
+    def get_terminals(self) -> dict:
         return {}
 
     def add_to_tls(self, tls_instance, terminal_mapping: dict, track_changes: bool = True) -> list:

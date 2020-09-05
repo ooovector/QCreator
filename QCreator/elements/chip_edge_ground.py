@@ -31,7 +31,7 @@ class Pads(DesignElement):
 class ChipEdgeGround(DesignElement):
     def __init__(self, chip_geometry: ChipGeometry, layer_configuration: LayerConfiguration, pads: Pads):
         """
-        Element for creating a wide and solid g electrode around the edges of the chip to wirebond for wirebonding
+        Element for creating a wide and solid ground electrode around the edges of the chip to wirebond for wirebonding
         to PCB.
         :param chip_geometry:
         :param layer_configuration:
