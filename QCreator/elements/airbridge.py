@@ -2,11 +2,7 @@ from .core import DesignElement, LayerConfiguration
 from .. import transmission_line_simulator as tlsim
 import numpy as np
 import gdspy
-<<<<<<< HEAD
-from typing import Tuple
-=======
 from typing import Tuple, Mapping
->>>>>>> parent of c831683... Add airbridges
 
 
 # TODO: create some model for capacitances and inductances in tlsim

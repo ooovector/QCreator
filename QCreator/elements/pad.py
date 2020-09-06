@@ -80,13 +80,8 @@ class Pad(DesignElement):
 
         pad.rotate(self.terminal.orientation, [coord_init_x, coord_init_y])
         restricted_pad.rotate(self.terminal.orientation, [coord_init_x, coord_init_y])
-<<<<<<< HEAD
         result_restricted = gdspy.boolean(restricted_pad, restricted_pad, 'or', layer=self.layer_configuration.restricted_area_layer)
         return {'positive': pad, 'restricted': result_restricted}
-=======
-
-        return {'positive': pad, 'restricted': restricted_pad}
->>>>>>> parent of c831683... Add airbridges
 
     def get_terminals(self) -> dict:
         return {'port': self.terminal}
