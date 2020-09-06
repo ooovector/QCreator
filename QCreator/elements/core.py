@@ -80,6 +80,8 @@ class LayerConfiguration:
         self.restricted_area_layer = layer_configurations['restricted area']
         self.layer_to_remove = layer_configurations['for removing']
         self.jj_layer = layer_configurations['JJs']
+        self.jj_flux_lines = layer_configurations['flux lines']
+        self.test = 20
         self.airbridges_layer = layer_configurations['air bridges']
         self.airbridges_pad_layer = layer_configurations['air bridge pads']
         self.gridline_x_layer = layer_configurations['vertical gridlines']

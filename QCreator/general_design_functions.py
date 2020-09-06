@@ -10,26 +10,6 @@ from abc import *
 #from . import conformal_mapping as cm
 
 
-class QubitCoupler(DesignElement):
-    def __init__(self, name, arc_start, arc_finish, phi, w, grounded=False):
-        super().__init__(name)
-        self.arc_start = arc_start
-        self.arc_finish = arc_finish
-        self.phi = phi
-        self.w = w
-        self.grounded = grounded
-
-    def generate_coupler(self, coordinate, r_init, r_final, rect_end):
-        #to fix bug
-        bug = 5
-        result = gdspy.Round(coordinate, r_init, r_final,
-                             initial_angle=self.arc_start * np.pi,
-                             final_angle=self.arc_finish * np.pi)
-        rect = gdspy.Rectangle((coordinate[0] + r_final - bug, coordinate[1] - self.w / 2),
-                               (coordinate[0] + rect_end + bug, coordinate[1] + self.w / 2))
-        rect.rotate(self.phi*np.pi, coordinate)
-        return gdspy.boolean(result,rect, 'or')
-
 
 class IlyaCoupler(DesignElement):
     def __init__(self, name: str, core: float, gap: float, ground: float, coaxmon1: Coaxmon, coaxmon2: Coaxmon,

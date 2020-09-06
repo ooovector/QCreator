@@ -74,7 +74,7 @@ class CPW(DesignElement):
                 point3 = new_points[-1]
             self.points[i + 1] = ((self.points[i + 1][0] + self.points[i + 2][0]) / 2,
                                   (self.points[i + 1][1] + self.points[i + 2][1]) / 2)
-            if self.corner_type is 'round':
+            if self.corner_type == 'round':
                 vector1 = np.asarray(new_points[i + 1][:]) - new_points[i][:]
                 vector2 = np.asarray(new_points[i + 2][:]) - new_points[i + 1][:]
                 vector_prod = vector1[0] * vector2[1] - vector1[1] * vector2[0]
@@ -174,51 +174,6 @@ class CPW(DesignElement):
             return self.generate_fluxline_end(end)
     '''
 
-    # TODO: create a separate class for this method
-    def generate_fluxline_end(self,end):
-        jj = end['JJ']
-        length = end['length']
-        width = end['width']
-        point1 = jj.rect1
-        point2 = jj.rect2
-        result = None
-        # rect_to_remove = gdspy.Rectangle((),
-        #                                  ())
-        for point in [point1, point2]:
-            line = gdspy.Rectangle((point[0] - width/2, point[1]),
-                                   (point[0] + width/2, point[1] - length))
-            result = gdspy.boolean(line, result, 'or', layer=6) #TODO: layer should not be constant
-        # result = gdspy.boolean(line1,line2,'or',layer=self.total_layer)
-        path1 = gdspy.Polygon([(point1[0] + width / 2, point1[1] - length), (point1[0] - width / 2, point1[1] - length),
-                               (self.end[0] + (self.w / 2 + self.s + width) * np.cos(self.angle + np.pi / 2),
-                                self.end[1] + (self.w / 2 + self.s + width) * np.sin(self.angle + np.pi / 2)),
-                               (self.end[0] + (self.w / 2 + self.s) * np.cos(self.angle + np.pi / 2),
-                                self.end[1] + (self.w / 2 + self.s) * np.sin(self.angle + np.pi / 2))])
-
-        result = gdspy.boolean(path1, result, 'or', layer=6) #TODO: layer should not be constant
-
-        path2 = gdspy.Polygon([(point2[0] + width / 2, point2[1] - length), (point2[0] - width / 2, point2[1] - length),
-                               (self.end[0] + (self.w / 2) * np.cos(self.angle + np.pi / 2), self.end[1] + (self.w / 2) * np.sin(self.angle + np.pi / 2)),
-                               (self.end[0] + self.w / 2 * np.cos(self.angle + 3 * np.pi / 2), self.end[1] + (self.w / 2) * np.sin(self.angle + 3 * np.pi / 2))])
-        result = gdspy.boolean(path2, result, 'or', layer=6) #TODO: layer should not be constant
-
-        # if end['type'] != 'coupler':
-        restricted_area = gdspy.Polygon([(point1[0] - width / 2, point1[1]),
-                                         (point2[0] + width / 2 + self.s, point2[1]),
-                                         (point2[0] + width / 2 + self.s, point2[1] - length),
-                                         (self.end[0] + (self.w / 2 + self.s) * np.cos(
-                                             self.angle + 3 * np.pi / 2),
-                                          self.end[1] + (self.w / 2 + self.s) * np.sin(
-                                              self.angle + 3 * np.pi / 2)),
-                                         (self.end[0] + (self.w / 2 + self.s + width) * np.cos(
-                                             self.angle + np.pi / 2),
-                                          self.end[1] + (self.w / 2 + self.s + width) * np.sin(
-                                              self.angle + np.pi / 2)),
-                                         (point1[0] - width / 2, point1[1] - length)],
-                                        layer=self.restricted_area_layer)
-        # else:
-        #
-        return result, restricted_area, restricted_area
 
     # TODO: create separate class for this method
     def generate_open_end(self, end):

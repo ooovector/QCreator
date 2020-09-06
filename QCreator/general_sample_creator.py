@@ -22,6 +22,7 @@ class Sample:
         self.name = str(name)
         self.total_cell = gdspy.Cell(self.name)
         self.restricted_cell = gdspy.Cell(self.name + ' restricted')
+        self.qubit_cell = gdspy.Cell(self.name + ' qubit')
         #self.label_cell = gdspy.Cell(self.name + ' labels')
         #self.cell_to_remove = gdspy.Cell(self.name + ' remove')
 
@@ -48,6 +49,14 @@ class Sample:
     def draw_design(self):
         for object_ in self.objects:
             result = object_.get()
+            if 'qubit' in result:
+                self.qubit_cell.add(result['qubit'])
+            if 'test' in result:
+                self.qubit_cell.add(result['test'])
+            if 'flux line' in result:
+                self.qubit_cell.add(result['flux line'])
+            if 'JJ' in result:
+                self.qubit_cell.add(result['JJ'])
             if 'positive' in result:
                 self.total_cell.add(result['positive'])
             if 'grid_x' in result:
