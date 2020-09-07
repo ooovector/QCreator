@@ -5,7 +5,7 @@ import gdspy
 import numpy as np
 from typing import List, Tuple, Mapping, Dict
 from . import squid3JJ
-
+from copy import deepcopy
 
 class Coaxmon(DesignElement):
     def __init__(self, name: str, center: Tuple[float, float],
@@ -65,7 +65,7 @@ class Coaxmon(DesignElement):
             JJ, rect = self.generate_JJ()
             result = gdspy.boolean(result, rect, 'or')
             flux_line = self.connection_to_ground(self.JJ_params['length'], self.JJ_params['width'])
-            result = gdspy.boolean(result, flux_line['test'], 'not')
+            result = gdspy.boolean(result, flux_line['remove'], 'not')
             result = gdspy.boolean(result, flux_line['flux line'], 'or', layer=self.layer_configuration.total_layer)
         # self.specify_terminals()
         return {'positive': result,
@@ -106,78 +106,72 @@ class Coaxmon(DesignElement):
         point1 = jj.rect1
         point2 = jj.rect2
         result = None
+        remove = None
         end = self.connection_points[0]
         start = self.connection_points[1]
-        for point in [point1, point2]:
-            line = gdspy.Rectangle((point[0] - width / 2, point[1]),
-                                   (point[0] + width / 2, point[1] - length))
-            result = gdspy.boolean(line, result, 'or', layer=self.layer_configuration.jj_flux_lines)
-        path1 = gdspy.Polygon(
-            [(point1[0] + width / 2, point1[1] - length), (point1[0] - width / 2, point1[1] - length),
-             (end[0] + self.grounded.w / 2 * np.cos(self.angle + 3 * np.pi / 2),
-              end[1] + (self.grounded.w / 2) * np.sin(self.angle + 3 * np.pi / 2)),
-             (end[0] + (self.grounded.w / 2) * np.cos(self.angle + np.pi / 2),
-              end[1] + (self.grounded.w / 2) * np.sin(self.angle + np.pi / 2)),
-             ])
+
+        orientation1 = np.arctan2(-(self.center[1] - (point1[1]-length)), -(self.center[0] - point1[0]))
+        points =[point1, (point1[0], point1[1] - length),
+                 (self.center[0]+self.R2*np.cos(orientation1),self.center[1]+self.R2*np.sin(orientation1))]
+        path1 = gdspy.FlexPath(deepcopy(points),self.core,offset=0,layer=self.layer_configuration.jj_flux_lines)
         result = gdspy.boolean(path1, result, 'or', layer=self.layer_configuration.jj_flux_lines)
 
-        path2 = gdspy.Polygon(
-            [(point2[0] + width / 2, point2[1] - length), (point2[0] - width / 2, point2[1] - length),
-             (end[0] + (self.grounded.w / 2 + self.grounded.g) * np.cos(self.angle + np.pi / 2),
-              end[1] + (self.grounded.w / 2 + self.grounded.g) * np.sin(self.angle + np.pi / 2)),
-             (end[0] + (self.grounded.w / 2 + self.grounded.g + width) * np.cos(self.angle + np.pi / 2),
-              end[1] + (self.grounded.w / 2 + self.grounded.g + width) * np.sin(self.angle + np.pi / 2))
-             ])
+        orientation2 = np.arctan2(-(self.center[1] - (point2[1]-length)), -(self.center[0] - point2[0]))
+        points = [point2, (point2[0], point2[1] - length),
+                  (self.center[0]+self.R2*np.cos(orientation2),self.center[1]+self.R2*np.sin(orientation2))]
+        path2 = gdspy.FlexPath(deepcopy(points),self.core,offset=0,layer=self.layer_configuration.jj_flux_lines)
         result = gdspy.boolean(path2, result, 'or', layer=self.layer_configuration.jj_flux_lines)
 
-        remove = gdspy.Polygon([(point1[0] - width / 2, point1[1]),
-                                (point2[0] + width / 2 + self.grounded.g, point2[1]),
-                                (point2[0] + width / 2 + self.grounded.g, point2[1] - length),
-                                (end[0] + (self.grounded.w / 2 + 2 * self.grounded.g + width) * np.cos(
-                                    self.angle + np.pi / 2),
-                                 end[1] + (self.grounded.w / 2 + 2 * self.grounded.g + width) * np.sin(
-                                     self.angle + np.pi / 2)),
-                                (end[0] + (self.grounded.w / 2) * np.cos(
-                                    self.angle + 3 * np.pi / 2),
-                                 end[1] + (self.grounded.w / 2) * np.sin(
-                                     self.angle + 3 * np.pi / 2)),
-                                (point1[0] - width / 2, point1[1] - length)],
-                               layer=self.layer_configuration.test)
-        orientation1 = np.arctan2(end[1] - start[1], end[0] - start[0])
+        # remove = gdspy.Polygon([(point1[0] - width / 2, point1[1]),
+        #                         (point2[0] + width / 2 + self.grounded.g, point2[1]),
+        #                         (point2[0] + width / 2 + self.grounded.g, point2[1] - length),
+        #                         (end[0] + (self.grounded.w / 2 + 2 * self.grounded.g + width) * np.cos(
+        #                             self.angle + np.pi / 2),
+        #                          end[1] + (self.grounded.w / 2 + 2 * self.grounded.g + width) * np.sin(
+        #                              self.angle + np.pi / 2)),
+        #                         (end[0] + (self.grounded.w / 2) * np.cos(
+        #                             self.angle + 3 * np.pi / 2),
+        #                          end[1] + (self.grounded.w / 2) * np.sin(
+        #                              self.angle + 3 * np.pi / 2)),
+        #                         (point1[0] - width / 2, point1[1] - length)],
+        #                        layer=self.layer_configuration.test)
+        # orientation1 = np.arctan2(end[1] - start[1], end[0] - start[0])
 
-        cpw_1part = gdspy.Polygon([(end[0] + (self.grounded.w / 2 + self.grounded.g) * np.cos(self.angle + np.pi / 2),
-                                    end[1] + (self.grounded.w / 2 + self.grounded.g) * np.sin(self.angle + np.pi / 2)),
-                                   (end[0] + (self.grounded.w / 2) * np.cos(self.angle + np.pi / 2),
-                                    end[1] + (self.grounded.w / 2) * np.sin(self.angle + np.pi / 2)),
-                                   (start[0] + (self.grounded.w / 2 + self.grounded.g) * np.cos(self.angle + np.pi / 2),
-                                    start[1] + (self.grounded.w / 2 + self.grounded.g) * np.sin(
-                                        self.angle + np.pi / 2)),
-                                   (start[0] + (self.grounded.w / 2 + self.grounded.g * 2) * np.cos(
-                                       self.angle + np.pi / 2),
-                                    start[1] + (self.grounded.w / 2 + self.grounded.g * 2) * np.sin(
-                                        self.angle + np.pi / 2))
-                                   ])
-        cpw_2part = gdspy.Polygon(
-            [(end[0] + (self.grounded.w / 2 * 3 + 2 * self.grounded.g) * np.cos(self.angle + np.pi / 2),
-              end[1] + (self.grounded.w / 2 * 3 + 2 * self.grounded.g) * np.sin(self.angle + np.pi / 2)),
-             (end[0] + (self.grounded.w / 2 * 3 + self.grounded.g) * np.cos(self.angle + np.pi / 2),
-              end[1] + (self.grounded.w / 2 * 3 + self.grounded.g) * np.sin(self.angle + np.pi / 2)),
-             (start[0] + (self.grounded.w / 2 * 3 + 2 * self.grounded.g) * np.cos(self.angle + np.pi / 2),
-              start[1] + (self.grounded.w / 2 * 3 + 2 * self.grounded.g) * np.sin(self.angle + np.pi / 2)),
-             (
-                 start[0] + (self.grounded.w / 2 * 3 + self.grounded.g * 3) * np.cos(self.angle + np.pi / 2),
-                 start[1] + (self.grounded.w / 2 * 3 + self.grounded.g * 3) * np.sin(self.angle + np.pi / 2))
-             ])
-        remove = gdspy.boolean(remove, cpw_1part, 'or', layer=self.layer_configuration.test)
-        remove = gdspy.boolean(remove, cpw_2part, 'or', layer=self.layer_configuration.test)
-        point = (start[0]+(self.grounded.w + self.grounded.g) * np.cos(self.angle + np.pi / 2),
-                 start[1]+(self.grounded.w + self.grounded.g) * np.sin(self.angle + np.pi / 2))
+        # cpw_1part = gdspy.Polygon([(end[0] + (self.grounded.w / 2 + self.grounded.g) * np.cos(self.angle + np.pi / 2),
+        #                             end[1] + (self.grounded.w / 2 + self.grounded.g) * np.sin(self.angle + np.pi / 2)),
+        #                            (end[0] + (self.grounded.w / 2) * np.cos(self.angle + np.pi / 2),
+        #                             end[1] + (self.grounded.w / 2) * np.sin(self.angle + np.pi / 2)),
+        #                            (start[0] + (self.grounded.w / 2 + self.grounded.g) * np.cos(self.angle + np.pi / 2),
+        #                             start[1] + (self.grounded.w / 2 + self.grounded.g) * np.sin(
+        #                                 self.angle + np.pi / 2)),
+        #                            (start[0] + (self.grounded.w / 2 + self.grounded.g * 2) * np.cos(
+        #                                self.angle + np.pi / 2),
+        #                             start[1] + (self.grounded.w / 2 + self.grounded.g * 2) * np.sin(
+        #                                 self.angle + np.pi / 2))
+        #                            ])
+        # cpw_2part = gdspy.Polygon(
+        #     [(end[0] + (self.grounded.w / 2 * 3 + 2 * self.grounded.g) * np.cos(self.angle + np.pi / 2),
+        #       end[1] + (self.grounded.w / 2 * 3 + 2 * self.grounded.g) * np.sin(self.angle + np.pi / 2)),
+        #      (end[0] + (self.grounded.w / 2 * 3 + self.grounded.g) * np.cos(self.angle + np.pi / 2),
+        #       end[1] + (self.grounded.w / 2 * 3 + self.grounded.g) * np.sin(self.angle + np.pi / 2)),
+        #      (start[0] + (self.grounded.w / 2 * 3 + 2 * self.grounded.g) * np.cos(self.angle + np.pi / 2),
+        #       start[1] + (self.grounded.w / 2 * 3 + 2 * self.grounded.g) * np.sin(self.angle + np.pi / 2)),
+        #      (
+        #          start[0] + (self.grounded.w / 2 * 3 + self.grounded.g * 3) * np.cos(self.angle + np.pi / 2),
+        #          start[1] + (self.grounded.w / 2 * 3 + self.grounded.g * 3) * np.sin(self.angle + np.pi / 2))
+        #      ])
+        # remove = gdspy.boolean(remove, cpw_1part, 'or', layer=self.layer_configuration.test)
+        # remove = gdspy.boolean(remove, cpw_2part, 'or', layer=self.layer_configuration.test)
+        point = (start[0]+(self.grounded.w + self.grounded.g) * np.sin(np.pi-orientation1),
+                 start[1]+(self.grounded.w + self.grounded.g) * np.cos(np.pi-orientation1))
+        # point = start
         self.terminals['flux line'] = DesignTerminal(point, orientation1, g=self.grounded.w, s=self.grounded.g,
                                                  w=self.grounded.w, type='cpw')
         # TODO: grounded part specified incorrectly
         return {'positive': result,
-                'test': remove,
-                'flux line': result
+                'remove': remove,
+                'flux line': result,
+                'test':gdspy.boolean(path2, path1, 'or', layer=self.layer_configuration.jj_flux_lines)
                 }
 
 
