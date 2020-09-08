@@ -31,7 +31,7 @@ class Pads(DesignElement):
 class ChipEdgeGround(DesignElement):
     def __init__(self, chip_geometry: ChipGeometry, layer_configuration: LayerConfiguration, pads: Pads):
         """
-        Element for creating a wide and solid g electrode around the edges of the chip to wirebond for wirebonding
+        Element for creating a wide and solid ground electrode around the edges of the chip to wirebond for wirebonding
         to PCB.
         :param chip_geometry:
         :param layer_configuration:
@@ -54,12 +54,11 @@ class ChipEdgeGround(DesignElement):
         result = gdspy.boolean(r1, r2, 'not')
 
         for pad in self.pads.items():
-        #pads = gdspy.polygon.PolygonSet(pads)
             pad = pad.get()
             to_bool = gdspy.Rectangle(pad['positive'].get_bounding_box()[0].tolist(), pad['positive'].get_bounding_box()[1].tolist())
             result = gdspy.boolean(result, to_bool, 'not')
-
-        return {'positive': result}
+        result_restricted = gdspy.boolean(result, result, 'or', layer=self.layer_configuration.restricted_area_layer)
+        return {'positive': result, 'restricted': result_restricted}
 
     def get_terminals(self) -> dict:
         return {}
