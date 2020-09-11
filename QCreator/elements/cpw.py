@@ -139,8 +139,8 @@ class CPW(DesignElement):
                                                                               # also, render() should not mutate self
 
         return {'positive': result,
-                'restrict': result_restricted,
-                'remove': result_new #TODO: do we need this?
+                'restricted': result_restricted,
+                'remove': result_new #TODO: do we need this? in some cases cpws can cross each other, probably yes
                 }
 
     def get_terminals(self):
@@ -319,7 +319,7 @@ class Narrowing(DesignElement):
                                       (x_end, y_end-(self.w2 / 2 + self.s2 + self.g2)),
                                       (x_begin, y_begin-(self.w1 / 2 + self.s1 + self.g1))]
 
-        restricted_area = gdspy.Polygon(points_for_restricted_area)
+        restricted_area = gdspy.Polygon(points_for_restricted_area, layer=self.layer_configuration.restricted_area_layer)
 
         poly1 = gdspy.Polygon(points_for_poly1)
         poly2 = gdspy.Polygon(points_for_poly2)

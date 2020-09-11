@@ -1,0 +1,9 @@
+.ipynb_checkpoints
+__pycache__
+*.pyc
+.idea/*
+.idea/
+build
+dist
+*.egg-info
+QCreator/.idea/libraries.iml
