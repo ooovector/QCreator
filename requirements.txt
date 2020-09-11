@@ -2,3 +2,6 @@ matplotlib
 numpy
 scipy
 plotly
+gdspy
+shapely
+meshpy

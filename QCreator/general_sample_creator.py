@@ -80,8 +80,15 @@ class Sample:
         assert s == t2.gap
         assert g == t2.ground
 
+        orientation1 = t1.orientation + np.pi
+        if orientation1 > np.pi:
+            orientation1 -= 2*np.pi
+        orientation2 = t2.orientation + np.pi
+        if orientation2 > np.pi:
+            orientation2 -= 2*np.pi
+
         cpw = elements.CPW(name, points, w, s, g, self.layer_configuration, r=self.default_cpw_radius(w, s, g),
-                           corner_type='round')
+                           corner_type='round', orientation1=orientation1, orientation2=orientation2)
         self.add(cpw)
         self.connections.extend([((cpw, 'port1'), (o1, port1)), ((cpw, 'port2'), (o2, port2))])
 

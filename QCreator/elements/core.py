@@ -1,6 +1,7 @@
 from .. import transmission_line_simulator as tlsim
 from abc import *
-from typing import Mapping, Iterable
+from typing import Mapping, Iterable, Union
+import gdspy
 
 
 class DesignTerminal:
@@ -8,7 +9,8 @@ class DesignTerminal:
     A Terminal is an output/input of a DesignElement. Most terminals are CPW-type, as they can be connected to
     CPW-compatible transmission lines. The properties of the terminal determine what type of CPW can be connected to it.
     """
-    def __init__(self, position: Iterable[float], orientation: float, type: str, w: float, s: float, g: float):
+    def __init__(self, position: Iterable[float], orientation: float, type: str, w: Union[float, Iterable[float]],
+                 s: Union[float, Iterable[float]], g: float):
         """
         Create terminal with specific connection type (e.g. cpw) and cpw geometry
         :param position: CPW end position
@@ -42,7 +44,7 @@ class DesignElement:
         return self.resource
 
     @abstractmethod
-    def render(self):
+    def render(self) -> Mapping[str, Mapping[str, Union[Iterable, gdspy.PolygonSet]]]:
         """
         Draw the element on the design gds. Pure with respect to self: when implementing in subclasses, make sure not to
         change properties of self.

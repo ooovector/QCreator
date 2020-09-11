@@ -6,9 +6,10 @@ from .. import transmission_line_simulator as tlsim
 from typing import List, Tuple, Mapping
 
 
-class CPW(DesignElement):
-    def __init__(self, name: str, points: List[Tuple[float, float]], w: float, s: float, g: float,
-                 layer_configuration: LayerConfiguration, r:float, corner_type: str = 'round'):
+class CPWCoupler(DesignElement):
+    def __init__(self, name: str, points: List[Tuple[float, float]], w: List[float], s: List[float], g: float,
+                 layer_configuration: LayerConfiguration, r: float, corner_type: str = 'round',
+                 orientation1: float = None, orientation2: float = None):
         """
         Create a coplanar waveguide (CPW) through points.
         :param name: element identifier
@@ -20,11 +21,11 @@ class CPW(DesignElement):
         :param r: bend radius
         :param corner_type: 'round' for circular arcs instead of sharp corners, anything else for sharp corners
         """
-        super().__init__('cpw', name)
+        super().__init__('mc-cpw', name)
         self.w = w
         self.g = g
         self.s = s
-        self.points = points
+        self.points = [np.asarray(p) for p in points]
         self.r = r
         self.restricted_area = None
         self.layer_configuration = layer_configuration
@@ -34,130 +35,140 @@ class CPW(DesignElement):
         self.length = None
         self.tls_cache = []
 
-        orientation1 = np.arctan2(self.points[1][1]-self.points[0][1], self.points[1][0]-self.points[0][0])
-        orientation2 = np.arctan2(self.points[-1][1] - self.points[-2][1], self.points[-1][0] - self.points[-2][0])
-        self.terminals = {'port1': DesignTerminal(self.points[0], orientation1, g=g, s=s, w=w, type='cpw'),
-                          'port2': DesignTerminal(self.points[-1], orientation2, g=g, s=s, w=w, type='cpw')}
+        self.first_segment_orientation = np.arctan2(self.points[1][1] - self.points[0][1],
+                                                    self.points[1][0] - self.points[0][0])
+        self.last_segment_orientation = np.arctan2(self.points[-2][1] - self.points[-1][1],
+                                                   self.points[-2][0] - self.points[-1][0])
+
+        if orientation1 is None:
+            orientation1 = self.first_segment_orientation
+        if orientation2 is None:
+            orientation2 = self.last_segment_orientation
+
+        self.terminals = {'port1': DesignTerminal(self.points[0], orientation1, g=g, s=s, w=w, type='mc-cpw'),
+                          'port2': DesignTerminal(self.points[-1], orientation2, g=g, s=s, w=w, type='mc-cpw')}
+
+        self.finalize_points()
+
+    def get_width(self):
+        return sum(self.w) + sum(self.s) + 2 * self.g
+
+    def finalize_points(self):
+        orientation1 = np.asarray([np.cos(self.terminals['port1'].orientation),
+                                   np.sin(self.terminals['port1'].orientation)])
+
+        orientation2 = np.asarray([np.cos(self.terminals['port2'].orientation),
+                                   np.sin(self.terminals['port2'].orientation)])
+
+        orientation1_delta = np.abs(self.terminals['port1'].orientation - self.first_segment_orientation)
+        if orientation1_delta > np.pi:
+            orientation1_delta -= 2 * np.pi
+            orientation1_delta = np.abs(orientation1_delta)
+        orientation2_delta = np.abs(self.terminals['port2'].orientation - self.last_segment_orientation)
+        if orientation2_delta > np.pi:
+            orientation2_delta -= 2 * np.pi
+            orientation2_delta = np.abs(orientation2_delta)
+
+        adapter_length = self.get_width() + self.r
+        first_point = self.points[0]
+        second_point = self.points[0] + adapter_length * orientation1 * np.tan(orientation1_delta / 2 + 0.001)
+        last_point = self.points[-1]
+        blast_point = self.points[-1] + adapter_length * orientation2 * np.tan(orientation2_delta / 2 + 0.001)
+
+        adapted_points = [first_point, second_point] + self.points[1:-1] + [blast_point, last_point]
+
+        self.segments = []
+        self.length = 0
+
+        # if we are not in the endpoints, morph points
+        for point_id, point in enumerate(adapted_points):
+            if point_id == 0 or point_id == len(adapted_points) - 1:
+                self.segments.append({'type': 'endpoint', 'endpoint': point})
+                continue
+            if self.corner_type == 'round':
+                next_point = adapted_points[point_id + 1]
+                last_point = adapted_points[point_id - 1]
+
+                length1 = np.sqrt(np.sum((point - last_point) ** 2))
+                length2 = np.sqrt(np.sum((point - next_point) ** 2))
+                direction1 = (point - last_point) / length1
+                direction2 = (point - next_point) / length2
+
+                # determine turn angle of next section wrt current section
+                turn = np.arctan2(next_point[1] - point[1], next_point[0] - point[0]) - \
+                       np.arctan2(point[1] - last_point[1], point[0] - last_point[0])
+                # in [-pi, +pi] range
+                if turn > np.pi:
+                    turn -= 2 * np.pi
+                if turn < -np.pi:
+                    turn += 2 * np.pi
+
+                replaced_length = np.abs(np.tan(turn / 2) * self.r)
+                replaced_point1 = point - direction1 * replaced_length
+                replaced_point2 = point - direction2 * replaced_length
+
+                if replaced_length > length1 or replaced_length > length2:
+                    raise ValueError('Too short segment in line to round corner with given radius')
+
+                self.segments.append({'type': 'segment', 'endpoint': replaced_point1})
+                self.segments.append({'type': 'turn', 'turn': turn})
+
+                self.length += (np.sqrt(np.sum((replaced_point1 - last_point) ** 2)) + turn * self.r)
+            else:
+                self.segments.append({'type': 'segment', 'endpoint': point})
+                self.length += np.sqrt(np.sum((point - last_point) ** 2))
 
     def render(self):
-        offset = self.s + (self.w + self.g) / 2
+        width_total = self.g * 2 + sum(self.s)  + sum(self.w)
 
-        r1 = self.r - (self.w / 2 + self.s + self.g / 2)
-        r2 = np.abs(self.r + self.w / 2 + self.s + self.g / 2)
+        widths = [self.g] + self.w + [self.g]
+        #offsets = [(self.g + self.w) / 2 + self.s, 0, -(self.g + self.w) / 2 - self.s]
+        offsets = [-width_total/2]
+        for c in range(len(widths)-1):
+            offsets.append(offsets[-1]+widths[c]/2+self.s[c]+widths[c+1]/2)
 
-        r1_new = self.r - (self.w / 2 + self.s / 2)
-        r2_new = np.abs(self.r + self.w / 2 + self.s / 2)
+        ends = ["flush"]*len(widths)
+        corners = ["natural"]*len(widths)
+        bend_radius = self.g
+        precision = 0.001
 
-        result = None
-        result_restricted = None
-        result_new = None
+        p1 = gdspy.FlexPath([self.segments[0]['endpoint']], width=widths, offset=offsets, ends=ends,
+                            corners=corners, bend_radius=bend_radius, precision=precision,
+                            layer=self.layer_configuration.total_layer)
+        p2 = gdspy.FlexPath([self.segments[0]['endpoint']], width=width_total, offset=0, ends='flush',
+                            corners='natural', bend_radius=self.g, precision=precision,
+                            layer=self.layer_configuration.restricted_area_layer)
 
-        if len(self.points) < 3:
-            self.points.insert(1, ((self.points[0][0] + self.points[1][0]) / 2,
-                                   (self.points[0][1] + self.points[1][1]) / 2))
-        new_points = self.points
-        # new_points_restricted_line= self.points
-
-        width_restricted_line = 2 * self.g + 2 * self.s + self.w
-        width_new = self.s
-        offset_new = self.s + self.w
-
-        assert r1 > 0
-
-        for i in range(len(self.points) - 2):
-            point1 = self.points[i]
-            point2 = self.points[i + 1]
-            if i < len(self.points) - 3:
-                point3 = ((self.points[i + 1][0] + self.points[i + 2][0]) / 2,
-                          (self.points[i + 1][1] + self.points[i + 2][1]) / 2)
+        for segment in self.segments[1:]:
+            if segment['type'] == 'turn':
+                p1.turn(self.r, angle=segment['turn'])
+                p2.turn(self.r, angle=segment['turn'])
             else:
-                point3 = new_points[-1]
-            self.points[i + 1] = ((self.points[i + 1][0] + self.points[i + 2][0]) / 2,
-                                  (self.points[i + 1][1] + self.points[i + 2][1]) / 2)
-            if self.corner_type is 'round':
-                vector1 = np.asarray(new_points[i + 1][:]) - new_points[i][:]
-                vector2 = np.asarray(new_points[i + 2][:]) - new_points[i + 1][:]
-                vector_prod = vector1[0] * vector2[1] - vector1[1] * vector2[0]
-                if vector_prod < 0:
-                    line = gdspy.FlexPath([point1, point2, point3],
-                                          [self.g, self.w,
-                                           self.g], offset, ends=["flush", "flush", "flush"],
-                                          corners=["circular bend", "circular bend", "circular bend"],
-                                          bend_radius=[r1, self.r, r2], precision=0.001, layer=0)
-                    restricted_line = gdspy.FlexPath([point1, point2, point3], width_restricted_line, offset=0,
-                                                     ends="flush", corners="circular bend", bend_radius=self.r,
-                                                     precision=0.001, layer=1)
-                    line_new = gdspy.FlexPath([point1, point2, point3], [width_new, width_new], offset=offset_new,
-                                              ends=["flush", "flush"], corners=["circular bend", "circular bend"],
-                                              bend_radius=[r1_new, r2_new], precision=0.001, layer=2)
+                p1.segment(segment['endpoint'])
+                p2.segment(segment['endpoint'])
 
-                    # rectricted_line = gdspy.FlexPath([point1, point2, point3], width_restricted_line, offset=0,  ends="flush",  corners="circular bend",bend_radius= self.r, precision=0.001, layer=1)
-
-                    # self.end = line.x
-                else:
-                    line = gdspy.FlexPath([point1, point2, point3],
-                                          [self.g, self.w,
-                                           self.g], offset, ends=["flush", "flush", "flush"],
-                                          corners=["circular bend", "circular bend", "circular bend"],
-                                          bend_radius=[r2, self.r, r1], precision=0.001, layer=0)
-                    restricted_line = gdspy.FlexPath([point1, point2, point3], width_restricted_line, offset=0,
-                                                     ends="flush", corners="circular bend", bend_radius=self.r,
-                                                     precision=0.001, layer=1)
-                    line_new = gdspy.FlexPath([point1, point2, point3], [width_new, width_new], offset=offset_new,
-                                              ends=["flush", "flush"], corners=["circular bend", "circular bend"],
-                                              bend_radius=[r2_new, r1_new], precision=0.001, layer=2)
-
-                    # self.end = line.x
-                result = gdspy.boolean(line, result, 'or', layer=self.layer_configuration.total_layer)
-                result_restricted = gdspy.boolean(restricted_line, result_restricted, 'or', layer=self.layer_configuration.restricted_area_layer)
-                result_new = gdspy.boolean(line_new, result_new, 'or', layer=2)
-                # self.restricted_area = gdspy.boolean(rectricted_line, self.restricted_area, 'or', layer = self.restricted_area_layer)
-
-                # result= line, restricted_line
-            else:
-                line = gdspy.FlexPath([point1, point2, point3],
-                                      [self.g, self.w,
-                                       self.g], offset, ends=["flush", "flush", "flush"],
-                                      precision=0.001, layer=0)
-                # self.end = line.x
-                restricted_line = gdspy.FlexPath([point1, point2, point3],
-                                                 width_restricted_line, offset=0, ends="flush",
-                                                 precision=0.001, layer=1)
-
-                line_new = gdspy.FlexPath([point1, point2, point3],
-                                          [width_new, width_new], offset=offset_new, ends=["flush", "flush"],
-                                          precision=0.001, layer=2)
-
-                # result= line, rectricted_line
-                result = gdspy.boolean(line, result, 'or', layer=self.layer_configuration.total_layer)
-                result_restricted = gdspy.boolean(restricted_line, result_restricted, 'or', layer=self.layer_configuration.restricted_area_layer)
-                result_new = gdspy.boolean(line_new, result_new, 'or', layer=2)
-
-                # self.restricted_area = gdspy.boolean(rectricted_line, self.restricted_area, 'or', layer = self.restricted_area_layer)
-
-        self.angle = np.arctan2(point3[1] - point2[1], point3[0] - point2[0]) # TODO: what's is the point of this?
-                                                                              # also, render() should not mutate self
-
-        return {'positive': result,
-                'restricted': result_restricted,
-                'remove': result_new #TODO: do we need this? in some cases cpws can cross each other, probably yes
-                }
+        return {'positive': p1.to_polygonset(), 'restricted': p2.to_polygonset()}
 
     def get_terminals(self):
         return self.terminals
 
     def cm(self):
-        return cm.ConformalMapping([self.s, self.w, self.s]).cl_and_Ll()
+        cross_section = [self.s[0]]
+        for c in range(len(self.w)):
+            cross_section.append(self.w[c])
+            cross_section.append(self.s[c+1])
+
+        return cm.ConformalMapping(cross_section).cl_and_Ll()
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem,
                    terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
         cl, ll = self.cm()
-        line = tlsim.TLCoupler(n=1,
-                               l=0,  #TODO: get length
+        line = tlsim.TLCoupler(n=len(self.w),
+                               l=self.length,  # TODO: get length
                                cl=cl,
                                ll=ll,
-                               rl=[[0]],
-                               gl=[[0]])
+                               rl=np.zeros((len(self.w), len(self.w))),
+                               gl=np.zeros((len(self.w), len(self.w))))
 
         if track_changes:
             self.tls_cache.append([line])
@@ -165,81 +176,15 @@ class CPW(DesignElement):
         tls_instance.add_element(line, [terminal_mapping['port1'], terminal_mapping['port2']])
         return [line]
 
-    '''
-    # TODO: remove completely
-    def generate_end(self, end):
-        if end['type'] is 'open':
-            return self.generate_open_end(end)
-        if end['type'] is 'fluxline':
-            return self.generate_fluxline_end(end)
-    '''
 
-    # TODO: create a separate class for this method
-    def generate_fluxline_end(self,end):
-        jj = end['JJ']
-        length = end['length']
-        width = end['width']
-        point1 = jj.rect1
-        point2 = jj.rect2
-        result = None
-        # rect_to_remove = gdspy.Rectangle((),
-        #                                  ())
-        for point in [point1, point2]:
-            line = gdspy.Rectangle((point[0] - width/2, point[1]),
-                                   (point[0] + width/2, point[1] - length))
-            result = gdspy.boolean(line, result, 'or', layer=6) #TODO: layer should not be constant
-        # result = gdspy.boolean(line1,line2,'or',layer=self.total_layer)
-        path1 = gdspy.Polygon([(point1[0] + width / 2, point1[1] - length), (point1[0] - width / 2, point1[1] - length),
-                               (self.end[0] + (self.w / 2 + self.s + width) * np.cos(self.angle + np.pi / 2),
-                                self.end[1] + (self.w / 2 + self.s + width) * np.sin(self.angle + np.pi / 2)),
-                               (self.end[0] + (self.w / 2 + self.s) * np.cos(self.angle + np.pi / 2),
-                                self.end[1] + (self.w / 2 + self.s) * np.sin(self.angle + np.pi / 2))])
+class CPW(CPWCoupler):
+    def __init__(self, name: str, points: List[Tuple[float, float]], w: float, s: float, g: float,
+                 layer_configuration: LayerConfiguration, r: float, corner_type: str = 'round',
+                 orientation1: float = None, orientation2: float = None):
+        super().__init__(name, points, [w], [s, s], g, layer_configuration, r, corner_type, orientation1, orientation2)
 
-        result = gdspy.boolean(path1, result, 'or', layer=6) #TODO: layer should not be constant
-
-        path2 = gdspy.Polygon([(point2[0] + width / 2, point2[1] - length), (point2[0] - width / 2, point2[1] - length),
-                               (self.end[0] + (self.w / 2) * np.cos(self.angle + np.pi / 2), self.end[1] + (self.w / 2) * np.sin(self.angle + np.pi / 2)),
-                               (self.end[0] + self.w / 2 * np.cos(self.angle + 3 * np.pi / 2), self.end[1] + (self.w / 2) * np.sin(self.angle + 3 * np.pi / 2))])
-        result = gdspy.boolean(path2, result, 'or', layer=6) #TODO: layer should not be constant
-
-        # if end['type'] != 'coupler':
-        restricted_area = gdspy.Polygon([(point1[0] - width / 2, point1[1]),
-                                         (point2[0] + width / 2 + self.s, point2[1]),
-                                         (point2[0] + width / 2 + self.s, point2[1] - length),
-                                         (self.end[0] + (self.w / 2 + self.s) * np.cos(
-                                             self.angle + 3 * np.pi / 2),
-                                          self.end[1] + (self.w / 2 + self.s) * np.sin(
-                                              self.angle + 3 * np.pi / 2)),
-                                         (self.end[0] + (self.w / 2 + self.s + width) * np.cos(
-                                             self.angle + np.pi / 2),
-                                          self.end[1] + (self.w / 2 + self.s + width) * np.sin(
-                                              self.angle + np.pi / 2)),
-                                         (point1[0] - width / 2, point1[1] - length)],
-                                        layer=self.restricted_area_layer)
-        # else:
-        #
-        return result, restricted_area, restricted_area
-
-    # TODO: create separate class for this method
-    def generate_open_end(self, end):
-        end_gap = end['s']
-        end_ground_length = end['g']
-        if end['end']:
-            x_begin = self.end[0]
-            y_begin = self.end[1]
-            additional_rotation = -np.pi/2
-        if end['begin']:
-            x_begin = self.points[0][0]
-            y_begin = self.points[0][1]
-            additional_rotation = -np.pi / 2
-        restricted_area = gdspy.Rectangle((x_begin - self.w / 2 - self.s - self.g, y_begin),
-                                          (x_begin + self.w / 2 + self.s + self.g, y_begin + end_gap + end_ground_length), layer=10)#fix it
-        rectangle_for_removing = gdspy.Rectangle((x_begin - self.w / 2 - self.s, y_begin),
-                                                 (x_begin + self.w / 2 + self.s, y_begin + end_gap), layer=2)
-        total = gdspy.boolean(restricted_area, rectangle_for_removing, 'not')
-        for obj in [total,restricted_area, rectangle_for_removing]:
-            obj.rotate(additional_rotation+self.angle, (x_begin, y_begin))
-        return total, restricted_area, rectangle_for_removing
+        self.terminals = {'port1': DesignTerminal(self.points[0], orientation1, g=g, s=s, w=w, type='cpw'),
+                          'port2': DesignTerminal(self.points[-1], orientation2, g=g, s=s, w=w, type='cpw')}
 
 
 #TODO: make compatible with DesignElement and implement add_to_tls

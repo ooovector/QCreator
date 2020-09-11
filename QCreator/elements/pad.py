@@ -2,6 +2,7 @@ from .core import DesignElement, DesignTerminal, LayerConfiguration, ChipGeometr
 from .. import transmission_line_simulator as tlsim
 import gdspy
 from typing import Tuple
+import numpy as np
 
 
 class Pad(DesignElement):
@@ -78,8 +79,8 @@ class Pad(DesignElement):
                             (x - (pad_core - w) / 2, y - narrowing)])
         pad, restricted_pad = gdspy.boolean(gdspy.boolean(r1, r2, 'not'), r3, 'or'), r1
 
-        pad.rotate(self.terminal.orientation, [coord_init_x, coord_init_y])
-        restricted_pad.rotate(self.terminal.orientation, [coord_init_x, coord_init_y])
+        pad.rotate(self.terminal.orientation+np.pi/2, [coord_init_x, coord_init_y])
+        restricted_pad.rotate(self.terminal.orientation+np.pi/2, [coord_init_x, coord_init_y])
         result_restricted = gdspy.boolean(restricted_pad, restricted_pad, 'or', layer=self.layer_configuration.restricted_area_layer)
         return {'positive': pad, 'restricted': result_restricted}
 
