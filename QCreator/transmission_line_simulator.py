@@ -24,7 +24,7 @@ class Resistor(TLSystemElement):
         return 0
 
     def boundary_condition(self, omega):
-        return np.asarray([[1, -1, 0, self.R], [0, 0, 1, 1]], dtype=complex)
+        return np.asarray([[1, -1, self.R, 0], [0, 0, 1, 1]], dtype=complex)
 
     def __init__(self, r=None):
         self.R = r
@@ -39,7 +39,7 @@ class Capacitor(TLSystemElement):
         return 0
 
     def boundary_condition(self, omega):
-        return np.asarray([[1j*omega*self.C, -1j*omega*self.C, 0, 1], [0,0,1,1]], dtype=complex)
+        return np.asarray([[1j*omega*self.C, -1j*omega*self.C, 1, 0], [0,0,1,1]], dtype=complex)
 
     def __init__(self, c=None):
         self.C = c
@@ -54,7 +54,7 @@ class Inductor(TLSystemElement):
         return 0
 
     def boundary_condition(self, omega):
-        return np.asarray([[1, -1, 0, 1j*omega*self.L], [0,0,1,1]], dtype=complex)
+        return np.asarray([[1, -1, 1j*omega*self.L, 0], [0,0,1,1]], dtype=complex)
 
     def __init__(self, l=None):
         self.L = l
