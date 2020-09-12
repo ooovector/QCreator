@@ -58,7 +58,7 @@ class ChipEdgeGround(DesignElement):
             to_bool = gdspy.Rectangle(pad['positive'].get_bounding_box()[0].tolist(), pad['positive'].get_bounding_box()[1].tolist())
             result = gdspy.boolean(result, to_bool, 'not')
         result_restricted = gdspy.boolean(result, result, 'or', layer=self.layer_configuration.restricted_area_layer)
-        return {'positive': result, 'restricted': result_restricted}
+        return {'positive': result, 'restrict': result_restricted}
 
     def get_terminals(self) -> dict:
         return {}

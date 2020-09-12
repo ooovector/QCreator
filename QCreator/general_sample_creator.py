@@ -54,8 +54,15 @@ class Sample:
                 self.total_cell.add(result['grid_x'])
             if 'grid_y' in result:
                 self.total_cell.add(result['grid_y'])
-            if 'restricted' in result:
-                self.restricted_cell.add(result['restricted'])
+            if 'airbridges_pad_layer' in result:
+                self.total_cell.add(result['airbridges_pad_layer'])
+            if 'airbridges_layer' in result:
+                self.total_cell.add(result['airbridges_layer'])
+            if 'restrict' in result:
+                self.restricted_cell.add(result['restrict'])
+
+    def ground(self, element: elements.DesignElement, port: str):
+        self.connections.append(((element, port), ('gnd', 'gnd')))
 
     def connect_cpw(self, o1: elements.DesignElement, o2: elements.DesignElement, port1: str, port2: str, name: str,
                     points: list):
@@ -72,13 +79,13 @@ class Sample:
         assert (o1, port1) not in connections_flat
         assert (o2, port2) not in connections_flat
 
-        w = t1.core
-        s = t1.gap
-        g = t1.ground
+        w = t1.w
+        s = t1.s
+        g = t1.g
 
-        assert w == t2.core
-        assert s == t2.gap
-        assert g == t2.ground
+        assert w == t2.w
+        assert s == t2.s
+        assert g == t2.g
 
         orientation1 = t1.orientation + np.pi
         if orientation1 > np.pi:

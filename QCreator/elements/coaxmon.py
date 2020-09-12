@@ -43,7 +43,7 @@ class Coaxmon(DesignElement):
         # self.AB1_coordinates = coordinates(self.center.x, self.center.y + self.R4)
         # self.AB2_coordinates = coordinates(self.center.x, self.center.y - self.outer_ground)
         return {'positive': result,
-                'restricted': result_restricted,
+                'restrict': result_restricted,
                 }
 
     def generate_JJ(self):

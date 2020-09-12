@@ -147,7 +147,7 @@ class CPWCoupler(DesignElement):
                 p1.segment(segment['endpoint'])
                 p2.segment(segment['endpoint'])
 
-        return {'positive': p1.to_polygonset(), 'restricted': p2.to_polygonset()}
+        return {'positive': p1.to_polygonset(), 'restrict': p2.to_polygonset()}
 
     def get_terminals(self):
         return self.terminals
@@ -282,7 +282,7 @@ class Narrowing(DesignElement):
         polygon_to_remove = gdspy.boolean(restricted_area, result, 'not',
                                           layer=self.layer_configuration.layer_to_remove)
 
-        return {'positive': result, 'restricted': [restricted_area], 'remove': polygon_to_remove}
+        return {'positive': result, 'restrict': [restricted_area], 'remove': polygon_to_remove}
 
     def get_terminals(self):
         return self.terminals

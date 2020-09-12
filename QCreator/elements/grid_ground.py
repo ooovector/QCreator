@@ -28,8 +28,8 @@ class GridGround(DesignElement):
         for object_ in self.objects:
             if object_ is self:
                 continue
-            elif 'restricted' in object_.get():
-                rest = gdspy.boolean(rest, object_.get()['restricted'], 'or')
+            elif 'restrict' in object_.get():
+                rest = gdspy.boolean(rest, object_.get()['restrict'], 'or')
             elif 'positive' in object_.get():
                 rest = gdspy.boolean(rest, object_.get()['positive'], 'or')
 
