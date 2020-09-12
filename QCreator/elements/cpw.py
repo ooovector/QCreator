@@ -119,11 +119,11 @@ class CPWCoupler(DesignElement):
                 self.length += np.sqrt(np.sum((point - last_point) ** 2))
 
     def render(self):
-        width_total = self.g * 2 + sum(self.s)  + sum(self.w)
+        width_total = self.g * 2 + sum(self.s) + sum(self.w)
 
         widths = [self.g] + self.w + [self.g]
         #offsets = [(self.g + self.w) / 2 + self.s, 0, -(self.g + self.w) / 2 - self.s]
-        offsets = [-width_total/2]
+        offsets = [-(width_total-self.g)/2]
         for c in range(len(widths)-1):
             offsets.append(offsets[-1]+widths[c]/2+self.s[c]+widths[c+1]/2)
 

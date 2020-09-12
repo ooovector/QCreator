@@ -72,10 +72,10 @@ class CPWGroundAirBridge(DesignElement):
         self.tls_cache = []
         p = self.geometry.padsize / 2 * np.asarray([np.cos(self.orientation), np.sin(self.orientation)])
 
-        self.terminals = {'port1': DesignTerminal(position=self.position - p, orientation=self.orientation, type='cpw',
-                                               w=self.w, s=self.s, g=self.g, disconnected='short'),
-                          'port2': DesignTerminal(position=self.position + p, orientation=self.orientation+np.pi, type='cpw',
-                                                w=self.w, s=self.s, g=self.g, disconnected='short')}
+        self.terminals = {'port1': DesignTerminal(position=self.position - p, orientation=self.orientation,
+                                                  type='cpw', w=self.w, s=self.s, g=self.g, disconnected='short'),
+                          'port2': DesignTerminal(position=self.position + p, orientation=self.orientation+np.pi,
+                                                  type='cpw', w=self.w, s=self.s, g=self.g, disconnected='short')}
 
     def render(self):
         airbridge = self.geometry.render()
