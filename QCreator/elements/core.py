@@ -10,7 +10,7 @@ class DesignTerminal:
     CPW-compatible transmission lines. The properties of the terminal determine what type of CPW can be connected to it.
     """
     def __init__(self, position: Iterable[float], orientation: float, type: str, w: Union[float, Iterable[float]],
-                 s: Union[float, Iterable[float]], g: float, disconnected: str = 'short'):
+                 s: Union[float, Iterable[float]], g: float, disconnected: str = 'short', order: bool = True):
         """
         Create terminal with specific connection type (e.g. cpw) and cpw geometry
         :param position: CPW end position
@@ -20,6 +20,7 @@ class DesignTerminal:
         :param s: s width of cpw in width
         :param g: finite g width of cpw in microns
         :param disconnected: terimnal behaviour in transmission line model if disconnected, either 'short' or 'open'
+        :param order: True if wires in straight order, False if reversed
         """
         self.position = position
         self.orientation = orientation
@@ -28,6 +29,7 @@ class DesignTerminal:
         self.s = s
         self.g = g
         self.disconnected = disconnected
+        self.order = order
 
 
 class DesignElement:

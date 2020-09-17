@@ -46,7 +46,7 @@ class CPWCoupler(DesignElement):
         if orientation2 is None:
             orientation2 = self.last_segment_orientation
 
-        self.terminals = {'port1': DesignTerminal(self.points[0], orientation1, g=g, s=s, w=w, type='mc-cpw'),
+        self.terminals = {'port1': DesignTerminal(self.points[0], orientation1, g=g, s=s, w=w, type='mc-cpw', order=False),
                           'port2': DesignTerminal(self.points[-1], orientation2, g=g, s=s, w=w, type='mc-cpw')}
 
         self.segments = []
@@ -355,6 +355,13 @@ class RectFanout(DesignElement):
         for c in range(len(self.widths)-1):
             self.offsets.append(self.offsets[-1]+self.widths[c]/2+self.port.s[c]+self.widths[c+1]/2)
 
+        if not self.port.order:
+            self.widths = self.widths[::-1]
+            self.offsets = [-o for o in  self.offsets[::-1]]
+            self.grouping = [len(self.port.w)-self.grouping[1], len(self.port.w)-self.grouping[0]]
+            #e_down, e_up = e_up, e_down
+
+
         #length_down = offsets[grouping[0] + 1] - offsets[1]
         #length_center = offsets[grouping[1] + 1] - offsets[grouping[0] + 1]
         #length_up = offsets[-2] - offsets[grouping[1] + 1]
@@ -366,7 +373,8 @@ class RectFanout(DesignElement):
                             port.position + (e + e_up) * self.width_total]
 
         self.terminals = {'wide': DesignTerminal(position=self.port.position, orientation=self.port.orientation+np.pi,
-                            type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g, disconnected='short')}
+                                                 type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g,
+                                                 disconnected='short', order=(not self.port.order))}
 
         if grouping[0]:
             self.terminals['down'] = DesignTerminal(position=self.points_down[-1], orientation=self.port.orientation + np.pi / 2, type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g, disconnected='short')
