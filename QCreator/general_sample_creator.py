@@ -3,7 +3,7 @@ import gdspy
 #import libraries.general_design_functions as gdf
 from . import elements
 from . import transmission_line_simulator as tlsim
-from typing import NamedTuple, SupportsFloat, Any
+from typing import NamedTuple, SupportsFloat, Any, Iterable
 
 Bridges_over_line_param = NamedTuple('Bridge_params',
                                      [('distance', SupportsFloat),
@@ -20,8 +20,9 @@ class Sample:
         self.layer_configuration = elements.LayerConfiguration(**configurations)
         self.chip_geometry = elements.ChipGeometry(**configurations)
         self.name = str(name)
-        self.total_cell = gdspy.Cell(self.name)
-        self.restricted_cell = gdspy.Cell(self.name + ' restricted')
+        #self.total_cell = gdspy.Cell(self.name)
+        #self.restricted_cell = gdspy.Cell(self.name + ' restricted')
+        #self.
         #self.label_cell = gdspy.Cell(self.name + ' labels')
         #self.cell_to_remove = gdspy.Cell(self.name + ' remove')
 
@@ -46,20 +47,26 @@ class Sample:
         self.objects.append(object_)
 
     def draw_design(self):
+        lib = gdspy.GdsLibrary()
+        total_cell = lib.new_cell(self.name)
+        restricted_cell = lib.new_cell(self.name + ' restricted')
+
         for object_ in self.objects:
             result = object_.get()
             if 'positive' in result:
-                self.total_cell.add(result['positive'])
+                total_cell.add(result['positive'])
             if 'grid_x' in result:
-                self.total_cell.add(result['grid_x'])
+                total_cell.add(result['grid_x'])
             if 'grid_y' in result:
-                self.total_cell.add(result['grid_y'])
+                total_cell.add(result['grid_y'])
             if 'airbridges_pad_layer' in result:
-                self.total_cell.add(result['airbridges_pad_layer'])
+                total_cell.add(result['airbridges_pad_layer'])
             if 'airbridges_layer' in result:
-                self.total_cell.add(result['airbridges_layer'])
+                total_cell.add(result['airbridges_layer'])
             if 'restrict' in result:
-                self.restricted_cell.add(result['restrict'])
+                restricted_cell.add(result['restrict'])
+
+        return lib
 
     def ground(self, element: elements.DesignElement, port: str):
         self.connections.append(((element, port), ('gnd', 'gnd')))
@@ -97,7 +104,7 @@ class Sample:
         cpw = elements.CPW(name, points, w, s, g, self.layer_configuration, r=self.default_cpw_radius(w, s, g),
                            corner_type='round', orientation1=orientation1, orientation2=orientation2)
         self.add(cpw)
-        self.connections.extend([((cpw, 'port1'), (o1, port1)), ((cpw, 'port2'), (o2, port2))])
+        self.connections.extend([((cpw, 'port1', 0), (o1, port1, 0)), ((cpw, 'port2', 0), (o2, port2, 0))])
 
         return cpw
 
@@ -156,18 +163,46 @@ class Sample:
             for terminal in connection:
                 connections_flat[terminal] = max_connection_id
 
+        element_assignments = {}
+
         for object_ in self.objects:
             terminal_node_assignments = {}
             for terminal_name, terminal in  object_.get_terminals().items():
-                if (object_, terminal_name) in connections_flat:
-                    terminal_node_assignments[terminal_name] = connections_flat[(object_, terminal_name)]
+                if hasattr(terminal.w, '__iter__'):
+                    num_conductors = len(terminal.w)
                 else:
-                    max_connection_id += 1
-                    connections_flat[max_connection_id] = (object_, terminal_name)
-                    terminal_node_assignments[terminal_name] = max_connection_id
+                    num_conductors = 1
 
-            object_.add_to_tls(tls, terminal_node_assignments)
-        return tls, connections_flat
+                for conductor_id in range(num_conductors):
+                    if (object_, terminal_name, conductor_id) in connections_flat:
+                        terminal_node_assignments[terminal_name] = connections_flat[(object_, terminal_name, conductor_id)]
+                    else:
+                        max_connection_id += 1
+                        connections_flat[max_connection_id] = (object_, terminal_name, conductor_id)
+                        terminal_node_assignments[terminal_name] = max_connection_id
+
+            element_assignments[object_.name] = object_.add_to_tls(tls, terminal_node_assignments)
+        return tls, connections_flat, element_assignments
+
+    def get_s21(self, p1: str, p2: str, frequencies: Iterable[float]):
+        """
+        Use transmission line model to simulate S21(f) dependence
+        :param p1: port1 name
+        :param p2: port2 name
+        :param frequencies: frequencies
+        :return:
+        """
+        sys, connections, elements_ = self.get_tls()
+        s = []
+        for f_id, f in enumerate(frequencies):
+            eq_vi, eq_dof = sys.get_element_dynamic_equations(elements_[p1][0])
+            v2, i2, a2 = sys.get_element_dofs(elements_[p2][0])
+            m = sys.create_boundary_problem_matrix(f * np.pi * 2)
+            boundary = np.zeros(len(sys.dof_mapping))
+            boundary[eq_vi] = 1
+            s.append(np.linalg.solve(m, boundary)[a2[0]])
+
+        return np.asarray(s)
 
     '''
     Deprecated stuff?

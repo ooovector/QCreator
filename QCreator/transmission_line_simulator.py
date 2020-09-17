@@ -83,7 +83,7 @@ class Port(TLSystemElement):
         return 1
 
     def boundary_condition(self, omega):
-        return np.asarray([[1, 0, self.Z0], [0, -1, 1]], dtype=complex)
+        return np.asarray([[1, self.Z0, 0], [1, -self.Z0, 1]], dtype=complex)
 
     def __init__(self, z0=None):
         self.Z0 = z0
@@ -155,7 +155,7 @@ class TLSystem:
         self.terminal_node_mapping.append(nodes)
         return
 
-    def create_boundary_problem_matrix(self, omega):
+    def map_dofs(self):
         # count nodes
         self.dof_mapping = [n for n in self.nodes] # nodal voltages
         self.dof_mapping.extend([(e_id, p_id) for e_id, e in enumerate(self.elements) for p_id in range(e.num_terminals())])
@@ -163,7 +163,9 @@ class TLSystem:
         self.dof_mapping.extend([(e_id, int_dof_id) for e_id, e in enumerate(self.elements) for int_dof_id in range(e.num_degrees_of_freedom())])
                                                      # number of element-internal degrees of freedom
 
+    def create_boundary_problem_matrix(self, omega):
         # full dof number
+        self.map_dofs()
         num_dof = len(self.dof_mapping)
 
         # number of nodes
@@ -208,6 +210,29 @@ class TLSystem:
                 full_terminal_id += 1
         return boundary_condition_matrix
 
+    def get_element_dofs(self, element: TLSystemElement):
+        self.map_dofs()
+        e_id = self.elements.index(element)
+        voltages = [self.dof_mapping[:len(self.nodes)].index(t) for t in self.terminal_node_mapping[e_id]]
+
+        terminal_no = np.sum(e.num_terminals() for e in self.elements)
+
+        current_variables = self.dof_mapping[len(self.nodes):len(self.nodes) + terminal_no]
+        internal_dof_variables = self.dof_mapping[len(self.nodes) + terminal_no:]
+
+        currents = [current_variables.index((e_id, p_id)) + len(self.nodes) for p_id in range(element.num_terminals())]
+        degrees_of_freedom = [internal_dof_variables.index((e_id, dof_id)) + len(self.nodes) + terminal_no \
+                              for dof_id in range(element.num_degrees_of_freedom())]
+
+        return voltages, currents, degrees_of_freedom
+
+    def get_element_dynamic_equations(self, element: TLSystemElement):
+        e_id = self.elements.index(element)
+        offset = np.sum(e.num_terminals()+e.num_degrees_of_freedom() for e in self.elements[:e_id])
+
+        return np.arange(offset, offset+element.num_terminals()+element.num_degrees_of_freedom())
+
+"""
     def boundary_condition_matrix_det(self, omega):
         matrix = self.create_boundary_problem_matrix(omega)
         return np.linalg.det(matrix)
@@ -257,3 +282,5 @@ class TLSystem:
         print('self.terminal_node_mapping', type(self.terminal_node_mapping))
         print('self.dof_mapping', type(self.dof_mapping))
         return
+"""
+
