@@ -186,12 +186,17 @@ class Sample:
                     num_conductors = 1
 
                 for conductor_id in range(num_conductors):
+                    if num_conductors == 1:
+                        terminal_identifier = terminal_name
+                    else:
+                        terminal_identifier = (terminal_name, conductor_id)
+
                     if (object_, terminal_name, conductor_id) in connections_flat:
-                        terminal_node_assignments[terminal_name] = connections_flat[(object_, terminal_name, conductor_id)]
+                        terminal_node_assignments[terminal_identifier] = connections_flat[(object_, terminal_name, conductor_id)]
                     else:
                         max_connection_id += 1
                         connections_flat[max_connection_id] = (object_, terminal_name, conductor_id)
-                        terminal_node_assignments[terminal_name] = max_connection_id
+                        terminal_node_assignments[terminal_identifier] = max_connection_id
 
             element_assignments[object_.name] = object_.add_to_tls(tls, terminal_node_assignments)
         return tls, connections_flat, element_assignments
@@ -212,7 +217,7 @@ class Sample:
             m = sys.create_boundary_problem_matrix(f * np.pi * 2)
             boundary = np.zeros(len(sys.dof_mapping))
             boundary[eq_vi] = 1
-            s.append(np.linalg.solve(m, boundary)[a2[0]])
+            s.append(np.linalg.lstsq(m, boundary)[0][a2[0]])
 
         return np.asarray(s)
 

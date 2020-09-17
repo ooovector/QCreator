@@ -1,9 +1,10 @@
+from QCreator.elements import DesignTerminal
 from .core import DesignElement, DesignTerminal, LayerConfiguration
 import numpy as np
 import gdspy
 from .. import conformal_mapping as cm
 from .. import transmission_line_simulator as tlsim
-from typing import List, Tuple, Mapping, Union, Iterable
+from typing import List, Tuple, Mapping, Union, Iterable, Dict
 
 
 class CPWCoupler(DesignElement):
@@ -173,7 +174,26 @@ class CPWCoupler(DesignElement):
         if track_changes:
             self.tls_cache.append([line])
 
-        tls_instance.add_element(line, [terminal_mapping['port1'], terminal_mapping['port2']])
+        if len(self.w) == 1:
+            if 'port1' in terminal_mapping:
+                p1 = terminal_mapping['port1']
+            elif ('port1', 0) in terminal_mapping:
+                p1 = terminal_mapping[('port1', 0)]
+            else:
+                raise ValueError('Neither (port1, 0) or port1 found in terminal_mapping')
+
+            if 'port2' in terminal_mapping:
+                p2 = terminal_mapping['port2']
+            elif ('port2', 0) in terminal_mapping:
+                p2 = terminal_mapping[('port2', 0)]
+            else:
+                raise ValueError('Neither (port2, 0) or port2 found in terminal_mapping')
+
+            tls_instance.add_element(line, [p1, p2])
+        else:
+            mapping = [terminal_mapping[('port1', i)] for i in range(len(self.w))] + \
+                      [terminal_mapping[('port2', i)] for i in range(len(self.w))]
+            tls_instance.add_element(line, mapping)
         return [line]
 
 
@@ -308,6 +328,8 @@ class Narrowing(DesignElement):
 
 
 class RectFanout(DesignElement):
+    terminals: Dict[str, DesignTerminal]
+
     def __init__(self, name: str, port: DesignTerminal, grouping: Tuple[int, int],
                  layer_configuration: LayerConfiguration):
         """
@@ -322,7 +344,7 @@ class RectFanout(DesignElement):
         self.grouping = grouping
         self.layer_configuration = layer_configuration
 
-        e = np.asarray([np.cos(port.orientation), np.sin(port.orientation)])
+        e = np.asarray([np.cos(port.orientation + np.pi), np.sin(port.orientation + np.pi)])
         e_down = np.asarray([np.cos(port.orientation + np.pi / 2), np.sin(port.orientation + np.pi / 2)])
         e_up = np.asarray([np.cos(port.orientation - np.pi / 2), np.sin(port.orientation - np.pi / 2)])
 
@@ -337,16 +359,21 @@ class RectFanout(DesignElement):
         #length_center = offsets[grouping[1] + 1] - offsets[grouping[0] + 1]
         #length_up = offsets[-2] - offsets[grouping[1] + 1]
 
-        self.points_down = [port.position, port.position + e * self.width_total ,
-                            port.position + (e+e_down) * self.width_total ]
-        self.points_center = [port.position, port.position + e * self.width_total + port.g]
-        self.points_up = [port.position, port.position + e * self.width_total ,
-                            port.position + (e + e_up) * self.width_total ]
+        self.points_down = [port.position, port.position + e * self.width_total,
+                            port.position + (e+e_down) * self.width_total]
+        self.points_center = [port.position, port.position + e * (self.width_total + port.g)]
+        self.points_up = [port.position, port.position + e * self.width_total,
+                            port.position + (e + e_up) * self.width_total]
 
         self.terminals = {'wide': DesignTerminal(position=self.port.position, orientation=self.port.orientation+np.pi,
-                            type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g, disconnected='short'),
-                          'down': DesignTerminal(position=self.points_down[-1], orientation=self.port.orientation+np.pi/2,
-                            type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g, disconnected='short'),}
+                            type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g, disconnected='short')}
+
+        if grouping[0]:
+            self.terminals['down'] = DesignTerminal(position=self.points_down[-1], orientation=self.port.orientation + np.pi / 2, type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g, disconnected='short')
+        if grouping[0] != grouping[1]:
+            self.terminals['center'] = DesignTerminal(position=self.points_center[-1], orientation=self.port.orientation, type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g, disconnected='short')
+        if grouping[1] != len(self.port.w):
+            self.terminals['up'] = DesignTerminal(position=self.points_up[-1], orientation=self.port.orientation - np.pi / 2, type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g, disconnected='short')
 
     def render(self):
         precision = 0.001
@@ -362,7 +389,7 @@ class RectFanout(DesignElement):
                             corners="natural", bend_radius=0, precision=precision,
                             layer=self.layer_configuration.total_layer)
 
-        p_up = gdspy.FlexPath(self.points_center, width=self.widths[self.grouping[1]+1:],
+        p_up = gdspy.FlexPath(self.points_up, width=self.widths[self.grouping[1]+1:],
                             offset=self.offsets[self.grouping[1]+1:], ends="flush",
                             corners="natural", bend_radius=0, precision=precision,
                             layer=self.layer_configuration.total_layer)
@@ -373,20 +400,29 @@ class RectFanout(DesignElement):
 
         positive = gdspy.boolean(p_down.to_polygonset(), p_center.to_polygonset(), 'or',
                                  layer=self.layer_configuration.total_layer)
-        positive = gdspy.boolean(positive.to_polygonset(), p_up.to_polygonset(), 'or',
+        positive = gdspy.boolean(positive, p_up.to_polygonset(), 'or',
                                  layer=self.layer_configuration.total_layer)
 
         return {'positive': positive, 'restrict': p2.to_polygonset()}
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem,
-                   terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
-        cl, ll = self.cm()
-        line = tlsim.TLCoupler(n=len(self.w),
-                               l=self.width_total,  # TODO: get length
-                               cl=cl,
-                               ll=ll,
-                               rl=np.zeros((len(self.w), len(self.w))),
-                               gl=np.zeros((len(self.w), len(self.w))))
+    def add_to_tls(self):
+        return []
+    #def add_to_tls(self, tls_instance: tlsim.TLSystem,
+    #               terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
+    #    #cl, ll = self.cm()
+    #
+    #    if grouping[0]:
+    #        line_down = tlsim.TLCoupler(n=self.grouping[0],
+    #                                    l=self.width_total,  # TODO: get length
+    #                                    cl=cl,
+    #                                    ll=ll,
+    #                                    rl=np.zeros((len(self.w), len(self.w))),
+    #                                    gl=np.zeros((len(self.w), len(self.w))))
+    #    if grouping[0] != grouping[1]:
+    #        self.terminals['center'] = DesignTerminal(position=self.points_center[-1], orientation=self.port.orientation, type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g, disconnected='short')
+    #    if grouping[1] != len(self.port.w):
+
+
 
         if track_changes:
             self.tls_cache.append([line])
@@ -394,6 +430,8 @@ class RectFanout(DesignElement):
         tls_instance.add_element(line, [terminal_mapping['port1'], terminal_mapping['port2']])
         return [line]
 
+    def get_terminals(self):
+        return self.terminals
 
 '''
 class RectFanout(DesignElement):
