@@ -73,6 +73,16 @@ class Sample:
 
     def connect_cpw(self, o1: elements.DesignElement, o2: elements.DesignElement, port1: str, port2: str, name: str,
                     points: list):
+        """
+        Create and return a CPW connecting two cpw-type ports, with point inbetween defined by point
+        :param o1: first object
+        :param o2: second object
+        :param port1: first object's port name
+        :param port2: second object's port name
+        :param name: CPW name
+        :param points: coordinates of the CPW's edges
+        :return: TLCoupler object
+        """
         if o1 not in self.objects:
             raise ValueError('Object o1 not in sample')
         if o2 not in self.objects:
@@ -100,6 +110,8 @@ class Sample:
         orientation2 = t2.orientation + np.pi
         if orientation2 > np.pi:
             orientation2 -= 2*np.pi
+
+        points = [t1.position]+points+[t2.position]
 
         cpw = elements.CPW(name, points, w, s, g, self.layer_configuration, r=self.default_cpw_radius(w, s, g),
                            corner_type='round', orientation1=orientation1, orientation2=orientation2)
