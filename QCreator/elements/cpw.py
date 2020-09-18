@@ -49,18 +49,10 @@ class CPWCoupler(DesignElement):
         self.terminals = {'port1': DesignTerminal(self.points[0], orientation1, g=g, s=s, w=w, type='mc-cpw', order=False),
                           'port2': DesignTerminal(self.points[-1], orientation2, g=g, s=s, w=w, type='mc-cpw')}
 
+        self.width_total, self.widths, self.offsets = widths_offsets(self.w, self.s, self.g)
+
         self.segments = []
         self.finalize_points()
-
-        self.width_total = self.g * 2 + sum(self.s) + sum(self.w)
-
-        self.widths = [self.g] + self.w + [self.g]
-        self.offsets = [-(self.width_total-self.g)/2]
-        for c in range(len(self.widths)-1):
-            self.offsets.append(self.offsets[-1]+self.widths[c]/2+self.s[c]+self.widths[c+1]/2)
-
-    def get_width(self):
-        return sum(self.w) + sum(self.s) + 2 * self.g
 
     def finalize_points(self):
         orientation1 = np.asarray([np.cos(self.terminals['port1'].orientation),
@@ -78,7 +70,7 @@ class CPWCoupler(DesignElement):
             orientation2_delta -= 2 * np.pi
             orientation2_delta = np.abs(orientation2_delta)
 
-        adapter_length = self.get_width() + self.r
+        adapter_length = self.width_total + self.r
         first_point = self.points[0]
         second_point = self.points[0] + adapter_length * orientation1 * np.tan(orientation1_delta / 2 + 0.001)
         last_point = self.points[-1]
@@ -94,7 +86,9 @@ class CPWCoupler(DesignElement):
             if point_id == 0 or point_id == len(adapted_points) - 1:
                 self.segments.append({'type': 'endpoint', 'endpoint': point})
                 continue
+            current_corner_type = 'pointy'
             if self.corner_type == 'round':
+                current_corner_type = 'round'
                 next_point = adapted_points[point_id + 1]
                 last_point = adapted_points[point_id - 1]
 
@@ -112,6 +106,9 @@ class CPWCoupler(DesignElement):
                 if turn < -np.pi:
                     turn += 2 * np.pi
 
+                if np.abs(turn) < 0.001:
+                    current_corner_type = 'pointy'
+            if current_corner_type == 'round':
                 replaced_length = np.abs(np.tan(turn / 2) * self.r)
                 replaced_point1 = point - direction1 * replaced_length
                 replaced_point2 = point - direction2 * replaced_length
@@ -121,20 +118,17 @@ class CPWCoupler(DesignElement):
 
                 self.segments.append({'type': 'segment', 'endpoint': replaced_point1})
                 self.segments.append({'type': 'turn', 'turn': turn})
-
                 self.length += (np.sqrt(np.sum((replaced_point1 - last_point) ** 2)) + turn * self.r)
             else:
                 self.segments.append({'type': 'segment', 'endpoint': point})
                 self.length += np.sqrt(np.sum((point - last_point) ** 2))
 
     def render(self):
-        ends = ["flush"]*len(self.widths)
-        corners = ["natural"]*len(self.widths)
         bend_radius = self.g
         precision = 0.001
 
-        p1 = gdspy.FlexPath([self.segments[0]['endpoint']], width=self.widths, offset=self.offsets, ends=ends,
-                            corners=corners, bend_radius=bend_radius, precision=precision,
+        p1 = gdspy.FlexPath([self.segments[0]['endpoint']], width=self.widths, offset=self.offsets, ends='flush',
+                            corners='natural', bend_radius=bend_radius, precision=precision,
                             layer=self.layer_configuration.total_layer)
         p2 = gdspy.FlexPath([self.segments[0]['endpoint']], width=self.width_total, offset=0, ends='flush',
                             corners='natural', bend_radius=self.g, precision=precision,
@@ -203,8 +197,15 @@ class CPW(CPWCoupler):
                  orientation1: float = None, orientation2: float = None):
         super().__init__(name, points, [w], [s, s], g, layer_configuration, r, corner_type, orientation1, orientation2)
 
-        self.terminals = {'port1': DesignTerminal(self.points[0], orientation1, g=g, s=s, w=w, type='cpw'),
-                          'port2': DesignTerminal(self.points[-1], orientation2, g=g, s=s, w=w, type='cpw')}
+        self.terminals['port1'].type = 'cpw'
+        self.terminals['port1'].w = w
+        self.terminals['port1'].s = s
+        self.terminals['port1'].g = g
+
+        self.terminals['port2'].type = 'cpw'
+        self.terminals['port2'].w = w
+        self.terminals['port2'].s = s
+        self.terminals['port2'].g = g
 
 
 #TODO: make compatible with DesignElement and implement add_to_tls
@@ -327,17 +328,29 @@ class Narrowing(DesignElement):
         return [l, c1, c2]
 
 
+def widths_offsets(w, s, g):
+    width_total = g * 2 + sum(s) + sum(w)
+    widths = [g] + w + [g]
+    offsets = [-(width_total - g) / 2]
+    for c in range(len(widths) - 1):
+        offsets.append(offsets[-1] + widths[c] / 2 + s[c] + widths[c + 1] / 2)
+
+    return width_total, widths, offsets
+
+
 class RectFanout(DesignElement):
     terminals: Dict[str, DesignTerminal]
 
     def __init__(self, name: str, port: DesignTerminal, grouping: Tuple[int, int],
-                 layer_configuration: LayerConfiguration):
+                 layer_configuration: LayerConfiguration, down_s_right: float = None, center_s_left: float = None,
+                 center_s_right: float = None, up_s_left: float = None):
         """
         Create fanout element for coupled CPWs. Ground electrodes are added between the groups.
         :param name: element identifier
         :param port: port of CPWCoupler to attach to
         :param groups: tuple of conductor number, fanout angle, conductor-ground width and finite ground width
         :param layer_configuration:
+        :param down_s_new:
         """
         super().__init__('rect-fanout', name)
         self.port = port
@@ -348,70 +361,131 @@ class RectFanout(DesignElement):
         e_down = np.asarray([np.cos(port.orientation + np.pi / 2), np.sin(port.orientation + np.pi / 2)])
         e_up = np.asarray([np.cos(port.orientation - np.pi / 2), np.sin(port.orientation - np.pi / 2)])
 
-        self.width_total = self.port.g * 2 + sum(self.port.s) + sum(self.port.w)
-
-        self.widths = [self.port.g] + self.port.w + [self.port.g]
-        self.offsets = [-(self.width_total-self.port.g)/2]
-        for c in range(len(self.widths)-1):
-            self.offsets.append(self.offsets[-1]+self.widths[c]/2+self.port.s[c]+self.widths[c+1]/2)
-
-        if not self.port.order:
-            self.widths = self.widths[::-1]
-            self.offsets = [-o for o in  self.offsets[::-1]]
-            self.grouping = [len(self.port.w)-self.grouping[1], len(self.port.w)-self.grouping[0]]
-            #e_down, e_up = e_up, e_down
-
-
-        #length_down = offsets[grouping[0] + 1] - offsets[1]
-        #length_center = offsets[grouping[1] + 1] - offsets[grouping[0] + 1]
-        #length_up = offsets[-2] - offsets[grouping[1] + 1]
-
-        self.points_down = [port.position, port.position + e * self.width_total,
-                            port.position + (e+e_down) * self.width_total]
-        self.points_center = [port.position, port.position + e * (self.width_total + port.g)]
-        self.points_up = [port.position, port.position + e * self.width_total,
-                            port.position + (e + e_up) * self.width_total]
-
         self.terminals = {'wide': DesignTerminal(position=self.port.position, orientation=self.port.orientation+np.pi,
                                                  type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g,
                                                  disconnected='short', order=(not self.port.order))}
 
-        if grouping[0]:
-            self.terminals['down'] = DesignTerminal(position=self.points_down[-1], orientation=self.port.orientation + np.pi / 2, type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g, disconnected='short')
-        if grouping[0] != grouping[1]:
-            self.terminals['center'] = DesignTerminal(position=self.points_center[-1], orientation=self.port.orientation, type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g, disconnected='short')
-        if grouping[1] != len(self.port.w):
-            self.terminals['up'] = DesignTerminal(position=self.points_up[-1], orientation=self.port.orientation - np.pi / 2, type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g, disconnected='short')
+        if not self.port.order:
+            self.w = self.port.w[::-1]
+            self.s = self.port.s[::-1]
+            self.g = self.port.g
+            self.grouping = [len(self.w) - self.grouping[1], len(self.w) - self.grouping[0]]
+        else:
+            self.w = self.port.w
+            self.s = self.port.s
+            self.g = self.port.g
+
+        self.width_total, self.widths, self.offsets = widths_offsets(self.w, self.s, self.g)
+
+        if down_s_right is None:
+            down_s_right = self.s[0]
+        if center_s_left is None:
+            center_s_left = self.s[self.grouping[0]]
+        if center_s_right is None:
+            center_s_right = self.s[self.grouping[1]]
+        if up_s_left is None:
+            up_s_left = self.s[-1]
+
+        # list of booleans identifing if down, center and up conductor groups exist [down, center, up]
+        self.group_names = ['down', 'center', 'up']
+        self.group_orientations = [np.pi/2, 0, -np.pi/2]
+        self.groups_exist = [bool(self.grouping[0]), self.grouping[0] != self.grouping[1], self.grouping[1] != len(self.w)]
+        self.groups_s = [self.s[:self.grouping[0]] + [down_s_right],
+                         [center_s_left] + self.s[(self.grouping[0]+1):self.grouping[1]] + [center_s_right],
+                         [up_s_left] + self.s[(self.grouping[1]+1):]]
+        self.groups_w = [self.w[:self.grouping[0]], self.w[self.grouping[0]:self.grouping[1]], self.w[self.grouping[1]:]]
+
+        self.groups_widths_total = []
+        self.groups_widths = []
+        self.groups_offsets = []
+        self.groups_global_offsets = []
+        self.groups_first_conductor = [0, self.grouping[0], self.grouping[1]]
+        for group_exists, group_w, group_s, first_conductor in zip(self.groups_exist, self.groups_w, self.groups_s,
+                                                  self.groups_first_conductor):
+            if group_exists:
+                group_width_total, group_widths, group_offsets = widths_offsets(group_w, group_s, self.g)
+                group_global_offset = self.offsets[first_conductor+1] - group_offsets[1]
+            else:
+                group_width_total, group_widths, group_offsets = 0, [], []
+                group_global_offset = 0
+            self.groups_widths_total.append(group_width_total)
+            self.groups_widths.append(group_widths)
+            self.groups_offsets.append(group_offsets)
+            self.groups_global_offsets.append(group_global_offset)
+
+        self.length = max([self.groups_widths_total[0], self.groups_widths_total[2]])-self.g # length of element
+
+        #length_down = offsets[grouping[0] + 1] - offsets[1]
+        #length_center = offsets[grouping[1] + 1] - offssets[grouping[0] + 1]
+        #length_up = offsets[-2] - offsets[grouping[1] + 1]
+
+        points_down = [port.position, port.position + e * (self.length - self.groups_widths_total[0] / 2 + np.abs(self.groups_global_offsets[0])),
+                       port.position + e * (self.length - self.groups_widths_total[0] / 2 + np.abs(self.groups_global_offsets[0])) + e_down * self.width_total/2]
+        points_center = [port.position, port.position + e * self.length]
+        points_up = [port.position, port.position + e * (self.length - self.groups_widths_total[2] / 2 + np.abs(self.groups_global_offsets[2])),
+                     port.position + e * (self.length - self.groups_widths_total[2] / 2 + np.abs(self.groups_global_offsets[2])) + e_up * self.width_total/2]
+
+        self.groups_points = [points_down, points_center, points_up]
+
+        for name, exists, points, orientation, w, s, global_offset in zip(
+                self.group_names, self.groups_exist, self.groups_points, self.group_orientations, self.groups_w,
+                self.groups_s, self.groups_global_offsets):
+            if exists:
+                if len(w) == 1 and s[0] == s[1]:
+                    type_, w, s = 'cpw', w[0], s[0]
+                else:
+                    type_ = 'mc-cpw'
+
+                if name in ['up', 'down']:
+                    position_correction = - e * np.abs(global_offset)
+                else:
+                    position_correction = e_up * global_offset
+
+                group_orientation = -orientation + self.port.orientation
+                if group_orientation > 2 * np.pi:
+                    group_orientation -= 2 * np.pi
+                self.terminals[name] = DesignTerminal(position=points[-1] + position_correction,
+                                                      orientation=group_orientation, type=type_,
+                                                      w=w, s=s, g=self.g, disconnected='short')
 
     def render(self):
         precision = 0.001
         #ground = self.width_total - (self.offsets[self.grouping[0]] - self.widths[:self.grouping[0]]/2)
+        restrict_total = None
+        lines, protect = [], []
 
-        p_down = gdspy.FlexPath(self.points_down, width=self.widths[:self.grouping[0]+1],
-                            offset=self.offsets[:self.grouping[0]+1], ends="flush",
-                            corners="natural", bend_radius=0, precision=precision,
-                            layer=self.layer_configuration.total_layer)
+        for name, exists, points, orientation, widths, offsets, global_offset, width_total in zip(
+                self.group_names, self.groups_exist, self.groups_points, self.group_orientations, self.groups_widths,
+                self.groups_offsets, self.groups_global_offsets, self.groups_widths_total):
+            if exists:
+                global_offsets = [offset + global_offset for offset in offsets]
+                lines.append(gdspy.FlexPath(points, width=widths, offset=global_offsets, ends='flush', corners='natural',
+                                       bend_radius=0, precision=precision, layer=self.layer_configuration.total_layer))
 
-        p_center = gdspy.FlexPath(self.points_center, width=self.widths[self.grouping[0]+1:self.grouping[1]+1],
-                            offset=self.offsets[self.grouping[0]+1:self.grouping[1]+1], ends="flush",
-                            corners="natural", bend_radius=0, precision=precision,
-                            layer=self.layer_configuration.total_layer)
+                restrict = gdspy.FlexPath(points, width=width_total, offset=global_offset, ends='flush',
+                                          corners='natural', bend_radius=0, precision=precision,
+                                          layer=self.layer_configuration.restricted_area_layer)
 
-        p_up = gdspy.FlexPath(self.points_up, width=self.widths[self.grouping[1]+1:],
-                            offset=self.offsets[self.grouping[1]+1:], ends="flush",
-                            corners="natural", bend_radius=0, precision=precision,
-                            layer=self.layer_configuration.total_layer)
+                protect.append(gdspy.FlexPath(points, width=width_total - 2 * self.g, offset=global_offset, ends='extended',
+                                          corners='natural', bend_radius=0, precision=precision,
+                                          layer=self.layer_configuration.restricted_area_layer))
 
-        p2 = gdspy.FlexPath(self.points_center, width=self.width_total, offset=0, ends='flush',
-                            corners='natural', bend_radius=0, precision=precision,
-                            layer=self.layer_configuration.restricted_area_layer)
+                restrict_total = gdspy.boolean(restrict_total, restrict.to_polygonset(), 'or',
+                                         layer=self.layer_configuration.restricted_area_layer)
 
-        positive = gdspy.boolean(p_down.to_polygonset(), p_center.to_polygonset(), 'or',
-                                 layer=self.layer_configuration.total_layer)
-        positive = gdspy.boolean(positive, p_up.to_polygonset(), 'or',
-                                 layer=self.layer_configuration.total_layer)
+        positive_total = None
+        for line_id in range(len(lines)):
+            protect_total = None
+            for other_line_id in range(len(lines)):
+                if other_line_id != line_id:
+                    protect_total = gdspy.boolean(protect_total, protect[other_line_id].to_polygonset(),
+                                                  'or', layer=self.layer_configuration.total_layer)
 
-        return {'positive': positive, 'restrict': p2.to_polygonset()}
+            positive = gdspy.boolean(lines[line_id].to_polygonset(), protect_total, 'not',
+                                     layer=self.layer_configuration.total_layer)
+            positive_total = gdspy.boolean(positive_total, positive, 'or', layer=self.layer_configuration.total_layer)
+
+        return {'positive': positive_total, 'restrict': restrict_total}
 
     def add_to_tls(self):
         return []

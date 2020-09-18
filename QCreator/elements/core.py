@@ -2,6 +2,7 @@ from .. import transmission_line_simulator as tlsim
 from abc import *
 from typing import Mapping, Iterable, Union
 import gdspy
+import numpy as np
 
 
 class DesignTerminal:
@@ -31,6 +32,11 @@ class DesignTerminal:
         self.disconnected = disconnected
         self.order = order
 
+    def __repr__(self):
+        return '''Type: {}, Position: ({}, {}), Orientation: {}
+w: {}, s: {}, g: {}
+reversed: {}'''.format(self.type, np.round(self.position[0], 3), np.round(self.position[1], 3),
+                       np.round(self.orientation, 3), self.w, self.s, self.g, self.order)
 
 class DesignElement:
     """
