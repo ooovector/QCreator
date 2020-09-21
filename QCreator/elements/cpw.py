@@ -118,7 +118,7 @@ class CPWCoupler(DesignElement):
 
                 self.segments.append({'type': 'segment', 'endpoint': replaced_point1})
                 self.segments.append({'type': 'turn', 'turn': turn})
-                self.length += (np.sqrt(np.sum((replaced_point1 - last_point) ** 2)) + turn * self.r)
+                self.length += (np.sqrt(np.sum((replaced_point1 - last_point) ** 2)) + np.abs(turn) * self.r)
             else:
                 self.segments.append({'type': 'segment', 'endpoint': point})
                 self.length += np.sqrt(np.sum((point - last_point) ** 2))
@@ -192,7 +192,7 @@ class CPWCoupler(DesignElement):
         return [line]
 
     def __repr__(self):
-        return 'CPWCoupler "{}", n={}'.format(self.name, len(self.w))
+        return 'CPWCoupler "{}", n={}, l={:4.3f}'.format(self.name, len(self.w), np.round(self.length, 3))
 
 
 class CPW(CPWCoupler):
@@ -212,7 +212,7 @@ class CPW(CPWCoupler):
         self.terminals['port2'].g = g
 
     def __repr__(self):
-        return 'CPW "{}"'.format(self.name)
+        return 'CPW "{}", l={:4.3f}'.format(self.name, np.round(self.length, 3))
 
 
 #TODO: make compatible with DesignElement and implement add_to_tls
