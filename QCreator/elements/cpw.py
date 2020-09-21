@@ -163,7 +163,8 @@ class CPWCoupler(DesignElement):
                                cl=cl,
                                ll=ll,
                                rl=np.zeros((len(self.w), len(self.w))),
-                               gl=np.zeros((len(self.w), len(self.w))))
+                               gl=np.zeros((len(self.w), len(self.w))),
+                               name=self.name)
 
         if track_changes:
             self.tls_cache.append([line])
@@ -190,6 +191,9 @@ class CPWCoupler(DesignElement):
             tls_instance.add_element(line, mapping)
         return [line]
 
+    def __repr__(self):
+        return 'CPWCoupler "{}", n={}'.format(self.name, len(self.w))
+
 
 class CPW(CPWCoupler):
     def __init__(self, name: str, points: List[Tuple[float, float]], w: float, s: float, g: float,
@@ -206,6 +210,9 @@ class CPW(CPWCoupler):
         self.terminals['port2'].w = w
         self.terminals['port2'].s = s
         self.terminals['port2'].g = g
+
+    def __repr__(self):
+        return 'CPW "{}"'.format(self.name)
 
 
 #TODO: make compatible with DesignElement and implement add_to_tls
@@ -356,6 +363,7 @@ class RectFanout(DesignElement):
         self.port = port
         self.grouping = grouping
         self.layer_configuration = layer_configuration
+        self.tls_cache = []
 
         e = np.asarray([np.cos(port.orientation + np.pi), np.sin(port.orientation + np.pi)])
         e_down = np.asarray([np.cos(port.orientation + np.pi / 2), np.sin(port.orientation + np.pi / 2)])
@@ -400,6 +408,7 @@ class RectFanout(DesignElement):
         self.groups_offsets = []
         self.groups_global_offsets = []
         self.groups_first_conductor = [0, self.grouping[0], self.grouping[1]]
+        self.groups_last_conductor = [self.grouping[0], self.grouping[1], len(self.w)]
         for group_exists, group_w, group_s, first_conductor in zip(self.groups_exist, self.groups_w, self.groups_s,
                                                   self.groups_first_conductor):
             if group_exists:
@@ -487,33 +496,85 @@ class RectFanout(DesignElement):
 
         return {'positive': positive_total, 'restrict': restrict_total}
 
-    def add_to_tls(self):
-        return []
-    #def add_to_tls(self, tls_instance: tlsim.TLSystem,
-    #               terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
-    #    #cl, ll = self.cm()
-    #
-    #    if grouping[0]:
-    #        line_down = tlsim.TLCoupler(n=self.grouping[0],
-    #                                    l=self.width_total,  # TODO: get length
-    #                                    cl=cl,
-    #                                    ll=ll,
-    #                                    rl=np.zeros((len(self.w), len(self.w))),
-    #                                    gl=np.zeros((len(self.w), len(self.w))))
-    #    if grouping[0] != grouping[1]:
-    #        self.terminals['center'] = DesignTerminal(position=self.points_center[-1], orientation=self.port.orientation, type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g, disconnected='short')
-    #    if grouping[1] != len(self.port.w):
+    def cm(self):
+        cross_section = [self.s[0]]
+        for c in range(len(self.w)):
+            cross_section.append(self.w[c])
+            cross_section.append(self.s[c+1])
 
+        wide_cl, wide_ll = cm.ConformalMapping(cross_section).cl_and_Ll()
 
+        groups_cl = []
+        groups_ll = []
+        for group_id in range(3):
+            if not self.groups_exist[group_id]:
+                cl = [[]]
+                ll = [[]]
+            else:
+                cross_section = [self.groups_s[group_id][0]]
+                for c in range(len(self.groups_w[group_id])):
+                    cross_section.append(self.groups_w[group_id][c])
+                    cross_section.append(self.groups_s[group_id][c + 1])
+
+                cl, ll = cm.ConformalMapping(cross_section).cl_and_Ll()
+            groups_cl.append(cl)
+            groups_ll.append(ll)
+
+        return wide_cl, wide_ll, groups_cl, groups_ll
+
+    def add_to_tls(self, tls_instance: tlsim.TLSystem,
+                   terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
+        wide_cl, wide_ll, groups_cl, groups_ll = self.cm()
+        '''
+        coupled_lengths = []
+        if self.groups_exist[0]:
+            coupled_lengths.append(self.groups_widths_total[0])
+        if self.groups_exist[2]:
+            coupled_lengths.append(self.groups_widths_total[2])
+
+        coupled_length = self.length - np.max(coupled_lengths)  / 2
+
+        full_coupled_line = tlsim.TLCoupler(n=len(self.w),
+                                            l=coupled_length,  # TODO: get length
+                                            cl=wide_cl,
+                                            ll=wide_ll,
+                                            rl=np.zeros((len(self.w), len(self.w))),
+                                            gl=np.zeros((len(self.w), len(self.w))))
+        '''
+
+        group_lines = []
+        for group_id in range(3):
+            if self.groups_exist[group_id]:
+                line = tlsim.TLCoupler(n=len(self.groups_w[group_id]),
+                                       l=self.length,
+                                       cl=groups_cl[group_id],
+                                       ll=groups_ll[group_id],
+                                       rl=np.zeros_like(groups_cl[group_id]),
+                                       gl=np.zeros_like(groups_cl[group_id]),
+                                       name=self.name+'_group'+str(group_id))
+                mapping = [terminal_mapping[('wide', i)] for i in range(self.groups_first_conductor[group_id],
+                                                                        self.groups_last_conductor[group_id])]
+
+                if self.groups_last_conductor[group_id] - self.groups_first_conductor[group_id] == 1 and self.group_names[group_id] in terminal_mapping:
+                    mapping = mapping + [terminal_mapping[self.group_names[group_id]]]
+                else:
+                    mapping = mapping +[terminal_mapping[(self.group_names[group_id], i)] for i in range(0,
+                                    self.groups_last_conductor[group_id] - self.groups_first_conductor[group_id])]
+                tls_instance.add_element(line, mapping)
+                group_lines.append(line)
+#            else:
+#                group_lines.append([])
 
         if track_changes:
-            self.tls_cache.append([line])
+            self.tls_cache.append(group_lines)
 
-        tls_instance.add_element(line, [terminal_mapping['port1'], terminal_mapping['port2']])
-        return [line]
+        return group_lines
 
     def get_terminals(self):
         return self.terminals
+
+    def __repr__(self):
+        return "RectFanout {}, n={}, grouping=({}, {})".format(self.name, len(self.w), *self.grouping)
 
 '''
 class RectFanout(DesignElement):

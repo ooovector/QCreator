@@ -82,7 +82,7 @@ class Pad(DesignElement):
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict,
                    track_changes: bool = True) -> list:
-        p = tlsim.Port(z0=self.z0)
+        p = tlsim.Port(z0=self.z0, name=self.name)
         if track_changes:
             self.tls_cache.append(p)
 

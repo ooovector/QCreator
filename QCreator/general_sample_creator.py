@@ -3,7 +3,7 @@ import gdspy
 #import libraries.general_design_functions as gdf
 from . import elements
 from . import transmission_line_simulator as tlsim
-from typing import NamedTuple, SupportsFloat, Any, Iterable
+from typing import NamedTuple, SupportsFloat, Any, Iterable, Tuple
 
 Bridges_over_line_param = NamedTuple('Bridge_params',
                                      [('distance', SupportsFloat),
@@ -70,6 +70,18 @@ class Sample:
 
     def ground(self, element: elements.DesignElement, port: str):
         self.connections.append(((element, port), ('gnd', 'gnd')))
+
+    def fanout(self, o: elements.DesignElement, port: str, name: str, grouping: Tuple[int, int],
+                down_s_right: float = None, center_s_left: float = None,
+                 center_s_right: float = None, up_s_left: float = None):
+        fanout = elements.RectFanout(name, o.get_terminals()[port], grouping, self.layer_configuration,
+                                     down_s_right=down_s_right, center_s_left=center_s_left,
+                                     center_s_right=center_s_right, up_s_left=up_s_left)
+        self.add(fanout)
+        for conductor_id in range(len(fanout.w)):
+            self.connections.append(((o, port, conductor_id), (fanout, 'wide', conductor_id)))
+
+        return fanout
 
     def connect_cpw(self, o1: elements.DesignElement, o2: elements.DesignElement, port1: str, port2: str, name: str,
                     points: list):
@@ -195,7 +207,7 @@ class Sample:
                         terminal_node_assignments[terminal_identifier] = connections_flat[(object_, terminal_name, conductor_id)]
                     else:
                         max_connection_id += 1
-                        connections_flat[max_connection_id] = (object_, terminal_name, conductor_id)
+                        connections_flat[(object_, terminal_name, conductor_id)] = max_connection_id
                         terminal_node_assignments[terminal_identifier] = max_connection_id
 
             element_assignments[object_.name] = object_.add_to_tls(tls, terminal_node_assignments)

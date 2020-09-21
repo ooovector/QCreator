@@ -15,6 +15,12 @@ class TLSystemElement:
     def boundary_condition(self, omega):
         pass
 
+    def __init__(self, type_, name=''):
+        self.name = name
+        self.type_ = type_
+
+    def __repr__(self):
+        return "{} {}".format(self.type_, self.name)
 
 class Resistor(TLSystemElement):
     def num_terminals(self):
@@ -26,7 +32,8 @@ class Resistor(TLSystemElement):
     def boundary_condition(self, omega):
         return np.asarray([[1, -1, self.R, 0], [0, 0, 1, 1]], dtype=complex)
 
-    def __init__(self, r=None):
+    def __init__(self, r=None, name=''):
+        super().__init__('R', name)
         self.R = r
         pass
 
@@ -41,7 +48,8 @@ class Capacitor(TLSystemElement):
     def boundary_condition(self, omega):
         return np.asarray([[1j*omega*self.C, -1j*omega*self.C, 1, 0], [0,0,1,1]], dtype=complex)
 
-    def __init__(self, c=None):
+    def __init__(self, c=None, name=''):
+        super().__init__('C', name)
         self.C = c
         pass
 
@@ -56,7 +64,8 @@ class Inductor(TLSystemElement):
     def boundary_condition(self, omega):
         return np.asarray([[1, -1, 1j*omega*self.L, 0], [0,0,1,1]], dtype=complex)
 
-    def __init__(self, l=None):
+    def __init__(self, l=None, name=''):
+        super().__init__('L', name)
         self.L = l
         pass
 
@@ -72,6 +81,7 @@ class Short(TLSystemElement):
         return np.asarray([[1, 0]], dtype=complex)
 
     def __init__(self):
+        super().__init__('Short', '')
         pass
 
 
@@ -85,7 +95,8 @@ class Port(TLSystemElement):
     def boundary_condition(self, omega):
         return np.asarray([[1, self.Z0, 0], [1, -self.Z0, 1]], dtype=complex)
 
-    def __init__(self, z0=None):
+    def __init__(self, z0=None, name=''):
+        super().__init__('Port', name)
         self.Z0 = z0
 
 
@@ -127,7 +138,8 @@ class TLCoupler(TLSystemElement):
         #print(mode_pair)
         return boundary_condition_matrix
 
-    def __init__(self, n=2, l=None, ll=None, cl=None, rl=None, gl=None):
+    def __init__(self, n=2, l=None, ll=None, cl=None, rl=None, gl=None, name=''):
+        super().__init__('TL', name)
         self.n = n
         self.l = l
         self.Ll = ll
@@ -136,6 +148,8 @@ class TLCoupler(TLSystemElement):
         self.Gl = gl
         pass
 
+    def __repr__(self):
+        return "TL {} (n={})".format(self.name, self.n)
 
 class TLSystem:
     def __init__(self):
