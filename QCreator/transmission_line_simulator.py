@@ -8,6 +8,10 @@ class TLSystemElement:
         pass
 
     @abstractmethod
+    def num_degrees_of_freedom_dynamic(self):
+        return self.num_degrees_of_freedom()
+
+    @abstractmethod
     def num_degrees_of_freedom(self):
         pass
 
@@ -32,6 +36,11 @@ class Resistor(TLSystemElement):
     def boundary_condition(self, omega):
         return np.asarray([[1, -1, self.R, 0], [0, 0, 1, 1]], dtype=complex)
 
+    def dynamic_equations(self):
+        b = np.asarray([[0,  0, 0, 0], [0, 0, 0, 0]]) # derivatives
+        a = np.asarray([[1, -1, self.R, 0], [0, 0, 1, 1]]) # current values
+        return a, b
+
     def __init__(self, r=None, name=''):
         super().__init__('R', name)
         self.R = r
@@ -47,6 +56,11 @@ class Capacitor(TLSystemElement):
 
     def boundary_condition(self, omega):
         return np.asarray([[1j*omega*self.C, -1j*omega*self.C, 1, 0], [0,0,1,1]], dtype=complex)
+
+    def dynamic_equations(self):
+        b = np.asarray([[self.C, -self.C, 0, 0], [0, 0, 0, 0]]) # derivatives
+        a = np.asarray([[0, 0, 1, 0], [0, 0, 1, 1]]) # current values
+        return a, b
 
     def __init__(self, c=None, name=''):
         super().__init__('C', name)
@@ -64,6 +78,11 @@ class Inductor(TLSystemElement):
     def boundary_condition(self, omega):
         return np.asarray([[1, -1, 1j*omega*self.L, 0], [0,0,1,1]], dtype=complex)
 
+    def dynamic_equations(self):
+        b = np.asarray([[0, 0, self.L, 0], [0, 0, 0, 0]]) # derivatives
+        a = np.asarray([[1,-1, 0, 0], [0, 0, 1, 1]]) # current values
+        return a, b
+
     def __init__(self, l=None, name=''):
         super().__init__('L', name)
         self.L = l
@@ -80,6 +99,11 @@ class Short(TLSystemElement):
     def boundary_condition(self, omega):
         return np.asarray([[1, 0]], dtype=complex)
 
+    def dynamic_equations(self):
+        b = np.asarray([[0, 0]]) # derivatives
+        a = np.asarray([[1, 0]]) # current values
+        return a, b
+
     def __init__(self):
         super().__init__('Short', '')
         pass
@@ -95,6 +119,11 @@ class Port(TLSystemElement):
     def boundary_condition(self, omega):
         return np.asarray([[1, self.Z0, 0], [1, -self.Z0, 1]], dtype=complex)
 
+    def dynamic_equations(self):
+        b = np.asarray([[0, 0, 0], [0, 0, 0]]) # derivatives
+        a = np.asarray([[1, self.Z0, 0], [1, -self.Z0, 1]]) # current values
+        return a, b
+
     def __init__(self, z0=None, name=''):
         super().__init__('Port', name)
         self.Z0 = z0
@@ -109,6 +138,9 @@ class TLCoupler(TLSystemElement):
 
     def num_degrees_of_freedom(self):
         return self.n*2
+
+    def num_degrees_of_freedom_dynamic(self):
+        return self.n*2*self.num_modes
 
     def propagating_modes(self):
         '''
@@ -138,7 +170,78 @@ class TLCoupler(TLSystemElement):
         #print(mode_pair)
         return boundary_condition_matrix
 
-    def __init__(self, n=2, l=None, ll=None, cl=None, rl=None, gl=None, name=''):
+    def dynamic_equations(self):
+        #b = np.asarray([[0, 0, 0], [0, 0, 0]]) # derivatives
+        #a = np.asarray([[1, self.Z0, 0], [1, -self.Z0, 1]]) # current values
+
+        #cl_av = np.exp(np.mean([np.log(np.abs(cl)) for cl, amp in self.propagating_modes()]))
+        #print ('cl_av:', cl_av)
+
+        m = self.n * self.num_modes
+        n_eq_internal = self.n * (self.num_modes - 1)
+
+        b = np.zeros((self.num_terminals()*2+n_eq_internal*2, self.num_terminals()*2+m*2), dtype=complex)
+        a = np.zeros((self.num_terminals()*2+n_eq_internal*2, self.num_terminals()*2+m*2), dtype=complex)
+
+        # filling out telegrapher's equations
+        E = np.zeros((self.num_modes - 1, self.num_modes))
+        for i in range(self.num_modes-1):
+            #E[i, i] = 1#/cl_av
+            E[i, i] = self.l
+
+        Ll = np.kron(self.Ll, E)
+        Cl = np.kron(self.Cl, E)
+        Rl = np.kron(self.Rl, E)
+        Gl = np.kron(self.Gl, E)
+
+        b[ :n_eq_internal, -m:] = Ll
+        b[n_eq_internal:2 * n_eq_internal, -2 * m:-m] = Cl
+
+        #k = np.arange(self.num_modes)*np.pi/self.l
+        #kmat = np.kron(np.eye(self.n), np.diag(k))
+        # Taylor-series expansion of I(x) = sum_i a_i x^i
+        d = np.zeros((self.num_modes-1, self.num_modes))
+        for i in range(1, self.num_modes):
+            d[i-1, i] = i
+        dmat = np.kron(np.eye(self.n), d)
+
+        a[:n_eq_internal,    -2*m:-m] = -dmat
+        a[n_eq_internal:2*n_eq_internal, -m:] = -dmat
+        a[:n_eq_internal,    -m:] = -Rl
+        a[n_eq_internal:2*n_eq_internal, -2*m:-m] = -Gl
+
+        # filling out boundary conditions (voltage)
+        #print(np.real(a))
+        #a[-2 * self.n:-self.n, :self.n] = np.eye(self.n)
+        #print(np.real(a))
+        #a[-self.n:, self.n:2 * self.n] = np.eye(self.n)
+        #print (a)
+        a[-self.n * 4:, :self.n * 4] = np.eye(self.n * 4)
+
+        #mode_left = (-self.l / 2 * cl_av) ** np.arange(self.num_modes)
+        #mode_right = (+self.l / 2 * cl_av) ** np.arange(self.num_modes)
+        mode_left = (-1 / 2) ** np.arange(self.num_modes)
+        mode_right = (1 / 2) ** np.arange(self.num_modes)
+        for k in range(self.n):
+            c = np.zeros(self.n)
+            c[k] = 1
+            # Modal voltages
+            a[2 * n_eq_internal + k, -2 * m:-m] = np.kron(c, mode_left)
+            a[2 * n_eq_internal + self.n + k, -2 * m:-m] = np.kron(c, mode_right)
+            # Modal currents
+            a[2 * n_eq_internal + self.n * 2 + k, -m:] = -np.kron(c, mode_left)
+            a[2 * n_eq_internal + self.n * 3 + k, -m:] = np.kron(c, mode_right)
+        '''
+        a[-4, 0] = 1
+        a[-4, 4:4 + self.num_degrees_of_freedom_dynamic()//2] = (-self.l/2)**np.arange(self.num_modes)
+        a[-3, 4:4 + self.num_degrees_of_freedom_dynamic()//2] = (+self.l/2)**np.arange(self.num_modes)
+        a[-4:-2, 0] = 1
+        a[-2, 4 + self.num_degrees_of_freedom_dynamic()//2:] = -(-self.l/2)**np.arange(self.num_modes)
+        a[-1, 4 + self.num_degrees_of_freedom_dynamic()//2:] = (+self.l/2)**np.arange(self.num_modes)
+        '''
+        return a, b
+
+    def __init__(self, n=2, l=None, ll=None, cl=None, rl=None, gl=None, name='', num_modes=5):
         super().__init__('TL', name)
         self.n = n
         self.l = l
@@ -146,10 +249,12 @@ class TLCoupler(TLSystemElement):
         self.Cl = cl
         self.Rl = rl
         self.Gl = gl
+        self.num_modes = num_modes
         pass
 
     def __repr__(self):
         return "TL {} (n={})".format(self.name, self.n)
+
 
 class TLSystem:
     def __init__(self):
@@ -176,6 +281,54 @@ class TLSystem:
                                                      # currents incident into each terminal
         self.dof_mapping.extend([(e_id, int_dof_id) for e_id, e in enumerate(self.elements) for int_dof_id in range(e.num_degrees_of_freedom())])
                                                      # number of element-internal degrees of freedom
+
+    def create_dynamic_equation_matrices(self):
+        # number of nodes
+        node_no = len(self.nodes)
+        # number of internal dofs
+        internal_dof_no = np.sum(e.num_degrees_of_freedom_dynamic() for e in self.elements)
+        # number of terminals
+        terminal_no = np.sum(e.num_terminals() for e in self.elements)
+
+        # dynamic equations reflect the element's IV characteristic
+        dynamic_equation_no = terminal_no + internal_dof_no
+        # kinetic equations are Kirchhof's law that the sum of nodal currents is zero
+        kinetic_equation_no = node_no
+
+        num_equations = dynamic_equation_no + kinetic_equation_no
+
+        dynamic_equation_matrix_a = np.zeros((num_equations, num_equations), dtype=float)
+        dynamic_equation_matrix_b = np.zeros((num_equations, num_equations), dtype=float)
+
+        # filling dynamic equations
+        equation_id = 0
+        current_offset = 0
+        internal_dof_offset = 0
+        for e_id, e in enumerate(self.elements):
+            equations_a, equations_b = e.dynamic_equations()
+            for element_equation_id in range(equations_b.shape[0]):
+                equation_b = equations_b[element_equation_id, :]
+                equation_a = equations_a[element_equation_id, :]
+                for terminal_id, terminal_node in enumerate(self.terminal_node_mapping[e_id]):
+                    node_id = self.nodes.index(terminal_node)
+                    dynamic_equation_matrix_a[equation_id, node_id] = equation_a[terminal_id] #nodal voltages
+                    dynamic_equation_matrix_a[equation_id, node_no+current_offset+terminal_id] = equation_a[terminal_id+e.num_terminals()] #nodal current
+                    dynamic_equation_matrix_b[equation_id, node_id] = equation_b[terminal_id] #nodal voltages
+                    dynamic_equation_matrix_b[equation_id, node_no+current_offset+terminal_id] = equation_b[terminal_id+e.num_terminals()] #nodal current
+                for internal_dof_id in range(e.num_degrees_of_freedom_dynamic()):
+                    dynamic_equation_matrix_a[equation_id, node_no+terminal_no+internal_dof_offset+internal_dof_id] = equation_a[2*e.num_terminals() + internal_dof_id]
+                    dynamic_equation_matrix_b[equation_id, node_no + terminal_no + internal_dof_offset + internal_dof_id] = equation_b[2 * e.num_terminals() + internal_dof_id]
+                equation_id += 1
+            internal_dof_offset += e.num_degrees_of_freedom_dynamic()
+            current_offset += e.num_terminals()
+
+        full_terminal_id = 0
+        # filling kinetic equations
+        for e_id, e in enumerate(self.elements):
+            for terminal_id, node in enumerate(self.terminal_node_mapping[e_id]):
+                dynamic_equation_matrix_a[dynamic_equation_no+self.nodes.index(node), node_no+full_terminal_id] = 1
+                full_terminal_id += 1
+        return dynamic_equation_matrix_a, dynamic_equation_matrix_b
 
     def create_boundary_problem_matrix(self, omega):
         # full dof number
