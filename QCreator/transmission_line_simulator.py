@@ -19,6 +19,10 @@ class TLSystemElement:
     def boundary_condition(self, omega):
         pass
 
+    @abstractmethod
+    def energy(self, mode):
+        return 0
+
     def __init__(self, type_, name=''):
         self.name = name
         self.type_ = type_
@@ -41,6 +45,9 @@ class Resistor(TLSystemElement):
         a = np.asarray([[1, -1, self.R, 0], [0, 0, 1, 1]]) # current values
         return a, b
 
+    def energy(self, mode):
+        return 0
+
     def __init__(self, r=None, name=''):
         super().__init__('R', name)
         self.R = r
@@ -61,6 +68,17 @@ class Capacitor(TLSystemElement):
         b = np.asarray([[self.C, -self.C, 0, 0], [0, 0, 0, 0]]) # derivatives
         a = np.asarray([[0, 0, 1, 0], [0, 0, 1, 1]]) # current values
         return a, b
+
+    def energy(self, mode):
+        # energy matrix
+        emat = np.asarray([
+            [self.C, -self.C, 0, 0],
+            [-self.C, self.C, 0, 0],
+            [0,       0,      0, 0],
+            [0,       0,      0, 0]
+        ])/2
+        return mode@emat@np.reshape(mode, (-1,1))
+        #return self.C/2 * (mode[0]-mode[1])**2
 
     def __init__(self, c=None, name=''):
         super().__init__('C', name)
@@ -83,6 +101,15 @@ class Inductor(TLSystemElement):
         a = np.asarray([[1,-1, 0, 0], [0, 0, 1, 1]]) # current values
         return a, b
 
+    def energy(self, mode):
+        emat = np.asarray([
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, self.L, 0],
+            [0, 0, 0, 0]
+        ])/2
+        return mode@emat@mode
+
     def __init__(self, l=None, name=''):
         super().__init__('L', name)
         self.L = l
@@ -104,6 +131,9 @@ class Short(TLSystemElement):
         a = np.asarray([[1, 0]]) # current values
         return a, b
 
+    def energy(self, mode):
+        return 0
+
     def __init__(self):
         super().__init__('Short', '')
         pass
@@ -123,6 +153,9 @@ class Port(TLSystemElement):
         b = np.asarray([[0, 0, 0], [0, 0, 0]]) # derivatives
         a = np.asarray([[1, self.Z0, 0], [1, -self.Z0, 1]]) # current values
         return a, b
+
+    def energy(self, mode):
+        return 0
 
     def __init__(self, z0=None, name=''):
         super().__init__('Port', name)
@@ -170,18 +203,15 @@ class TLCoupler(TLSystemElement):
         #print(mode_pair)
         return boundary_condition_matrix
 
+    def energy(self):
+        return 0 # TODO: energy stored in transmission line system
+
     def dynamic_equations(self):
-        #b = np.asarray([[0, 0, 0], [0, 0, 0]]) # derivatives
-        #a = np.asarray([[1, self.Z0, 0], [1, -self.Z0, 1]]) # current values
-
-        #cl_av = np.exp(np.mean([np.log(np.abs(cl)) for cl, amp in self.propagating_modes()]))
-        #print ('cl_av:', cl_av)
-
         m = self.n * self.num_modes
         n_eq_internal = self.n * (self.num_modes - 1)
 
-        b = np.zeros((self.num_terminals()*2+n_eq_internal*2, self.num_terminals()*2+m*2), dtype=complex)
-        a = np.zeros((self.num_terminals()*2+n_eq_internal*2, self.num_terminals()*2+m*2), dtype=complex)
+        b = np.zeros((self.num_terminals()*2+n_eq_internal*2, self.num_terminals()*2+m*2))
+        a = np.zeros((self.num_terminals()*2+n_eq_internal*2, self.num_terminals()*2+m*2))
 
         # filling out telegrapher's equations
         E = np.zeros((self.num_modes - 1, self.num_modes))
@@ -197,8 +227,6 @@ class TLCoupler(TLSystemElement):
         b[ :n_eq_internal, -m:] = Ll
         b[n_eq_internal:2 * n_eq_internal, -2 * m:-m] = Cl
 
-        #k = np.arange(self.num_modes)*np.pi/self.l
-        #kmat = np.kron(np.eye(self.n), np.diag(k))
         # Taylor-series expansion of I(x) = sum_i a_i x^i
         d = np.zeros((self.num_modes-1, self.num_modes))
         for i in range(1, self.num_modes):
@@ -211,15 +239,8 @@ class TLCoupler(TLSystemElement):
         a[n_eq_internal:2*n_eq_internal, -2*m:-m] = -Gl
 
         # filling out boundary conditions (voltage)
-        #print(np.real(a))
-        #a[-2 * self.n:-self.n, :self.n] = np.eye(self.n)
-        #print(np.real(a))
-        #a[-self.n:, self.n:2 * self.n] = np.eye(self.n)
-        #print (a)
         a[-self.n * 4:, :self.n * 4] = np.eye(self.n * 4)
 
-        #mode_left = (-self.l / 2 * cl_av) ** np.arange(self.num_modes)
-        #mode_right = (+self.l / 2 * cl_av) ** np.arange(self.num_modes)
         mode_left = (-1 / 2) ** np.arange(self.num_modes)
         mode_right = (1 / 2) ** np.arange(self.num_modes)
         for k in range(self.n):
@@ -231,14 +252,6 @@ class TLCoupler(TLSystemElement):
             # Modal currents
             a[2 * n_eq_internal + self.n * 2 + k, -m:] = -np.kron(c, mode_left)
             a[2 * n_eq_internal + self.n * 3 + k, -m:] = np.kron(c, mode_right)
-        '''
-        a[-4, 0] = 1
-        a[-4, 4:4 + self.num_degrees_of_freedom_dynamic()//2] = (-self.l/2)**np.arange(self.num_modes)
-        a[-3, 4:4 + self.num_degrees_of_freedom_dynamic()//2] = (+self.l/2)**np.arange(self.num_modes)
-        a[-4:-2, 0] = 1
-        a[-2, 4 + self.num_degrees_of_freedom_dynamic()//2:] = -(-self.l/2)**np.arange(self.num_modes)
-        a[-1, 4 + self.num_degrees_of_freedom_dynamic()//2:] = (+self.l/2)**np.arange(self.num_modes)
-        '''
         return a, b
 
     def __init__(self, n=2, l=None, ll=None, cl=None, rl=None, gl=None, name='', num_modes=5):
@@ -281,6 +294,37 @@ class TLSystem:
                                                      # currents incident into each terminal
         self.dof_mapping.extend([(e_id, int_dof_id) for e_id, e in enumerate(self.elements) for int_dof_id in range(e.num_degrees_of_freedom())])
                                                      # number of element-internal degrees of freedom
+
+    def get_modes(self):
+        """
+        Return the eigenenergies and eigenfunctions (field distributions) of the linear eigenmodes of the TL.
+        Removes all infinite-frequency modes, zero-frequency modes and modes with low Q-factor.
+        :return:
+        """
+        from scipy.linalg import eig
+        a, b = self.create_dynamic_equation_matrices()
+
+        w, v = eig(a, b)
+        modes = []
+        frequencies = []
+        gammas = []
+
+        print (w)
+        for state_id in range(len(w)):
+            e = np.imag(w[state_id])
+            gamma = -np.real(w[state_id])
+            if e <= 0 or not np.isfinite(e):
+                continue
+            #modes.append((e, gamma, v[:, state_id]))
+            frequencies.append(e)
+            gammas.append(gamma)
+            modes.append(v[:, state_id])
+
+        order = np.argsort(frequencies)
+        return np.asarray(frequencies)[order], np.asarray(gammas)[order], np.asarray(modes)[order]
+
+    def get_element_energies_from_dynamic(self, state):
+        pass
 
     def create_dynamic_equation_matrices(self):
         # number of nodes
