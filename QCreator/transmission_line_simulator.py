@@ -77,7 +77,7 @@ class Capacitor(TLSystemElement):
             [0,       0,      0, 0],
             [0,       0,      0, 0]
         ])/2
-        return mode@emat@np.reshape(mode, (-1,1))
+        return np.conj(mode)@emat@np.reshape(mode, (-1,1))
         #return self.C/2 * (mode[0]-mode[1])**2
 
     def __init__(self, c=None, name=''):
@@ -108,7 +108,7 @@ class Inductor(TLSystemElement):
             [0, 0, self.L, 0],
             [0, 0, 0, 0]
         ])/2
-        return mode@emat@mode
+        return np.conj(mode)@emat@mode
 
     def __init__(self, l=None, name=''):
         super().__init__('L', name)
@@ -188,7 +188,7 @@ class TLCoupler(TLSystemElement):
         modes = []
 
         for mode_id, gamma in enumerate(gammas):
-            modes.append((gamma, mode_amplitudes[:,mode_id]))
+            modes.append((gamma, mode_amplitudes[:, mode_id]))
         return modes
 
     def boundary_condition(self, omega):
@@ -203,8 +203,20 @@ class TLCoupler(TLSystemElement):
         #print(mode_pair)
         return boundary_condition_matrix
 
-    def energy(self):
-        return 0 # TODO: energy stored in transmission line system
+    def energy(self, state):
+        m = self.n * self.num_modes
+        v = state[-2*m:-m]
+        i = state[-m:]
+        s = (-0.5)**np.arange(self.num_modes)
+        e = 0.5*s*s.reshape((-1, 1))*self.l
+        e += np.abs(e)
+
+        ll = np.kron(self.Ll, e)
+        cl = np.kron(self.Cl, e)
+
+        #emat = np.vstack([np.hstack([ll, np.zeros_like(ll)]), np.hstack([np.zeros_like(cl), cl])])
+
+        return 0.5*np.conj(v)@cl@v+0.5*np.conj(i)@ll@i # TODO: energy stored in transmission line system
 
     def dynamic_equations(self):
         m = self.n * self.num_modes
@@ -309,7 +321,6 @@ class TLSystem:
         frequencies = []
         gammas = []
 
-        print (w)
         for state_id in range(len(w)):
             e = np.imag(w[state_id])
             gamma = -np.real(w[state_id])
@@ -324,7 +335,39 @@ class TLSystem:
         return np.asarray(frequencies)[order], np.asarray(gammas)[order], np.asarray(modes)[order]
 
     def get_element_energies_from_dynamic(self, state):
-        pass
+        # number of nodes
+        node_no = len(self.nodes)
+        # number of internal dofs
+        internal_dof_no = np.sum(e.num_degrees_of_freedom_dynamic() for e in self.elements)
+        # number of terminals
+        terminal_no = np.sum(e.num_terminals() for e in self.elements)
+
+        dynamic_equation_no = terminal_no + internal_dof_no
+        # kinetic equations are Kirchhof's law that the sum of nodal currents is zero
+        kinetic_equation_no = node_no
+        num_equations = dynamic_equation_no + kinetic_equation_no
+
+        # todo: build energy and dissipation rate matrices
+        e = np.zeros((num_equations, num_equations))
+        p = np.zeros((num_equations, num_equations))
+
+        current_offset = 0
+        internal_dof_offset = 0
+        energies = []
+        for e_id, e in enumerate(self.elements):
+            element_state_size = 2 * e.num_terminals() + e.num_degrees_of_freedom_dynamic()
+            element_state = np.zeros((element_state_size,), dtype=complex)
+            for terminal_id, terminal_node in enumerate(self.terminal_node_mapping[e_id]):
+                node_id = self.nodes.index(terminal_node)
+                element_state[terminal_id] = state[node_id]
+                element_state[terminal_id+e.num_terminals()] = state[node_no+current_offset+terminal_id]
+            for internal_dof_id in range(e.num_degrees_of_freedom_dynamic()):
+                element_state[2*e.num_terminals() + internal_dof_id] = state[node_no+terminal_no+internal_dof_offset+internal_dof_id]
+            internal_dof_offset += e.num_degrees_of_freedom_dynamic()
+            current_offset += e.num_terminals()
+            energies.append(e.energy(element_state))
+
+        return energies
 
     def create_dynamic_equation_matrices(self):
         # number of nodes
