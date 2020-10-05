@@ -162,11 +162,11 @@ class ConformalMapping:
 
         Phi_inv = np.linalg.inv(Phi_mat)
         #print(print('Phi_inv = ', Phi_inv))
-        C = np.dot(Q_mat, Phi_inv)*(epsilon + 1)*epsilon_0
+        C = np.dot(Q_mat, Phi_inv)*(epsilon + 1)*epsilon_0*1e-6 # per micron
 
         C_inv = np.linalg.inv(C)
 
-        L = C_inv*(epsilon + 1)*epsilon_0/(1/(mu*mu_0)+1/mu_0)
+        L = C_inv*(epsilon + 1)*epsilon_0/(1/(mu*mu_0)+1/mu_0)*1e-12 # per micron
 
         # Z = np.sqrt(np.dot(L,C_inv))
 
