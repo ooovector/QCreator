@@ -110,17 +110,14 @@ class Coaxmon(DesignElement):
         end = self.connection_points[0]
         start = self.connection_points[1]
 
-        orientation1 = np.arctan2(-(self.center[1] - (point1[1]-length)), -(self.center[0] - point1[0]))
-        points =[point1, (point1[0], point1[1] - length),
-                 (self.center[0]+self.R2*np.cos(orientation1),self.center[1]+self.R2*np.sin(orientation1))]
-        path1 = gdspy.FlexPath(deepcopy(points),self.core,offset=0,layer=self.layer_configuration.jj_flux_lines)
-        result = gdspy.boolean(path1, result, 'or', layer=self.layer_configuration.jj_flux_lines)
+        for point in [point1,point2]:
+            orientation = np.arctan2(-(self.center[1] - (point[1]-length)), -(self.center[0] - point[0]))
+            points =[point, (point[0], point[1] - length),
+                 (self.center[0]+self.R2*np.cos(orientation),self.center[1]+self.R2*np.sin(orientation))]
+            path = gdspy.FlexPath(deepcopy(points),self.core,offset=0,layer=self.layer_configuration.jj_flux_lines)
+            result = gdspy.boolean(path, result, 'or', layer=self.layer_configuration.jj_flux_lines)
 
-        orientation2 = np.arctan2(-(self.center[1] - (point2[1]-length)), -(self.center[0] - point2[0]))
-        points = [point2, (point2[0], point2[1] - length),
-                  (self.center[0]+self.R2*np.cos(orientation2),self.center[1]+self.R2*np.sin(orientation2))]
-        path2 = gdspy.FlexPath(deepcopy(points),self.core,offset=0,layer=self.layer_configuration.jj_flux_lines)
-        result = gdspy.boolean(path2, result, 'or', layer=self.layer_configuration.jj_flux_lines)
+
 
         # remove = gdspy.Polygon([(point1[0] - width / 2, point1[1]),
         #                         (point2[0] + width / 2 + self.grounded.g, point2[1]),
@@ -162,16 +159,16 @@ class Coaxmon(DesignElement):
         #      ])
         # remove = gdspy.boolean(remove, cpw_1part, 'or', layer=self.layer_configuration.test)
         # remove = gdspy.boolean(remove, cpw_2part, 'or', layer=self.layer_configuration.test)
-        point = (start[0]+(self.grounded.w + self.grounded.g) * np.sin(np.pi-orientation1),
-                 start[1]+(self.grounded.w + self.grounded.g) * np.cos(np.pi-orientation1))
+        point = (start[0]+(self.grounded.w + self.grounded.g) * np.sin(np.pi-orientation),
+                 start[1]+(self.grounded.w + self.grounded.g) * np.cos(np.pi-orientation))
         # point = start
-        self.terminals['flux line'] = DesignTerminal(point, orientation1, g=self.grounded.w, s=self.grounded.g,
+        self.terminals['flux line'] = DesignTerminal(point, orientation, g=self.grounded.w, s=self.grounded.g,
                                                  w=self.grounded.w, type='cpw')
         # TODO: grounded part specified incorrectly
         return {'positive': result,
                 'remove': remove,
                 'flux line': result,
-                'test':gdspy.boolean(path2, path1, 'or', layer=self.layer_configuration.jj_flux_lines)
+                'test':result#gdspy.boolean(path2, path1, 'or', layer=self.layer_configuration.jj_flux_lines)
                 }
 
 

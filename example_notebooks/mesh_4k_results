@@ -1,0 +1,32 @@
+Running C:\Program Files (x86)\LayoutEditor\bin\fastcap.exe LayoutEditor 0.1 (fastlc)
+  Input: E:\Github\DesingsCreator\QCreator\example_notebooks\mesh_4k
+  Date: Thu Sep 10 15:57:53 2020
+
+INPUT SUMMARY
+  Expansion order: 2
+  Number of partitioning levels: 8
+  Overall permittivity factor: 1
+Title: `'
+  Total number of panels: 353902
+    Number of conductor panels: 353902
+    Number of dielectric interface panels: 0
+    Number of thin conductor on dielectric interface panels: 0
+  Number of conductors: 3
+Percentage of multiplies done by multipole: 87.3%
+
+ITERATION DATA
+Starting on column 1 (1.0%GROUP1)
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 
+16 17 18 
+Starting on column 2 (2.0%GROUP1)
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 
+16 17 
+Starting on column 3 (3.0%GROUP1)
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 
+16 17 
+
+CAPACITANCE MATRIX, nanofarads
+                       1            2            3 
+1.0%GROUP1 1        29.69       -7.549       -4.475
+2.0%GROUP1 2       -7.549        10.43       -1.085
+3.0%GROUP1 3       -4.475       -1.085        6.347
