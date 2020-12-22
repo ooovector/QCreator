@@ -344,6 +344,111 @@ def widths_offsets(w, s, g):
 
     return width_total, widths, offsets
 
+class RectGrounding(DesignElement):
+    terminals: Dict[str, DesignTerminal]
+
+    def __init__(self, name: str, port: DesignTerminal, grounding_width: float, grounding_between: List[Tuple[int, int]],
+                 layer_configuration: LayerConfiguration):
+        """
+        Create ground element for  CPWs.
+        :param name: element identifier
+        :param port: port of CPWCoupler to attach to
+        :param grounding_width: width of grounding wire
+        :param grounding_between: tuple shows which conductors should be shorted
+        :param layer_configuration:
+        """
+        super().__init__('rect-grounding', name)
+        self.port = port
+        self.grounding_width = grounding_width
+        self.layer_configuration = layer_configuration
+
+        # create a list od all widths of CPW including widths of conductors, gaps and ground
+        widths_of_cpw = [self.port.g]
+        for i in range(len(self.port.w)):
+            width1 = self.port.s[i]
+            widths_of_cpw.append(width1)
+            width2 = self.port.w[i]
+            widths_of_cpw.append(width2)
+        widths_of_cpw.append(self.port.s[len(self.port.w)])
+        widths_of_cpw.append(self.port.g)
+        self.widths_of_cpw = widths_of_cpw
+
+        end_points = (self.port.position[0] - self.grounding_width*np.cos(self.port.orientation), self.port.position[1] - self.grounding_width*np.sin(self.port.orientation))
+        self.end_points = end_points
+
+        widths_of_cpw_new = []
+
+        short_list = []
+        delta_list  = []
+        for i in range(len(grounding_between)-1):
+            delta = widths_of_cpw[2*grounding_between[i][1]+1:2*grounding_between[i+1][0]]
+            delta_list.extend(delta)
+        for i in range(len(grounding_between)):
+            short = widths_of_cpw[2*grounding_between[i][0]:2*grounding_between[i][1]+1]
+            short_list.extend([sum(short)])
+        tail1 = widths_of_cpw[:2*grounding_between[0][0]]
+        tail2 = widths_of_cpw[2*grounding_between[len(grounding_between)-1][1]+1:]
+
+        widths_of_cpw_new.extend(tail1)
+        for i in range(len(delta_list)):
+            width1 = short_list[i]
+            widths_of_cpw_new.extend([width1])
+            width2 = delta_list[i]
+            widths_of_cpw_new.extend([width2])
+        widths_of_cpw_new.extend([short_list[len(delta_list)]])
+        widths_of_cpw_new.extend(tail2)
+
+        widths_of_cpw_new.reverse()
+
+        list_of_conductors = []
+        list_of_gaps = []
+        for i in range(len(widths_of_cpw_new)):
+            if i % 2 == 0:
+                list_of_conductors.extend([widths_of_cpw_new[i]])
+            else:
+                list_of_gaps.extend([widths_of_cpw_new[i]])
+
+        self.terminals = DesignTerminal(position=self.end_points, orientation=self.port.orientation, type='mc-cpw',
+                                        w=list_of_conductors, s=list_of_gaps, g=0)
+
+
+        self.widths_ground, self.offsets_ground = widths_offsets_for_ground(list_of_conductors, list_of_gaps)
+        self.widths_of_cpw_new = widths_of_cpw_new
+
+    def render(self):
+        bend_radius = self.port.g
+        precision = 0.001
+
+        positive_total = None
+        restrict_total = None
+
+        ground = gdspy.FlexPath([self.port.position, self.end_points], width=self.widths_ground, offset=self.offsets_ground, ends='flush',
+                            corners='natural', bend_radius=bend_radius, precision=precision,
+                            layer=self.layer_configuration.total_layer)
+
+        ground_restricted = gdspy.FlexPath([self.port.position, self.end_points], width=sum(self.widths_of_cpw_new), offset=0, ends='flush',
+                            corners='natural', bend_radius=bend_radius, precision=precision,
+                            layer=self.layer_configuration.restricted_area_layer)
+
+        positive_total = ground
+        restrict_total = ground_restricted
+        return {'positive': positive_total, 'restrict': restrict_total}
+
+    def get_terminals(self):
+        return self.terminals
+
+def widths_offsets_for_ground(list_of_conductors, list_of_gaps):
+    widths = list_of_conductors
+    if len(list_of_gaps) == 0:
+        width_total = sum(list_of_conductors)
+        offsets = 0
+    else:
+        width_total = sum(list_of_conductors) + sum(list_of_gaps)
+        offsets = [-(width_total - widths[0]) / 2 ]
+        for c in range(len(widths) - 1):
+            offsets.append(offsets[-1] + widths[c] / 2 + list_of_gaps[c] + widths[c + 1] / 2)
+
+    return widths, offsets
 
 class RectFanout(DesignElement):
     terminals: Dict[str, DesignTerminal]
@@ -612,7 +717,7 @@ class RectFanout(DesignElement):
                 raise ValueError ('Fanout angles are not monotone')
             if angle < 0:
                 min_length = np.sin(angle) * (np.min(self.coupler.offsets[last_wire:last_wire + group_size]) - np.min(
-                    self.coupler.offsets) + self.r) - g - s 
+                    self.coupler.offsets) + self.r) - g - s
                 group_offsets.append(min_length - max_length)
                 max_length = np.sin(angle) * (np.max(self.coupler.offsets[last_wire:last_wire + group_size]) - np.min(
                     self.coupler.offsets) + self.r) + g + s
@@ -629,4 +734,3 @@ class RectFanout(DesignElement):
                 max_length = np.sin(angle) * (np.max(self.coupler.offsets) - np.max(
                     self.coupler.offsets[last_wire:last_wire + group_size]) + self.r)
 '''
-

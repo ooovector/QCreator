@@ -68,8 +68,8 @@ class Sample:
 
         return lib
 
-    def ground(self, element: elements.DesignElement, port: str):
-        self.connections.append(((element, port), ('gnd', 'gnd')))
+    # def ground(self, element: elements.DesignElement, port: str):
+    #     self.connections.append(((element, port), ('gnd', 'gnd')))
 
     def fanout(self, o: elements.DesignElement, port: str, name: str, grouping: Tuple[int, int],
                 down_s_right: float = None, center_s_left: float = None,
@@ -82,6 +82,13 @@ class Sample:
             self.connections.append(((o, port, conductor_id), (fanout, 'wide', conductor_id)))
 
         return fanout
+
+    def ground(self, o: elements.DesignElement, port: str, name: str, grounding_width: float, grounding_between: Tuple[int, int]):
+
+        closed_end = elements.RectGrounding(name, o.get_terminals()[port], grounding_width, grounding_between, self.layer_configuration)
+        self.add(closed_end)
+
+        return closed_end
 
     def connect_cpw(self, o1: elements.DesignElement, o2: elements.DesignElement, port1: str, port2: str, name: str,
                     points: list):
