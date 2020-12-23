@@ -46,8 +46,9 @@ class CPWCoupler(DesignElement):
         if orientation2 is None:
             orientation2 = self.last_segment_orientation
 
-        self.terminals = {'port1': DesignTerminal(self.points[0], orientation1, g=g, s=s, w=w, type='mc-cpw', order=False),
-                          'port2': DesignTerminal(self.points[-1], orientation2, g=g, s=s, w=w, type='mc-cpw')}
+        self.terminals = {
+            'port1': DesignTerminal(self.points[0], orientation1, g=g, s=s, w=w, type='mc-cpw', order=False),
+            'port2': DesignTerminal(self.points[-1], orientation2, g=g, s=s, w=w, type='mc-cpw')}
 
         self.width_total, self.widths, self.offsets = widths_offsets(self.w, self.s, self.g)
 
@@ -151,7 +152,7 @@ class CPWCoupler(DesignElement):
         cross_section = [self.s[0]]
         for c in range(len(self.w)):
             cross_section.append(self.w[c])
-            cross_section.append(self.s[c+1])
+            cross_section.append(self.s[c + 1])
 
         return cm.ConformalMapping(cross_section).cl_and_Ll()
 
@@ -215,11 +216,11 @@ class CPW(CPWCoupler):
         return 'CPW "{}", l={:4.3f}'.format(self.name, np.round(self.length, 3))
 
 
-#TODO: make compatible with DesignElement and implement add_to_tls
+# TODO: make compatible with DesignElement and implement add_to_tls
 class Narrowing(DesignElement):
     def __init__(self, name: str, position: Tuple[float, float], orientation: float, w1: float, s1: float, g1: float,
                  w2: float, s2: float, g2: float, layer_configuration: LayerConfiguration, length: float):
-                 #c: float=0, l: float=0):
+        # c: float=0, l: float=0):
         """
         Isosceles trapezoid-form adapter from one CPW to another.
         :param name: Element name
@@ -254,23 +255,24 @@ class Narrowing(DesignElement):
         """self.c = c
         self.l = l"""
 
-        x_begin = self.position[0] - self.length/2*np.cos(self.orientation)
-        x_end = self.position[0] + self.length/2*np.cos(self.orientation)
-        y_begin = self.position[1] - self.length/2*np.sin(self.orientation)
-        y_end = self.position[1] + self.length/2*np.sin(self.orientation)
+        x_begin = self.position[0] - self.length / 2 * np.cos(self.orientation)
+        x_end = self.position[0] + self.length / 2 * np.cos(self.orientation)
+        y_begin = self.position[1] - self.length / 2 * np.sin(self.orientation)
+        y_end = self.position[1] + self.length / 2 * np.sin(self.orientation)
 
         self.terminals = {'port1': DesignTerminal((x_begin, y_begin), self.orientation, w=w1, s=s1, g=g1, type='cpw'),
-                          'port2': DesignTerminal((x_end, y_end), self.orientation+np.pi, w=w2, s=s2, g=g2, type='cpw')}
+                          'port2': DesignTerminal((x_end, y_end), self.orientation + np.pi, w=w2, s=s2, g=g2,
+                                                  type='cpw')}
 
         self.tls_cache = []
 
     def render(self):
-        x_begin = self.position[0] - self.length/2
-        x_end = self.position[0] + self.length/2
+        x_begin = self.position[0] - self.length / 2
+        x_end = self.position[0] + self.length / 2
         y_begin = self.position[1]
         y_end = self.position[1]
-        #x_end = self._x_begin-self.length
-        #y_end = self._y_begin
+        # x_end = self._x_begin-self.length
+        # y_end = self._y_begin
 
         points_for_poly1 = [(x_begin, y_begin + self.w1 / 2 + self.s1 + self.g1),
                             (x_begin, y_begin + self.w1 / 2 + self.s1),
@@ -282,17 +284,18 @@ class Narrowing(DesignElement):
                             (x_end, y_end - self.w2 / 2),
                             (x_end, y_end + self.w2 / 2)]
 
-        points_for_poly3 = [(x_begin, y_begin-(self.w1 / 2 + self.s1 + self.g1)),
-                            (x_begin, y_begin-(self.w1 / 2 + self.s1)),
-                            (x_end, y_end-(self.w2 / 2 + self.s2)),
-                            (x_end, y_end-(self.w2 / 2 + self.s2 + self.g2))]
+        points_for_poly3 = [(x_begin, y_begin - (self.w1 / 2 + self.s1 + self.g1)),
+                            (x_begin, y_begin - (self.w1 / 2 + self.s1)),
+                            (x_end, y_end - (self.w2 / 2 + self.s2)),
+                            (x_end, y_end - (self.w2 / 2 + self.s2 + self.g2))]
 
         points_for_restricted_area = [(x_begin, y_begin + self.w1 / 2 + self.s1 + self.g1),
                                       (x_end, y_end + self.w2 / 2 + self.s2 + self.g2),
-                                      (x_end, y_end-(self.w2 / 2 + self.s2 + self.g2)),
-                                      (x_begin, y_begin-(self.w1 / 2 + self.s1 + self.g1))]
+                                      (x_end, y_end - (self.w2 / 2 + self.s2 + self.g2)),
+                                      (x_begin, y_begin - (self.w1 / 2 + self.s1 + self.g1))]
 
-        restricted_area = gdspy.Polygon(points_for_restricted_area, layer=self.layer_configuration.restricted_area_layer)
+        restricted_area = gdspy.Polygon(points_for_restricted_area,
+                                        layer=self.layer_configuration.restricted_area_layer)
 
         poly1 = gdspy.Polygon(points_for_poly1)
         poly2 = gdspy.Polygon(points_for_poly2)
@@ -321,9 +324,9 @@ class Narrowing(DesignElement):
         cl1, ll1 = cm.ConformalMapping([self.s1, self.w1, self.s1]).cl_and_Ll()
         cl2, ll2 = cm.ConformalMapping([self.s2, self.w2, self.s2]).cl_and_Ll()
 
-        l = tlsim.Inductor(l=(ll1+ll2)/2*self.length)
-        c1 = tlsim.Capacitor(c=cl1 / 2*self.length)
-        c2 = tlsim.Capacitor(c=cl2 / 2*self.length)
+        l = tlsim.Inductor(l=(ll1 + ll2) / 2 * self.length)
+        c1 = tlsim.Capacitor(c=cl1 / 2 * self.length)
+        c2 = tlsim.Capacitor(c=cl2 / 2 * self.length)
 
         if track_changes:
             self.tls_cache.append([l, c1, c2])
@@ -344,11 +347,13 @@ def widths_offsets(w, s, g):
 
     return width_total, widths, offsets
 
+
 class RectGrounding(DesignElement):
     terminals: Dict[str, DesignTerminal]
 
-    def __init__(self, name: str, port: DesignTerminal, grounding_width: float, grounding_between: List[Tuple[int, int]],
-                 layer_configuration: LayerConfiguration):
+    def __init__(self, name: str, port: DesignTerminal, grounding_width: float,
+                 grounding_between: List[Tuple[int, int]],
+                 layer_configuration: LayerConfiguration, reverse_type):
         """
         Create ground element for  CPWs.
         :param name: element identifier
@@ -362,7 +367,14 @@ class RectGrounding(DesignElement):
         self.grounding_width = grounding_width
         self.layer_configuration = layer_configuration
 
-        # create a list od all widths of CPW including widths of conductors, gaps and ground
+        if (type(port.w) and type(port.s) != list):
+            self.port.w = [port.w]
+            self.port.s = [port.s, port.s]
+        else:
+            self.port.w = port.w
+            self.port.s = port.s
+
+        # create a list of all widths of CPW including widths of conductors, gaps and ground
         widths_of_cpw = [self.port.g]
         for i in range(len(self.port.w)):
             width1 = self.port.s[i]
@@ -373,32 +385,37 @@ class RectGrounding(DesignElement):
         widths_of_cpw.append(self.port.g)
         self.widths_of_cpw = widths_of_cpw
 
-        end_points = (self.port.position[0] - self.grounding_width*np.cos(self.port.orientation), self.port.position[1] - self.grounding_width*np.sin(self.port.orientation))
+        end_points = (self.port.position[0] - self.grounding_width * np.cos(self.port.orientation),
+                      self.port.position[1] - self.grounding_width * np.sin(self.port.orientation))
         self.end_points = end_points
 
         widths_of_cpw_new = []
 
+        tail1 = widths_of_cpw[:2 * grounding_between[0][0]]  # if no conductor then tail1 = []
+        tail2 = widths_of_cpw[2 * grounding_between[len(grounding_between) - 1][1] + 1:]
+
         short_list = []
-        delta_list  = []
-        for i in range(len(grounding_between)-1):
-            delta = widths_of_cpw[2*grounding_between[i][1]+1:2*grounding_between[i+1][0]]
-            delta_list.extend(delta)
+        delta_list = [tail1]
+
+        for i in range(len(grounding_between) - 1):
+            delta = widths_of_cpw[2 * grounding_between[i][1] + 1:2 * grounding_between[i + 1][0]]
+            delta_list.extend([delta])
         for i in range(len(grounding_between)):
-            short = widths_of_cpw[2*grounding_between[i][0]:2*grounding_between[i][1]+1]
+            short = widths_of_cpw[2 * grounding_between[i][0]:2 * grounding_between[i][1] + 1]
             short_list.extend([sum(short)])
-        tail1 = widths_of_cpw[:2*grounding_between[0][0]]
-        tail2 = widths_of_cpw[2*grounding_between[len(grounding_between)-1][1]+1:]
+        delta_list.extend([tail2])
 
-        widths_of_cpw_new.extend(tail1)
-        for i in range(len(delta_list)):
-            width1 = short_list[i]
-            widths_of_cpw_new.extend([width1])
-            width2 = delta_list[i]
+        for i in range(len(short_list)):
+            width1 = delta_list[i]
+            widths_of_cpw_new.extend(width1)
+
+            width2 = short_list[i]
             widths_of_cpw_new.extend([width2])
-        widths_of_cpw_new.extend([short_list[len(delta_list)]])
-        widths_of_cpw_new.extend(tail2)
+        if len(delta_list) > len(short_list):
+            widths_of_cpw_new.extend(delta_list[len(delta_list) - 1])
 
-        widths_of_cpw_new.reverse()
+        if reverse_type == 'Negative':
+            widths_of_cpw_new.reverse()
 
         list_of_conductors = []
         list_of_gaps = []
@@ -407,10 +424,20 @@ class RectGrounding(DesignElement):
                 list_of_conductors.extend([widths_of_cpw_new[i]])
             else:
                 list_of_gaps.extend([widths_of_cpw_new[i]])
+        # l1 = sum(self.port.w) + sum(self.port.s)
+        # l2 = sum(list_of_conductors[1:len(list_of_conductors)-1])
+        #
+        # delta_width = l1 - l2
 
-        self.terminals = DesignTerminal(position=self.end_points, orientation=self.port.orientation, type='mc-cpw',
-                                        w=list_of_conductors, s=list_of_gaps, g=0)
+        delta_width = ((list_of_conductors[0] - self.port.g) - (
+                    list_of_conductors[len(list_of_conductors) - 1] - self.port.g))
+        #тут пока косяк
+        new_end_points = (self.end_points[0] - (delta_width / 2) * np.sin(self.port.orientation),
+                          self.end_points[1] - (delta_width / 2) * np.cos(self.port.orientation))
 
+        self.terminals = {
+            'port': DesignTerminal(position=new_end_points, orientation=self.port.orientation, type='mc-cpw',
+                                   w=list_of_conductors[1:len(list_of_conductors) - 1], s=list_of_gaps, g=self.port.g)}
 
         self.widths_ground, self.offsets_ground = widths_offsets_for_ground(list_of_conductors, list_of_gaps)
         self.widths_of_cpw_new = widths_of_cpw_new
@@ -422,13 +449,15 @@ class RectGrounding(DesignElement):
         positive_total = None
         restrict_total = None
 
-        ground = gdspy.FlexPath([self.port.position, self.end_points], width=self.widths_ground, offset=self.offsets_ground, ends='flush',
-                            corners='natural', bend_radius=bend_radius, precision=precision,
-                            layer=self.layer_configuration.total_layer)
+        ground = gdspy.FlexPath([self.port.position, self.end_points], width=self.widths_ground,
+                                offset=self.offsets_ground, ends='flush',
+                                corners='natural', bend_radius=bend_radius, precision=precision,
+                                layer=self.layer_configuration.total_layer)
 
-        ground_restricted = gdspy.FlexPath([self.port.position, self.end_points], width=sum(self.widths_of_cpw_new), offset=0, ends='flush',
-                            corners='natural', bend_radius=bend_radius, precision=precision,
-                            layer=self.layer_configuration.restricted_area_layer)
+        ground_restricted = gdspy.FlexPath([self.port.position, self.end_points], width=sum(self.widths_of_cpw_new),
+                                           offset=0, ends='flush',
+                                           corners='natural', bend_radius=bend_radius, precision=precision,
+                                           layer=self.layer_configuration.restricted_area_layer)
 
         positive_total = ground
         restrict_total = ground_restricted
@@ -437,6 +466,7 @@ class RectGrounding(DesignElement):
     def get_terminals(self):
         return self.terminals
 
+
 def widths_offsets_for_ground(list_of_conductors, list_of_gaps):
     widths = list_of_conductors
     if len(list_of_gaps) == 0:
@@ -444,11 +474,12 @@ def widths_offsets_for_ground(list_of_conductors, list_of_gaps):
         offsets = 0
     else:
         width_total = sum(list_of_conductors) + sum(list_of_gaps)
-        offsets = [-(width_total - widths[0]) / 2 ]
+        offsets = [-(width_total - widths[0]) / 2]
         for c in range(len(widths) - 1):
             offsets.append(offsets[-1] + widths[c] / 2 + list_of_gaps[c] + widths[c + 1] / 2)
 
     return widths, offsets
+
 
 class RectFanout(DesignElement):
     terminals: Dict[str, DesignTerminal]
@@ -474,7 +505,7 @@ class RectFanout(DesignElement):
         e_down = np.asarray([np.cos(port.orientation + np.pi / 2), np.sin(port.orientation + np.pi / 2)])
         e_up = np.asarray([np.cos(port.orientation - np.pi / 2), np.sin(port.orientation - np.pi / 2)])
 
-        self.terminals = {'wide': DesignTerminal(position=self.port.position, orientation=self.port.orientation+np.pi,
+        self.terminals = {'wide': DesignTerminal(position=self.port.position, orientation=self.port.orientation + np.pi,
                                                  type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g,
                                                  disconnected='short', order=(not self.port.order))}
 
@@ -501,12 +532,14 @@ class RectFanout(DesignElement):
 
         # list of booleans identifing if down, center and up conductor groups exist [down, center, up]
         self.group_names = ['down', 'center', 'up']
-        self.group_orientations = [np.pi/2, 0, -np.pi/2]
-        self.groups_exist = [bool(self.grouping[0]), self.grouping[0] != self.grouping[1], self.grouping[1] != len(self.w)]
+        self.group_orientations = [np.pi / 2, 0, -np.pi / 2]
+        self.groups_exist = [bool(self.grouping[0]), self.grouping[0] != self.grouping[1],
+                             self.grouping[1] != len(self.w)]
         self.groups_s = [self.s[:self.grouping[0]] + [down_s_right],
-                         [center_s_left] + self.s[(self.grouping[0]+1):self.grouping[1]] + [center_s_right],
-                         [up_s_left] + self.s[(self.grouping[1]+1):]]
-        self.groups_w = [self.w[:self.grouping[0]], self.w[self.grouping[0]:self.grouping[1]], self.w[self.grouping[1]:]]
+                         [center_s_left] + self.s[(self.grouping[0] + 1):self.grouping[1]] + [center_s_right],
+                         [up_s_left] + self.s[(self.grouping[1] + 1):]]
+        self.groups_w = [self.w[:self.grouping[0]], self.w[self.grouping[0]:self.grouping[1]],
+                         self.w[self.grouping[1]:]]
 
         self.groups_widths_total = []
         self.groups_widths = []
@@ -515,10 +548,10 @@ class RectFanout(DesignElement):
         self.groups_first_conductor = [0, self.grouping[0], self.grouping[1]]
         self.groups_last_conductor = [self.grouping[0], self.grouping[1], len(self.w)]
         for group_exists, group_w, group_s, first_conductor in zip(self.groups_exist, self.groups_w, self.groups_s,
-                                                  self.groups_first_conductor):
+                                                                   self.groups_first_conductor):
             if group_exists:
                 group_width_total, group_widths, group_offsets = widths_offsets(group_w, group_s, self.g)
-                group_global_offset = self.offsets[first_conductor+1] - group_offsets[1]
+                group_global_offset = self.offsets[first_conductor + 1] - group_offsets[1]
             else:
                 group_width_total, group_widths, group_offsets = 0, [], []
                 group_global_offset = 0
@@ -527,17 +560,21 @@ class RectFanout(DesignElement):
             self.groups_offsets.append(group_offsets)
             self.groups_global_offsets.append(group_global_offset)
 
-        self.length = max([self.groups_widths_total[0], self.groups_widths_total[2]])-self.g # length of element
+        self.length = max([self.groups_widths_total[0], self.groups_widths_total[2]]) - self.g  # length of element
 
-        #length_down = offsets[grouping[0] + 1] - offsets[1]
-        #length_center = offsets[grouping[1] + 1] - offssets[grouping[0] + 1]
-        #length_up = offsets[-2] - offsets[grouping[1] + 1]
+        # length_down = offsets[grouping[0] + 1] - offsets[1]
+        # length_center = offsets[grouping[1] + 1] - offssets[grouping[0] + 1]
+        # length_up = offsets[-2] - offsets[grouping[1] + 1]
 
-        points_down = [port.position, port.position + e * (self.length - self.groups_widths_total[0] / 2 + np.abs(self.groups_global_offsets[0])),
-                       port.position + e * (self.length - self.groups_widths_total[0] / 2 + np.abs(self.groups_global_offsets[0])) + e_down * self.width_total/2]
+        points_down = [port.position, port.position + e * (
+                    self.length - self.groups_widths_total[0] / 2 + np.abs(self.groups_global_offsets[0])),
+                       port.position + e * (self.length - self.groups_widths_total[0] / 2 + np.abs(
+                           self.groups_global_offsets[0])) + e_down * self.width_total / 2]
         points_center = [port.position, port.position + e * self.length]
-        points_up = [port.position, port.position + e * (self.length - self.groups_widths_total[2] / 2 + np.abs(self.groups_global_offsets[2])),
-                     port.position + e * (self.length - self.groups_widths_total[2] / 2 + np.abs(self.groups_global_offsets[2])) + e_up * self.width_total/2]
+        points_up = [port.position, port.position + e * (
+                    self.length - self.groups_widths_total[2] / 2 + np.abs(self.groups_global_offsets[2])),
+                     port.position + e * (self.length - self.groups_widths_total[2] / 2 + np.abs(
+                         self.groups_global_offsets[2])) + e_up * self.width_total / 2]
 
         self.groups_points = [points_down, points_center, points_up]
 
@@ -564,7 +601,7 @@ class RectFanout(DesignElement):
 
     def render(self):
         precision = 0.001
-        #ground = self.width_total - (self.offsets[self.grouping[0]] - self.widths[:self.grouping[0]]/2)
+        # ground = self.width_total - (self.offsets[self.grouping[0]] - self.widths[:self.grouping[0]]/2)
         restrict_total = None
         lines, protect = [], []
 
@@ -573,19 +610,21 @@ class RectFanout(DesignElement):
                 self.groups_offsets, self.groups_global_offsets, self.groups_widths_total):
             if exists:
                 global_offsets = [offset + global_offset for offset in offsets]
-                lines.append(gdspy.FlexPath(points, width=widths, offset=global_offsets, ends='flush', corners='natural',
-                                       bend_radius=0, precision=precision, layer=self.layer_configuration.total_layer))
+                lines.append(
+                    gdspy.FlexPath(points, width=widths, offset=global_offsets, ends='flush', corners='natural',
+                                   bend_radius=0, precision=precision, layer=self.layer_configuration.total_layer))
 
                 restrict = gdspy.FlexPath(points, width=width_total, offset=global_offset, ends='flush',
                                           corners='natural', bend_radius=0, precision=precision,
                                           layer=self.layer_configuration.restricted_area_layer)
 
-                protect.append(gdspy.FlexPath(points, width=width_total - 2 * self.g, offset=global_offset, ends='extended',
-                                          corners='natural', bend_radius=0, precision=precision,
-                                          layer=self.layer_configuration.restricted_area_layer))
+                protect.append(
+                    gdspy.FlexPath(points, width=width_total - 2 * self.g, offset=global_offset, ends='extended',
+                                   corners='natural', bend_radius=0, precision=precision,
+                                   layer=self.layer_configuration.restricted_area_layer))
 
                 restrict_total = gdspy.boolean(restrict_total, restrict.to_polygonset(), 'or',
-                                         layer=self.layer_configuration.restricted_area_layer)
+                                               layer=self.layer_configuration.restricted_area_layer)
 
         positive_total = None
         for line_id in range(len(lines)):
@@ -605,7 +644,7 @@ class RectFanout(DesignElement):
         cross_section = [self.s[0]]
         for c in range(len(self.w)):
             cross_section.append(self.w[c])
-            cross_section.append(self.s[c+1])
+            cross_section.append(self.s[c + 1])
 
         wide_cl, wide_ll = cm.ConformalMapping(cross_section).cl_and_Ll()
 
@@ -656,19 +695,23 @@ class RectFanout(DesignElement):
                                        ll=groups_ll[group_id],
                                        rl=np.zeros_like(groups_cl[group_id]),
                                        gl=np.zeros_like(groups_cl[group_id]),
-                                       name=self.name+'_group'+str(group_id))
+                                       name=self.name + '_group' + str(group_id))
                 mapping = [terminal_mapping[('wide', i)] for i in range(self.groups_first_conductor[group_id],
                                                                         self.groups_last_conductor[group_id])]
 
-                if self.groups_last_conductor[group_id] - self.groups_first_conductor[group_id] == 1 and self.group_names[group_id] in terminal_mapping:
+                if self.groups_last_conductor[group_id] - self.groups_first_conductor[group_id] == 1 and \
+                        self.group_names[group_id] in terminal_mapping:
                     mapping = mapping + [terminal_mapping[self.group_names[group_id]]]
                 else:
-                    mapping = mapping +[terminal_mapping[(self.group_names[group_id], i)] for i in range(0,
-                                    self.groups_last_conductor[group_id] - self.groups_first_conductor[group_id])]
+                    mapping = mapping + [terminal_mapping[(self.group_names[group_id], i)] for i in range(0,
+                                                                                                          self.groups_last_conductor[
+                                                                                                              group_id] -
+                                                                                                          self.groups_first_conductor[
+                                                                                                              group_id])]
                 tls_instance.add_element(line, mapping)
                 group_lines.append(line)
-#            else:
-#                group_lines.append([])
+        #            else:
+        #                group_lines.append([])
 
         if track_changes:
             self.tls_cache.append(group_lines)
@@ -680,6 +723,7 @@ class RectFanout(DesignElement):
 
     def __repr__(self):
         return "RectFanout {}, n={}, grouping=({}, {})".format(self.name, len(self.w), *self.grouping)
+
 
 '''
 class RectFanout(DesignElement):

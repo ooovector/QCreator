@@ -84,8 +84,12 @@ class Sample:
         return fanout
 
     def ground(self, o: elements.DesignElement, port: str, name: str, grounding_width: float, grounding_between: Tuple[int, int]):
+        if port == 'port1':
+            reverse_type = 'Negative'
+        else:
+            reverse_type = 'Positive'
 
-        closed_end = elements.RectGrounding(name, o.get_terminals()[port], grounding_width, grounding_between, self.layer_configuration)
+        closed_end = elements.RectGrounding(name, o.get_terminals()[port], grounding_width, grounding_between, self.layer_configuration, reverse_type)
         self.add(closed_end)
 
         return closed_end
