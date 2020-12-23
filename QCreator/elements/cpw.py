@@ -424,10 +424,6 @@ class RectGrounding(DesignElement):
                 list_of_conductors.extend([widths_of_cpw_new[i]])
             else:
                 list_of_gaps.extend([widths_of_cpw_new[i]])
-        # l1 = sum(self.port.w) + sum(self.port.s)
-        # l2 = sum(list_of_conductors[1:len(list_of_conductors)-1])
-        #
-        # delta_width = l1 - l2
 
         delta_width = ((list_of_conductors[0] - self.port.g) - (
                     list_of_conductors[len(list_of_conductors) - 1] - self.port.g))
