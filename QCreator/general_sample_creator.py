@@ -1,6 +1,6 @@
 import numpy as np
 import gdspy
-#import libraries.general_design_functions as gdf
+# import libraries.general_design_functions as gdf
 from . import elements
 from . import transmission_line_simulator as tlsim
 from typing import NamedTuple, SupportsFloat, Any, Iterable, Tuple
@@ -20,15 +20,15 @@ class Sample:
         self.layer_configuration = elements.LayerConfiguration(**configurations)
         self.chip_geometry = elements.ChipGeometry(**configurations)
         self.name = str(name)
-        #self.total_cell = gdspy.Cell(self.name)
-        #self.restricted_cell = gdspy.Cell(self.name + ' restricted')
-        #self.
-        #self.label_cell = gdspy.Cell(self.name + ' labels')
-        #self.cell_to_remove = gdspy.Cell(self.name + ' remove')
+        # self.total_cell = gdspy.Cell(self.name)
+        # self.restricted_cell = gdspy.Cell(self.name + ' restricted')
+        # self.
+        # self.label_cell = gdspy.Cell(self.name + ' labels')
+        # self.cell_to_remove = gdspy.Cell(self.name + ' remove')
 
         self.objects = []
 
-        #self.pads = []
+        # self.pads = []
         self.qubits = []
         self.lines = []
         self.bridges = []
@@ -41,7 +41,7 @@ class Sample:
 
     @staticmethod
     def default_cpw_radius(w, s, g):
-        return 2*(w+2*s+2*g)
+        return 2 * (w + 2 * s + 2 * g)
 
     def add(self, object_):
         self.objects.append(object_)
@@ -72,8 +72,8 @@ class Sample:
     #     self.connections.append(((element, port), ('gnd', 'gnd')))
 
     def fanout(self, o: elements.DesignElement, port: str, name: str, grouping: Tuple[int, int],
-                down_s_right: float = None, center_s_left: float = None,
-                 center_s_right: float = None, up_s_left: float = None):
+               down_s_right: float = None, center_s_left: float = None,
+               center_s_right: float = None, up_s_left: float = None):
         fanout = elements.RectFanout(name, o.get_terminals()[port], grouping, self.layer_configuration,
                                      down_s_right=down_s_right, center_s_left=center_s_left,
                                      center_s_right=center_s_right, up_s_left=up_s_left)
@@ -83,13 +83,15 @@ class Sample:
 
         return fanout
 
-    def ground(self, o: elements.DesignElement, port: str, name: str, grounding_width: float, grounding_between: Tuple[int, int]):
+    def ground(self, o: elements.DesignElement, port: str, name: str, grounding_width: float,
+               grounding_between: Tuple[int, int]):
         if port == 'port1':
             reverse_type = 'Negative'
         else:
             reverse_type = 'Positive'
 
-        closed_end = elements.RectGrounding(name, o.get_terminals()[port], grounding_width, grounding_between, self.layer_configuration, reverse_type)
+        closed_end = elements.RectGrounding(name, o.get_terminals()[port], grounding_width, grounding_between,
+                                            self.layer_configuration, reverse_type)
         self.add(closed_end)
 
         return closed_end
@@ -129,12 +131,12 @@ class Sample:
 
         orientation1 = t1.orientation + np.pi
         if orientation1 > np.pi:
-            orientation1 -= 2*np.pi
+            orientation1 -= 2 * np.pi
         orientation2 = t2.orientation + np.pi
         if orientation2 > np.pi:
-            orientation2 -= 2*np.pi
+            orientation2 -= 2 * np.pi
 
-        points = [t1.position]+points+[t2.position]
+        points = [t1.position] + points + [t2.position]
 
         cpw = elements.CPW(name, points, w, s, g, self.layer_configuration, r=self.default_cpw_radius(w, s, g),
                            corner_type='round', orientation1=orientation1, orientation2=orientation2)
@@ -144,7 +146,8 @@ class Sample:
         return cpw
 
     # TODO: Nice function for bridges over cpw, need to update
-    def connect_bridged_cpw(self, name, points, core, gap, ground, nodes=None, end=None, R=40, corner_type='round', bridge_params=None):
+    def connect_bridged_cpw(self, name, points, core, gap, ground, nodes=None, end=None, R=40, corner_type='round',
+                            bridge_params=None):
         """
                 :param bridge_params default is None. In this way there won't be created any addidtional bridges.
                 To create bridges crossing the line define "bridge_params" as a tuple with 5 elements in order:
@@ -163,7 +166,7 @@ class Sample:
                 start, finish = points[num_line], points[num_line + 1]
                 line_angle = np.arctan2(finish[1] - start[1], finish[0] - start[0])
                 line_length = np.sqrt((finish[0] - start[0]) ** 2 + (finish[1] - start[1]) ** 2)
-                total_bridges = int((line_length - 2 * offset) / distance) #TODO: rounding rules
+                total_bridges = int((line_length - 2 * offset) / distance)  # TODO: rounding rules
                 offset = (line_length - total_bridges * float(distance)) / 2
                 for num_bridge in range(int((line_length - 2 * offset) / distance) + 1):
                     bridge_center = (start[0] + np.cos(line_angle) * (offset + num_bridge * distance),
@@ -192,7 +195,7 @@ class Sample:
         tls = tlsim.TLSystem()
 
         connections_flat = {}
-        max_connection_id = 0 # g connection
+        max_connection_id = 0  # g connection
         for connection in self.connections:
             max_connection_id += 1
             for terminal in connection:
@@ -202,7 +205,7 @@ class Sample:
 
         for object_ in self.objects:
             terminal_node_assignments = {}
-            for terminal_name, terminal in  object_.get_terminals().items():
+            for terminal_name, terminal in object_.get_terminals().items():
                 if hasattr(terminal.w, '__iter__'):
                     num_conductors = len(terminal.w)
                 else:
@@ -215,7 +218,8 @@ class Sample:
                         terminal_identifier = (terminal_name, conductor_id)
 
                     if (object_, terminal_name, conductor_id) in connections_flat:
-                        terminal_node_assignments[terminal_identifier] = connections_flat[(object_, terminal_name, conductor_id)]
+                        terminal_node_assignments[terminal_identifier] = connections_flat[
+                            (object_, terminal_name, conductor_id)]
                     else:
                         max_connection_id += 1
                         connections_flat[(object_, terminal_name, conductor_id)] = max_connection_id
@@ -255,7 +259,7 @@ class Sample:
         self.label_cell.add(vtext)
     '''
 
-    #TODO: the reason of the existence of this function is to connect two cpws with different w,s,g.
+    # TODO: the reason of the existence of this function is to connect two cpws with different w,s,g.
     # we don't really need it.
     '''
     def generate_narrowing_part(self, name, firstline, secondline):
@@ -272,7 +276,7 @@ class Sample:
                 firstline.end[1] + narrowing_length * np.sin(firstline.angle))
     '''
 
-    #TODO: what does this thing do? CPW-over-CPW element? Maybe we need an extra element for this
+    # TODO: what does this thing do? CPW-over-CPW element? Maybe we need an extra element for this
     # need to think of a an automatic way of determining the crossing position of two lines with each other
     def generate_bridge_over_feedline(self, name, firstline, airbridge, secondline, distance_between_airbridges):
         narrowing_length = 15
@@ -281,25 +285,27 @@ class Sample:
                                         airbridge[2], distance_between_airbridges, airbridge[2],
                                         narrowing_length, np.pi + firstline.angle)
         narrowing2 = elements.Narrowing(name,
-                                        firstline.end[0] + np.cos(firstline.angle) * (narrowing_length + airbridge[0] * 2 + airbridge[1]),
-                                        firstline.end[1] + np.sin(firstline.angle) * (narrowing_length + airbridge[0] * 2 + airbridge[1]),
+                                        firstline.end[0] + np.cos(firstline.angle) * (
+                                                narrowing_length + airbridge[0] * 2 + airbridge[1]),
+                                        firstline.end[1] + np.sin(firstline.angle) * (
+                                                narrowing_length + airbridge[0] * 2 + airbridge[1]),
                                         airbridge[2], distance_between_airbridges, airbridge[2],
                                         secondline[0], secondline[1], secondline[2],
                                         narrowing_length, np.pi + firstline.angle)
         self.generate_bridge(name, (firstline.end[0] + np.cos(firstline.angle) * narrowing_length -
-                              np.sin(firstline.angle) * (distance_between_airbridges + airbridge[2]),
-                              firstline.end[1] + np.cos(firstline.angle) * (
-                                          distance_between_airbridges + airbridge[2]) +
-                              np.sin(firstline.angle) * narrowing_length),
+                                    np.sin(firstline.angle) * (distance_between_airbridges + airbridge[2]),
+                                    firstline.end[1] + np.cos(firstline.angle) * (
+                                            distance_between_airbridges + airbridge[2]) +
+                                    np.sin(firstline.angle) * narrowing_length),
                              airbridge[0], airbridge[1], airbridge[2], firstline.angle, 'line')
         self.generate_bridge(name, (firstline.end[0] + np.cos(firstline.angle) * narrowing_length,
-                              np.sin(firstline.angle) * narrowing_length + firstline.end[1]),
+                                    np.sin(firstline.angle) * narrowing_length + firstline.end[1]),
                              airbridge[0], airbridge[1], airbridge[2], firstline.angle, 'line')
         self.generate_bridge(name, (firstline.end[0] + np.cos(firstline.angle) * narrowing_length +
-                              np.sin(firstline.angle) * (distance_between_airbridges + airbridge[2]),
-                              firstline.end[1] - np.cos(firstline.angle) * (
-                                          distance_between_airbridges + airbridge[2]) +
-                              np.sin(firstline.angle) * narrowing_length),
+                                    np.sin(firstline.angle) * (distance_between_airbridges + airbridge[2]),
+                                    firstline.end[1] - np.cos(firstline.angle) * (
+                                            distance_between_airbridges + airbridge[2]) +
+                                    np.sin(firstline.angle) * narrowing_length),
                              airbridge[0], airbridge[1], airbridge[2], firstline.angle, 'line')
         line1 = narrowing1.generate_narrowing()
         line2 = narrowing2.generate_narrowing()
@@ -310,6 +316,22 @@ class Sample:
         self.cell_to_remove.add(line1[2])
         self.cell_to_remove.add(line2[2])
         return (firstline.end[0] + 2 * narrowing_length + airbridge[0] * 2 + airbridge[1], firstline.end[1]), None
+
+    def generate_round_resonator(self, name: str, frequency: float, initial_position: Tuple[float, float], w: float,
+                                 s: float, g: float,
+                                 coupler_length, open_end_length: float,
+                                 l1, l2, l3, l4, l5, h_end, r
+                                 ):
+
+        res = elements.RoundResonator(name, frequency, initial_position, w, s, g, coupler_length, open_end_length,
+                                      self.layer_configuration, l1, l2, l3, l4, l5, h_end)
+        points_for_creation = res.meander_points
+        resonator = elements.CPW(name, points_for_creation, w, s, g, self.layer_configuration, r)
+        self.add(resonator)
+        return resonator
+
+
+
 
     """
     We are trying to get rid of the use cases of this function
@@ -349,6 +371,7 @@ class Sample:
     #         self.result.add(gdspy.boolean( sample.total_cell.get_polygons(by_spec=True)[(self.AirbridgesLayer,0)],
     #                                        sample.total_cell.get_polygons(by_spec=True)[(self.AirbridgesLayer,0)],'or',
     #                                        layer =self.AirbridgesLayer))
+
 
 '''
 Beginning from here I have no idea what to this.
@@ -521,6 +544,8 @@ Beginning from here I have no idea what to this.
         return True
 
 '''
+
+
 # TODO: might be useflu for elements/cpw.py to caluclate the line of the cpw line
 def calculate_total_length(points):
     i0, j0 = points[0]

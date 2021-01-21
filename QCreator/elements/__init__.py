@@ -5,4 +5,5 @@ from .pad import Pad, default_pad_geometry
 from .cpw import CPWCoupler, CPW, Narrowing, RectFanout, RectGrounding
 from .grid_ground import GridGround
 from .coaxmon import Coaxmon
+from .resonators import RoundResonator
 #from
