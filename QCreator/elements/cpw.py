@@ -366,14 +366,17 @@ class RectGrounding(DesignElement):
         self.port = port
         self.grounding_width = grounding_width
         self.layer_configuration = layer_configuration
+        self.grounding_between = grounding_between
         self.tls_cache = []
 
-        if (type(port.w) and type(port.s) != list):
+        if type(port.w) and type(port.s) != list:
             self.port.w = [port.w]
             self.port.s = [port.s, port.s]
+            self.initial_number_of_conductors = 1
         else:
             self.port.w = port.w
             self.port.s = port.s
+            self.initial_number_of_conductors = len(self.port.w)
 
         # create a list of all widths of CPW including widths of conductors, gaps and ground
         widths_of_cpw = [self.port.g]
@@ -432,9 +435,6 @@ class RectGrounding(DesignElement):
         new_end_points = (self.end_points[0] - (delta_width / 2) * np.sin(self.port.orientation),
                           self.end_points[1] - (delta_width / 2) * np.cos(self.port.orientation))
 
-        # self.terminals = {
-        #     'port': DesignTerminal(position=new_end_points, orientation=self.port.orientation, type='mc-cpw',
-        #                            w=list_of_conductors[1:len(list_of_conductors) - 1], s=list_of_gaps, g=self.port.g)}
         narrow_port_s = list_of_gaps
         narrow_port_w = list_of_conductors[1:len(list_of_conductors) - 1]
         if list_of_gaps and list_of_conductors[1:len(list_of_conductors) - 1]:
@@ -497,11 +497,29 @@ class RectGrounding(DesignElement):
             if track_changes:
                 self.tls_cache.append(g)
 
-            tls_instance.add_element(g, [terminal_mapping['wide']])
+            tls_instance.add_element(g, [terminal_mapping['wide']])  # tlsim.TLSystem.add_element(name, nodes)
+
             return [g]
 
         elif len(self.terminals.keys()) == 2:
-            return -1
+            zero_resistor = tlsim.Resistor(r=0, name=self.name)
+
+            for ground_conductors in self.grounding_between:
+                ind_1 = ground_conductors[0]
+                ind_2 = ground_conductors[1]
+
+                if ind_1 == 0:
+                    mapping = [terminal_mapping[('wide', ind_2 - 1)], 0]
+                    tls_instance.add_element(zero_resistor, mapping)
+
+                elif ind_2 == self.initial_number_of_conductors + 1:
+                    mapping = [terminal_mapping[('wide', ind_1 - 1)], 0]
+                    tls_instance.add_element(zero_resistor, mapping)
+                else:
+                    mapping = [terminal_mapping[('wide', ind_1 - 1)]] + [terminal_mapping[('wide', ind_2 - 2)]]
+                    tls_instance.add_element(zero_resistor, mapping)
+
+            return [zero_resistor] * len(self.grounding_between)
 
     def __repr__(self):
         return "RectGrounding {}".format(self.name)
@@ -599,8 +617,8 @@ class RectFanout(DesignElement):
             self.groups_widths.append(group_widths)
             self.groups_offsets.append(group_offsets)
             self.groups_global_offsets.append(group_global_offset)
-        #TODO: smth
-        self.length = max([self.groups_widths_total[0], self.groups_widths_total[2]]) -  self.g  # length of element
+
+        self.length = max([self.groups_widths_total[0], self.groups_widths_total[2]]) - self.g  # length of element
 
         # length_down = offsets[grouping[0] + 1] - offsets[1]
         # length_center = offsets[grouping[1] + 1] - offssets[grouping[0] + 1]

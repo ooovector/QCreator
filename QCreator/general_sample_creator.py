@@ -3,7 +3,7 @@ import gdspy
 # import libraries.general_design_functions as gdf
 from . import elements
 from . import transmission_line_simulator as tlsim
-from typing import NamedTuple, SupportsFloat, Any, Iterable, Tuple
+from typing import NamedTuple, SupportsFloat, Any, Iterable, Tuple, List
 
 Bridges_over_line_param = NamedTuple('Bridge_params',
                                      [('distance', SupportsFloat),
@@ -74,6 +74,7 @@ class Sample:
     def fanout(self, o: elements.DesignElement, port: str, name: str, grouping: Tuple[int, int],
                down_s_right: float = None, center_s_left: float = None,
                center_s_right: float = None, up_s_left: float = None):
+
         fanout = elements.RectFanout(name, o.get_terminals()[port], grouping, self.layer_configuration,
                                      down_s_right=down_s_right, center_s_left=center_s_left,
                                      center_s_right=center_s_right, up_s_left=up_s_left)
@@ -84,7 +85,7 @@ class Sample:
         return fanout
 
     def ground(self, o: elements.DesignElement, port: str, name: str, grounding_width: float,
-               grounding_between: Tuple[int, int]):
+               grounding_between: List[Tuple[int, int]]):
         if port == 'port1':
             reverse_type = 'Negative'
         else:
@@ -93,6 +94,8 @@ class Sample:
         closed_end = elements.RectGrounding(name, o.get_terminals()[port], grounding_width, grounding_between,
                                             self.layer_configuration, reverse_type)
         self.add(closed_end)
+        for conductor_id in range(closed_end.initial_number_of_conductors):
+            self.connections.append(((o, port, conductor_id), (closed_end, 'wide', conductor_id)))
 
         return closed_end
 
