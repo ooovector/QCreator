@@ -50,7 +50,6 @@ class CPWMeander:
                              (self.initial_point[0][0] + self.connector_length * np.cos(self.orientation),
                               self.initial_point[0][1] + self.connector_length * np.sin(self.orientation))]
 
-
         check_length = self.connector_length
 
         for i in range(int(number_of_curves)):
