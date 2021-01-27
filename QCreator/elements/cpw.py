@@ -366,6 +366,7 @@ class RectGrounding(DesignElement):
         self.port = port
         self.grounding_width = grounding_width
         self.layer_configuration = layer_configuration
+        self.tls_cache = []
 
         if (type(port.w) and type(port.s) != list):
             self.port.w = [port.w]
@@ -428,27 +429,37 @@ class RectGrounding(DesignElement):
         delta_width = ((list_of_conductors[0] - self.port.g) - (
                 list_of_conductors[len(list_of_conductors) - 1] - self.port.g))
         # TODO: check new_end_points
-        new_end_points = (self.end_points[0] + (delta_width / 2) * np.sin(self.port.orientation),
-                          self.end_points[1] + (delta_width / 2) * np.cos(self.port.orientation))
+        new_end_points = (self.end_points[0] - (delta_width / 2) * np.sin(self.port.orientation),
+                          self.end_points[1] - (delta_width / 2) * np.cos(self.port.orientation))
 
         # self.terminals = {
         #     'port': DesignTerminal(position=new_end_points, orientation=self.port.orientation, type='mc-cpw',
         #                            w=list_of_conductors[1:len(list_of_conductors) - 1], s=list_of_gaps, g=self.port.g)}
-
+        narrow_port_s = list_of_gaps
+        narrow_port_w = list_of_conductors[1:len(list_of_conductors) - 1]
         if list_of_gaps and list_of_conductors[1:len(list_of_conductors) - 1]:
-            self.terminals = {
-                'wide': DesignTerminal(position=self.port.position, orientation=self.port.orientation - np.pi,
-                                       g=self.port.g, s=self.port.s,
-                                       w=self.port.w, type='mc-cpw'),
-                'narrow': DesignTerminal(position=new_end_points, orientation=self.port.orientation, g=self.port.g,
-                                         s=list_of_gaps,
-                                         w=list_of_conductors[1:len(list_of_conductors) - 1], type='mc-cpw')}
+            if len(narrow_port_s) == 2 and len(narrow_port_w) == 1 and narrow_port_s[0] == narrow_port_s[1]:
+                self.terminals = {
+                    'wide': DesignTerminal(position=self.port.position, orientation=self.port.orientation - np.pi,
+                                           g=self.port.g, s=self.port.s,
+                                           w=self.port.w, type='mc-cpw'),
+                    'narrow': DesignTerminal(position=new_end_points, orientation=self.port.orientation, g=self.port.g,
+                                             s=narrow_port_s[0],
+                                             w=narrow_port_w[0], type='cpw')}
+            else:
+                self.terminals = {
+                    'wide': DesignTerminal(position=self.port.position, orientation=self.port.orientation - np.pi,
+                                           g=self.port.g, s=self.port.s,
+                                           w=self.port.w, type='mc-cpw'),
+                    'narrow': DesignTerminal(position=new_end_points, orientation=self.port.orientation, g=self.port.g,
+                                             s=list_of_gaps,
+                                             w=list_of_conductors[1:len(list_of_conductors) - 1], type='mc-cpw')}
+
         else:
             self.terminals = {
                 'wide': DesignTerminal(position=self.port.position, orientation=self.port.orientation - np.pi,
                                        g=self.port.g, s=self.port.s,
                                        w=self.port.w, type='mc-cpw')}
-
 
         self.widths_ground, self.offsets_ground = widths_offsets_for_ground(list_of_conductors, list_of_gaps)
         self.widths_of_cpw_new = widths_of_cpw_new
@@ -477,11 +488,23 @@ class RectGrounding(DesignElement):
     def get_terminals(self):
         return self.terminals
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
-        if not self.terminals['port'].s and self.terminals['port'].w:
-            s = tlsim.Short()
-            # if track_changes:
-            #     self.tls_cache.append(s)
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int],
+                   track_changes: bool = True) -> list:
+
+        if len(self.terminals.keys()) == 1:
+            g = tlsim.Short()
+
+            if track_changes:
+                self.tls_cache.append(g)
+
+            tls_instance.add_element(g, [terminal_mapping['wide']])
+            return [g]
+
+        elif len(self.terminals.keys()) == 2:
+            return -1
+
+    def __repr__(self):
+        return "RectGrounding {}".format(self.name)
 
 
 def widths_offsets_for_ground(list_of_conductors, list_of_gaps):
@@ -576,8 +599,8 @@ class RectFanout(DesignElement):
             self.groups_widths.append(group_widths)
             self.groups_offsets.append(group_offsets)
             self.groups_global_offsets.append(group_global_offset)
-
-        self.length = max([self.groups_widths_total[0], self.groups_widths_total[2]]) - self.g  # length of element
+        #TODO: smth
+        self.length = max([self.groups_widths_total[0], self.groups_widths_total[2]]) -  self.g  # length of element
 
         # length_down = offsets[grouping[0] + 1] - offsets[1]
         # length_center = offsets[grouping[1] + 1] - offssets[grouping[0] + 1]
@@ -587,7 +610,7 @@ class RectFanout(DesignElement):
                 self.length - self.groups_widths_total[0] / 2 + np.abs(self.groups_global_offsets[0])),
                        port.position + e * (self.length - self.groups_widths_total[0] / 2 + np.abs(
                            self.groups_global_offsets[0])) + e_down * self.width_total / 2]
-        points_center = [port.position, port.position + e * self.length]
+        points_center = [port.position, port.position + e * (self.length - self.g)]
         points_up = [port.position, port.position + e * (
                 self.length - self.groups_widths_total[2] / 2 + np.abs(self.groups_global_offsets[2])),
                      port.position + e * (self.length - self.groups_widths_total[2] / 2 + np.abs(
