@@ -322,16 +322,23 @@ class Sample:
                         port2: str = None, radius: float = 0., connector: float = 10.):
         if not o2:
             t1 = o1.get_terminals()[port1]
-            w1 = t1.w
-            s1 = t1.s
-            g1 = t1.g
-            if len(w1) == 1 and len(s1) == 2:
-                w = w1[0]
-                s = s1[0]
-                g = g1
-            else:
-                raise ValueError('Unexpected size of CPW')
-
+            w = t1.w
+            s = t1.s
+            g = t1.g
+            # w1 = t1.w
+            # s1 = t1.s
+            # g1 = t1.g
+            # if type(w1) == list or type(s1) == list:
+            #     if len(w1) == 1 and len(s1) == 2:
+            #         w = w1[0]
+            #         s = s1[0]
+            #         g = g1
+            #     else:
+            #         raise ValueError('Unexpected size of CPW')
+            # else:
+            #     w = w1[0]
+            #     s = s1[0]
+            #     g = g1
             delta = g + s + w / 2
             connector_length = connector + 2 * delta
             angle = t1.orientation + np.pi
