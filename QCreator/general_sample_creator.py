@@ -317,60 +317,119 @@ class Sample:
         self.cell_to_remove.add(line2[2])
         return (firstline.end[0] + 2 * narrowing_length + airbridge[0] * 2 + airbridge[1], firstline.end[1]), None
 
-    def generate_round_resonator(self, name: str, frequency: float, initial_position: Tuple[float, float], w: float,
-                                 s: float, g: float,
-                                 coupler_length, open_end_length: float,
-                                 l1, l2, l3, l4, l5, h_end, r
-                                 ):
+    def connect_meander(self, name: str, o1: elements.DesignElement, port1: str, meander_length: float,
+                        restricted_scale: float, constant_scale: float = 0., o2: elements.DesignElement = None,
+                        port2: str = None, radius: float = 0., connector: float = 10.):
+        if not o2:
+            t1 = o1.get_terminals()[port1]
+            w1 = t1.w
+            s1 = t1.s
+            g1 = t1.g
+            if len(w1) == 1 and len(s1) == 2:
+                w = w1[0]
+                s = s1[0]
+                g = g1
+            else:
+                raise ValueError('Unexpected size of CPW')
 
-        res = elements.RoundResonator(name, frequency, initial_position, w, s, g, coupler_length, open_end_length,
-                                      self.layer_configuration, l1, l2, l3, l4, l5, h_end)
-        points_for_creation = res.meander_points
-        resonator = elements.CPW(name, points_for_creation, w, s, g, self.layer_configuration, r)
-        self.add(resonator)
-        return resonator
+            delta = g + s + w / 2
+            connector_length = connector + 2 * delta
+            angle = t1.orientation + np.pi
+            initial_point = [(t1.position[0], t1.position[1])]
+            meander = elements.CPWMeander(initial_point=initial_point, w=w, s=s, g=g, meander_length=meander_length,
+                                          restricted_scale=restricted_scale, constant_scale=constant_scale,
+                                          orientation=angle, connector_length=connector_length)
+            points_for_creation = meander.points
+            rendering_meander = elements.CPW(name=name, points=points_for_creation, w=w, s=s, g=g,
+                                             layer_configuration=self.layer_configuration, r=radius)
+            self.add(rendering_meander)
+        else:
+            t1 = o1.get_terminals()[port1]
+            t2 = o2.get_terminals()[port2]
+            w1, s1, g1 = t1.w, t1.s, t1.g
+            w2, s2, g2 = t2.w, t2.s, t2.g
+            if w1 == w2 and s1 == s2 and g1 == g2:
+                w, s, g = w1, s1, g1
+                delta = g + s + w / 2
+                connector_length = connector + 4 * delta
+                distance = np.sqrt((t1.position[0] - t2.position[0]) ** 2 + (t1.position[1] - t2.position[1]) ** 2)
+
+                angle = np.arctan((t1.position[1] - t2.position[1]) / (t1.position[0] - t2.position[0]))
+
+                initial_point = [(t1.position[0], t1.position[1])]
+                final_point = [(t2.position[0], t2.position[1])]
+
+                meander = elements.CPWMeander(initial_point=initial_point, w=w, s=s, g=g, meander_length=meander_length,
+                                              restricted_scale=restricted_scale, constant_scale=distance,
+                                              orientation=angle, connector_length=connector_length)
+                points_for_creation = meander.points
+                # TODO: create a meander connection with different angles
+                # TODO: create a meander connection using connector_cpw
+                # points_for_creation = meander.points[1:len(meander.points) - 1]
+
+                # angle1 = np.arctan(
+                #     (t1.position[1] - points_for_creation[0][1]) / (t1.position[0] - points_for_creation[0][0]))
+                # angle2 = np.arctan(
+                #     (points_for_creation[-1][1] - t2.position[1]) / (points_for_creation[-1][0] - t2.position[0]))
+                #
+                # points_for_creation.insert(0, (t1.position[0] + connector_length * np.cos(angle1),
+                #                                t1.position[1] + connector_length * np.sin(angle1)))
+                #
+                # points_for_creation.insert(len(points_for_creation),
+                #                            (points_for_creation[-1][0] + connector_length * np.cos(angle2),
+                #                             points_for_creation[-1][1] + connector_length * np.sin(angle2)))
+
+                # points_for_creation.insert(0, (t1.position[0], t1.position[1]))
+                #
+                # points_for_creation.insert(len(points_for_creation), (t2.position[0], t2.position[1]))
+
+                rendering_meander = elements.CPW(name=name, points=points_for_creation, w=w, s=s, g=g,
+                                                 layer_configuration=self.layer_configuration, r=radius)
+                self.add(rendering_meander)
+            else:
+                raise ValueError('CPW parameters are not equal!')
+
+        return rendering_meander
 
 
+"""
+We are trying to get rid of the use cases of this function
+def finish_him(self):
+    # self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.total_layer, 0)],
+    #                               self.total_cell.get_polygons(by_spec=True)[(self.total_layer, 0)], 'or',
+    #                               layer=self.total_layer))
+    self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.total_layer, 0)],
+                                  self.cell_to_remove.get_polygons(by_spec=True)[(2, 0)], 'not',
+                                  layer=self.total_layer))
+    self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.airbridges_layer, 0)],
+                                  self.total_cell.get_polygons(by_spec=True)[(self.airbridges_layer, 0)], 'or',
+                                  layer=self.airbridges_layer))
+    self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.airbridges_pad_layer, 0)],
+                                  self.total_cell.get_polygons(by_spec=True)[(self.airbridges_pad_layer, 0)], 'or',
+                                  layer=self.airbridges_pad_layer))
+    #
+    # костыль
+"""
 
+#         self.result.add(gdspy.boolean(sample.total_cell.get_polygons(by_spec=True)[(self.total_layer,0)],
+#                                       sample.total_cell.get_polygons(by_spec=True)[(3,0)],'not',
+#                                       layer = self.total_layer))
+#         self.result.add(gdspy.boolean(sample.total_cell.get_polygons(by_spec=True)[(3,0)],
+#                                       sample.total_cell.get_polygons(by_spec=True)[(3,0)],'or',
+#                                       layer = 3))
+#         self.result.add(gdspy.boolean(sample.total_cell.get_polygons(by_spec=True)[(0,0)],
+#                                       sample.total_cell.get_polygons(by_spec=True)[(3,0)],'not',
+#                                       layer = 10))
 
-    """
-    We are trying to get rid of the use cases of this function
-    def finish_him(self):
-        # self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.total_layer, 0)],
-        #                               self.total_cell.get_polygons(by_spec=True)[(self.total_layer, 0)], 'or',
-        #                               layer=self.total_layer))
-        self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.total_layer, 0)],
-                                      self.cell_to_remove.get_polygons(by_spec=True)[(2, 0)], 'not',
-                                      layer=self.total_layer))
-        self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.airbridges_layer, 0)],
-                                      self.total_cell.get_polygons(by_spec=True)[(self.airbridges_layer, 0)], 'or',
-                                      layer=self.airbridges_layer))
-        self.result.add(gdspy.boolean(self.total_cell.get_polygons(by_spec=True)[(self.airbridges_pad_layer, 0)],
-                                      self.total_cell.get_polygons(by_spec=True)[(self.airbridges_pad_layer, 0)], 'or',
-                                      layer=self.airbridges_pad_layer))
-        #
-        # костыль
-    """
-
-    #         self.result.add(gdspy.boolean(sample.total_cell.get_polygons(by_spec=True)[(self.total_layer,0)],
-    #                                       sample.total_cell.get_polygons(by_spec=True)[(3,0)],'not',
-    #                                       layer = self.total_layer))
-    #         self.result.add(gdspy.boolean(sample.total_cell.get_polygons(by_spec=True)[(3,0)],
-    #                                       sample.total_cell.get_polygons(by_spec=True)[(3,0)],'or',
-    #                                       layer = 3))
-    #         self.result.add(gdspy.boolean(sample.total_cell.get_polygons(by_spec=True)[(0,0)],
-    #                                       sample.total_cell.get_polygons(by_spec=True)[(3,0)],'not',
-    #                                       layer = 10))
-
-    #         self.result.add(gdspy.boolean( sample.total_cell.get_polygons(by_spec=True)[(self.JJ_layer,0)],
-    #                                        sample.total_cell.get_polygons(by_spec=True)[(self.JJ_layer,0)],'or',
-    #                                        layer =self.JJ_layer))
-    #         self.result.add(gdspy.boolean( sample.total_cell.get_polygons(by_spec=True)[(self.AirbridgesPadLayer,0)],
-    #                                        sample.total_cell.get_polygons(by_spec=True)[(self.AirbridgesPadLayer,0)],'or',
-    #                                        layer =self.AirbridgesPadLayer))
-    #         self.result.add(gdspy.boolean( sample.total_cell.get_polygons(by_spec=True)[(self.AirbridgesLayer,0)],
-    #                                        sample.total_cell.get_polygons(by_spec=True)[(self.AirbridgesLayer,0)],'or',
-    #                                        layer =self.AirbridgesLayer))
+#         self.result.add(gdspy.boolean( sample.total_cell.get_polygons(by_spec=True)[(self.JJ_layer,0)],
+#                                        sample.total_cell.get_polygons(by_spec=True)[(self.JJ_layer,0)],'or',
+#                                        layer =self.JJ_layer))
+#         self.result.add(gdspy.boolean( sample.total_cell.get_polygons(by_spec=True)[(self.AirbridgesPadLayer,0)],
+#                                        sample.total_cell.get_polygons(by_spec=True)[(self.AirbridgesPadLayer,0)],'or',
+#                                        layer =self.AirbridgesPadLayer))
+#         self.result.add(gdspy.boolean( sample.total_cell.get_polygons(by_spec=True)[(self.AirbridgesLayer,0)],
+#                                        sample.total_cell.get_polygons(by_spec=True)[(self.AirbridgesLayer,0)],'or',
+#                                        layer =self.AirbridgesLayer))
 
 
 '''

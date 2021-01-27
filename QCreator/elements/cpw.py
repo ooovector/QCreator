@@ -426,14 +426,29 @@ class RectGrounding(DesignElement):
                 list_of_gaps.extend([widths_of_cpw_new[i]])
 
         delta_width = ((list_of_conductors[0] - self.port.g) - (
-                    list_of_conductors[len(list_of_conductors) - 1] - self.port.g))
-        #тут пока косяк
-        new_end_points = (self.end_points[0] - (delta_width / 2) * np.sin(self.port.orientation),
-                          self.end_points[1] - (delta_width / 2) * np.cos(self.port.orientation))
+                list_of_conductors[len(list_of_conductors) - 1] - self.port.g))
+        # TODO: check new_end_points
+        new_end_points = (self.end_points[0] + (delta_width / 2) * np.sin(self.port.orientation),
+                          self.end_points[1] + (delta_width / 2) * np.cos(self.port.orientation))
 
-        self.terminals = {
-            'port': DesignTerminal(position=new_end_points, orientation=self.port.orientation, type='mc-cpw',
-                                   w=list_of_conductors[1:len(list_of_conductors) - 1], s=list_of_gaps, g=self.port.g)}
+        # self.terminals = {
+        #     'port': DesignTerminal(position=new_end_points, orientation=self.port.orientation, type='mc-cpw',
+        #                            w=list_of_conductors[1:len(list_of_conductors) - 1], s=list_of_gaps, g=self.port.g)}
+
+        if list_of_gaps and list_of_conductors[1:len(list_of_conductors) - 1]:
+            self.terminals = {
+                'wide': DesignTerminal(position=self.port.position, orientation=self.port.orientation - np.pi,
+                                       g=self.port.g, s=self.port.s,
+                                       w=self.port.w, type='mc-cpw'),
+                'narrow': DesignTerminal(position=new_end_points, orientation=self.port.orientation, g=self.port.g,
+                                         s=list_of_gaps,
+                                         w=list_of_conductors[1:len(list_of_conductors) - 1], type='mc-cpw')}
+        else:
+            self.terminals = {
+                'wide': DesignTerminal(position=self.port.position, orientation=self.port.orientation - np.pi,
+                                       g=self.port.g, s=self.port.s,
+                                       w=self.port.w, type='mc-cpw')}
+
 
         self.widths_ground, self.offsets_ground = widths_offsets_for_ground(list_of_conductors, list_of_gaps)
         self.widths_of_cpw_new = widths_of_cpw_new
@@ -461,6 +476,12 @@ class RectGrounding(DesignElement):
 
     def get_terminals(self):
         return self.terminals
+
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
+        if not self.terminals['port'].s and self.terminals['port'].w:
+            s = tlsim.Short()
+            # if track_changes:
+            #     self.tls_cache.append(s)
 
 
 def widths_offsets_for_ground(list_of_conductors, list_of_gaps):
@@ -563,12 +584,12 @@ class RectFanout(DesignElement):
         # length_up = offsets[-2] - offsets[grouping[1] + 1]
 
         points_down = [port.position, port.position + e * (
-                    self.length - self.groups_widths_total[0] / 2 + np.abs(self.groups_global_offsets[0])),
+                self.length - self.groups_widths_total[0] / 2 + np.abs(self.groups_global_offsets[0])),
                        port.position + e * (self.length - self.groups_widths_total[0] / 2 + np.abs(
                            self.groups_global_offsets[0])) + e_down * self.width_total / 2]
         points_center = [port.position, port.position + e * self.length]
         points_up = [port.position, port.position + e * (
-                    self.length - self.groups_widths_total[2] / 2 + np.abs(self.groups_global_offsets[2])),
+                self.length - self.groups_widths_total[2] / 2 + np.abs(self.groups_global_offsets[2])),
                      port.position + e * (self.length - self.groups_widths_total[2] / 2 + np.abs(
                          self.groups_global_offsets[2])) + e_up * self.width_total / 2]
 
