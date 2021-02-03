@@ -68,7 +68,7 @@ class JJ_1:
         points2=[(x2,y2),(x2,y2+hand1_b),(x2+hand1_a,y2+hand1_b),(x2+hand1_a,y2)]
 
         # contact pad 2
-        print(x3, y3)
+        # print(x3, y3)
         points3=[(x3-contact_pad1_a/2, y3) , (x3+contact_pad1_a/2, y3), (x3+contact_pad1_a/2, y3-contact_pad2_b), (x3-contact_pad1_a/2, y3-contact_pad2_b)]
         points4=[(x3-arm2_a/2,y3),(x3-arm2_a/2,y3+arm2_b), (x3+arm2_a/2,y3+arm2_b), (x3+arm2_a/2,y3)]
         points5=[(x4-hand2_a/2,y4),(x4-hand2_a/2,y4+hand2_b),(x4+hand2_a/2,y4+hand2_b),(x4+hand2_a/2,y4)]
@@ -88,4 +88,4 @@ class JJ_1:
             (self._x0-contact_pad1_a-indent,self._y0-contact_pad1_b/2-indent),(self._x0+contact_pad1_a+indent,self._y0-contact_pad1_b/2-indent),
             (x3 + contact_pad1_a+indent , y3 -indent), (x3 - contact_pad1_a-indent , y3-indent)
                              ]
-        return  p0, p1, p2, p3, p4, p4, p5
+        return  [p0, p1, p2, p3, p4, p4, p5]
