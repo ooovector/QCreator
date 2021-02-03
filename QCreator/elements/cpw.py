@@ -494,7 +494,7 @@ class RectGrounding(DesignElement):
         cache = []
 
         if len(self.terminals.keys()) == 1:
-            if len(self.port.w) > 0:
+            if len(self.port.w) > 1:
                 for conductor_id in range(len(self.port.w)): # loop over all conductors
                     g = tlsim.Short()
                     tls_instance.add_element(g, [terminal_mapping[('wide', conductor_id)]])  # tlsim.TLSystem.add_element(name, nodes)
