@@ -491,35 +491,41 @@ class RectGrounding(DesignElement):
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int],
                    track_changes: bool = True) -> list:
 
+        cache = []
+
         if len(self.terminals.keys()) == 1:
-            g = tlsim.Short()
+            if len(self.port.w) > 0:
+                for conductor_id in range(len(self.port.w)): # loop over all conductors
+                    g = tlsim.Short()
+                    tls_instance.add_element(g, [terminal_mapping[('wide', conductor_id)]])  # tlsim.TLSystem.add_element(name, nodes)
+                    cache.append(g)
+            else:
+                g = tlsim.Short()
+                cache.append(g)
+                tls_instance.add_element(g, [terminal_mapping['wide']])  # tlsim.TLSystem.add_element(name, nodes)
 
             if track_changes:
-                self.tls_cache.append(g)
-
-            tls_instance.add_element(g, [terminal_mapping['wide']])  # tlsim.TLSystem.add_element(name, nodes)
-
-            return [g]
+                self.tls_cache.append(cache)
+            return cache
 
         elif len(self.terminals.keys()) == 2:
-            zero_resistor = tlsim.Resistor(r=0, name=self.name)
-
             for ground_conductors in self.grounding_between:
                 ind_1 = ground_conductors[0]
                 ind_2 = ground_conductors[1]
 
                 if ind_1 == 0:
                     mapping = [terminal_mapping[('wide', ind_2 - 1)], 0]
-                    tls_instance.add_element(zero_resistor, mapping)
-
                 elif ind_2 == self.initial_number_of_conductors + 1:
                     mapping = [terminal_mapping[('wide', ind_1 - 1)], 0]
-                    tls_instance.add_element(zero_resistor, mapping)
                 else:
                     mapping = [terminal_mapping[('wide', ind_1 - 1)]] + [terminal_mapping[('wide', ind_2 - 2)]]
-                    tls_instance.add_element(zero_resistor, mapping)
+                zero_resistor = tlsim.Resistor(r=0, name=self.name+str(len(cache)))
+                cache.append(zero_resistor)
+                tls_instance.add_element(zero_resistor, mapping)
 
-            return [zero_resistor] * len(self.grounding_between)
+            if track_changes:
+                self.tls_cache = cache
+            return [cache]
 
     def __repr__(self):
         return "RectGrounding {}".format(self.name)
