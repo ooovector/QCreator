@@ -101,8 +101,16 @@ class Sample:
         closed_end = elements.RectGrounding(name, o.get_terminals()[port], grounding_width, grounding_between,
                                             self.layer_configuration, reverse_type)
         self.add(closed_end)
+
+        conductor_in_narrow = 0
+
         for conductor_id in range(closed_end.initial_number_of_conductors):
             self.connections.append(((o, port, conductor_id), (closed_end, 'wide', conductor_id)))
+
+        # if closed_end.final_number_of_conductors:
+        #     for conductor_id in closed_end.free_core_conductors:
+        #         self.connections.append(((closed_end, 'wide', conductor_id), (closed_end, 'narrow', conductor_in_narrow)))
+        #         conductor_in_narrow += 1
 
         return closed_end
 
