@@ -493,7 +493,7 @@ class RectGrounding(DesignElement):
 
         cache = []
 
-        if len(self.terminals.keys()) == 1:
+        if len(self.terminals.keys()) > 1:
             if len(self.port.w) > 0:
                 for conductor_id in range(len(self.port.w)): # loop over all conductors
                     g = tlsim.Short()

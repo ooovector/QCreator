@@ -73,7 +73,11 @@ class Sample:
         self.fill_object_arrays()
 
     def fill_object_arrays(self):
-        self.qubits = [i for i in self.objects if i.type == 'qubit']
+        for i in self.objects:
+            if i.type == 'qubit':
+                self.qubits.append(i)
+                self.connections.extend([((cpw, 'port1', 0), (o1, port1, 0)), ((cpw, 'port2', 0), (o2, port2, 0))])
+
         self.couplers = [i for i in self.objects if i.type == 'qubit coupler']
     # def ground(self, element: elements.DesignElement, port: str):
     #     self.connections.append(((element, port), ('gnd', 'gnd')))
@@ -273,7 +277,7 @@ class Sample:
                         max_connection_id += 1
                         connections_flat[(object_, terminal_name, conductor_id)] = max_connection_id
                         terminal_node_assignments[terminal_identifier] = max_connection_id
-
+            # this function gives you everything
             element_assignments[object_.name] = object_.add_to_tls(tls, terminal_node_assignments)
         return tls, connections_flat, element_assignments
 

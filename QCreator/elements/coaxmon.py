@@ -1,9 +1,10 @@
 from .core import DesignElement, LayerConfiguration, DesignTerminal
+from .cpw import CPW
 from .. import conformal_mapping as cm
 from .. import transmission_line_simulator as tlsim
 import gdspy
 import numpy as np
-from typing import List, Tuple, Mapping, Dict
+from typing import List, Tuple, Mapping, Dict, AnyStr, Int
 from . import squid3JJ #TODO make this qubit class suitable for any squid types
 from copy import deepcopy
 
@@ -24,7 +25,8 @@ class Coaxmon(DesignElement):
     def __init__(self, name: str, center: Tuple[float, float],
                  center_radius: float, inner_couplers_radius: float,
                  outer_couplers_radius: float, inner_ground_radius: float, outer_ground_radius: float,
-                 layer_configuration: LayerConfiguration, Couplers, jj_params: Dict, transformations: Dict):
+                 layer_configuration: LayerConfiguration, Couplers, jj_params: Dict, transformations: Dict,
+                 connection_to_resonator = (CPW,AnyStr,I)):
         super().__init__(type='qubit', name=name)
         #qubit parameters
         self.transformations = transformations# to mirror the structure
@@ -56,7 +58,20 @@ class Coaxmon(DesignElement):
                           'coupler4': None,
                           'flux line': None}
         self.layers = []
+        #build TLS
+        self.tls_cache = []
+        self.connection_to_resonator = connection_to_resonator
+        self.L = None
+        self.C={'coupler0': None,
+                'coupler1': None,
+                'coupler2': None,
+                'coupler3': None,
+                'coupler4': None,
+                'qubit':None}
+    def add_to_tls(self, tls_instance: tlsim.TLSystem,
+                   terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
 
+        return
     def render(self):
         """
         This function draw everything: core circle, couplers, JJs
