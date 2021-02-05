@@ -369,7 +369,7 @@ class RectGrounding(DesignElement):
         self.grounding_between = grounding_between
         self.tls_cache = []
 
-        if type(port.w) and type(port.s) != list:
+        if type(port.w) and type(port.s) != list:  # create lists of w and s
             self.port.w = [port.w]
             self.port.s = [port.s, port.s]
             self.initial_number_of_conductors = 1
@@ -435,25 +435,30 @@ class RectGrounding(DesignElement):
         new_end_points = (self.end_points[0] - (delta_width / 2) * np.sin(self.port.orientation),
                           self.end_points[1] - (delta_width / 2) * np.cos(self.port.orientation))
 
-        narrow_port_s = list_of_gaps
-        narrow_port_w = list_of_conductors[1:len(list_of_conductors) - 1]
-        if list_of_gaps and list_of_conductors[1:len(list_of_conductors) - 1]:
-            if len(narrow_port_s) == 2 and len(narrow_port_w) == 1 and narrow_port_s[0] == narrow_port_s[1]:
+        self.narrow_port_s = list_of_gaps
+        self.narrow_port_w = list_of_conductors[
+                             1:len(
+                                 list_of_conductors) - 1]  # list_of_conductors: widths of all conductors including ground
+        self.final_number_of_conductors = len(self.narrow_port_w)
+        if self.narrow_port_s and self.narrow_port_w:
+            if len(self.narrow_port_s) == 2 and len(self.narrow_port_w) == 1 and self.narrow_port_s[0] == \
+                    self.narrow_port_s[1]:
+
                 self.terminals = {
                     'wide': DesignTerminal(position=self.port.position, orientation=self.port.orientation - np.pi,
                                            g=self.port.g, s=self.port.s,
                                            w=self.port.w, type='mc-cpw'),
                     'narrow': DesignTerminal(position=new_end_points, orientation=self.port.orientation, g=self.port.g,
-                                             s=narrow_port_s[0],
-                                             w=narrow_port_w[0], type='cpw')}
+                                             s=self.narrow_port_s[0],
+                                             w=self.narrow_port_w[0], type='cpw')}
             else:
                 self.terminals = {
                     'wide': DesignTerminal(position=self.port.position, orientation=self.port.orientation - np.pi,
                                            g=self.port.g, s=self.port.s,
                                            w=self.port.w, type='mc-cpw'),
                     'narrow': DesignTerminal(position=new_end_points, orientation=self.port.orientation, g=self.port.g,
-                                             s=list_of_gaps,
-                                             w=list_of_conductors[1:len(list_of_conductors) - 1], type='mc-cpw')}
+                                             s=self.narrow_port_s,
+                                             w=self.narrow_port_w, type='mc-cpw')}
 
         else:
             self.terminals = {
@@ -463,6 +468,15 @@ class RectGrounding(DesignElement):
 
         self.widths_ground, self.offsets_ground = widths_offsets_for_ground(list_of_conductors, list_of_gaps)
         self.widths_of_cpw_new = widths_of_cpw_new
+
+        real_number_of_conductors = len(self.port.w) + 2  # number of cores plus two parts of ground
+        real_conductors, closed_conductors, free_conductors = sort_grounding_conductors(self.grounding_between,
+                                                                                        real_number_of_conductors)
+        free_core_conductors = []
+        for elem in free_conductors:
+            if elem != 0 and elem != real_number_of_conductors - 1:
+                free_core_conductors.append(elem - 1)
+        self.free_core_conductors = free_core_conductors
 
     def render(self):
         bend_radius = self.port.g
@@ -488,6 +502,14 @@ class RectGrounding(DesignElement):
     def get_terminals(self):
         return self.terminals
 
+    def cm(self):
+        cross_section_narrow = [self.narrow_port_s[0]]
+        for c in range(len(self.narrow_port_w)):
+            cross_section_narrow.append(self.narrow_port_w[c])
+            cross_section_narrow.append(self.narrow_port_s[c + 1])
+
+        return cm.ConformalMapping(cross_section_narrow).cl_and_Ll()
+
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int],
                    track_changes: bool = True) -> list:
 
@@ -495,9 +517,10 @@ class RectGrounding(DesignElement):
 
         if len(self.terminals.keys()) == 1:
             if len(self.port.w) > 1:
-                for conductor_id in range(len(self.port.w)): # loop over all conductors
+                for conductor_id in range(len(self.port.w)):  # loop over all conductors
                     g = tlsim.Short()
-                    tls_instance.add_element(g, [terminal_mapping[('wide', conductor_id)]])  # tlsim.TLSystem.add_element(name, nodes)
+                    tls_instance.add_element(g, [
+                        terminal_mapping[('wide', conductor_id)]])  # tlsim.TLSystem.add_element(name, nodes)
                     cache.append(g)
             else:
                 g = tlsim.Short()
@@ -509,23 +532,63 @@ class RectGrounding(DesignElement):
             return cache
 
         elif len(self.terminals.keys()) == 2:
-            for ground_conductors in self.grounding_between:
-                ind_1 = ground_conductors[0]
-                ind_2 = ground_conductors[1]
 
-                if ind_1 == 0:
-                    mapping = [terminal_mapping[('wide', ind_2 - 1)], 0]
-                elif ind_2 == self.initial_number_of_conductors + 1:
-                    mapping = [terminal_mapping[('wide', ind_1 - 1)], 0]
-                else:
-                    mapping = [terminal_mapping[('wide', ind_1 - 1)]] + [terminal_mapping[('wide', ind_2 - 2)]]
-                zero_resistor = tlsim.Resistor(r=0, name=self.name+str(len(cache)))
-                cache.append(zero_resistor)
-                tls_instance.add_element(zero_resistor, mapping)
+            real_number_of_conductors = len(self.port.w) + 2  # number of cores plus two parts of ground
+            real_conductors, closed_conductors, free_conductors = sort_grounding_conductors(self.grounding_between,
+                                                                                            real_number_of_conductors)
+            if 0 in free_conductors:
+                free_conductors.pop(0)
+            if real_number_of_conductors - 1 in free_conductors:
+                free_conductors.pop(-1)
+
+            conductor_in_narrow = 0
+            mapping_ = []
+            for conductor in real_conductors:
+                if conductor in closed_conductors:
+                    if conductor == 0:
+                        zero_resistor = tlsim.Resistor(r=0, name=self.name + str(len(cache)))
+                        mapping = [terminal_mapping[('wide', conductor - 1 + 1)], 0]
+                        tls_instance.add_element(zero_resistor, mapping)
+                        cache.append(zero_resistor)
+                    elif conductor == real_number_of_conductors - 2:
+                        zero_resistor = tlsim.Resistor(r=0, name=self.name + str(len(cache)))
+                        mapping = [terminal_mapping[('wide', conductor - 1)], 0]
+                        tls_instance.add_element(zero_resistor, mapping)
+                        cache.append(zero_resistor)
+                    else:
+                        zero_resistor = tlsim.Resistor(r=0, name=self.name + str(len(cache)))
+                        mapping = [terminal_mapping[('wide', conductor - 1)]] + [
+                            terminal_mapping[('wide', conductor - 1 + 1)]]
+                        tls_instance.add_element(zero_resistor, mapping)
+                        cache.append(zero_resistor)
+                elif conductor in free_conductors:
+                    mapping_ += [terminal_mapping[('wide', conductor - 1)]]
+
+            for narrow_conductor in range(len(self.narrow_port_w)):
+                if ('narrow') in terminal_mapping:
+                    mapping_ += [terminal_mapping['narrow']]
+
+                elif ('narrow', 0) in terminal_mapping:
+                    mapping_ += [terminal_mapping[('narrow', narrow_conductor)]]
+
+                # if len(self.narrow_port_w) == 1:
+                #     mapping_ += [terminal_mapping['narrow']]
+                # else:
+                #     mapping_ += [terminal_mapping[('narrow', narrow_conductor)]]
+            cl, ll = self.cm()
+            continued_line = tlsim.TLCoupler(n=len(self.narrow_port_w),
+                                             l=self.grounding_width,
+                                             cl=cl,
+                                             ll=ll,
+                                             rl=np.zeros((len(self.narrow_port_w), len(self.narrow_port_w))),
+                                             gl=np.zeros((len(self.narrow_port_w), len(self.narrow_port_w))),
+                                             name=self.name)
+            tls_instance.add_element(continued_line, mapping_)
+            cache.append(continued_line)
 
             if track_changes:
                 self.tls_cache = cache
-            return [cache]
+                return [cache]
 
     def __repr__(self):
         return "RectGrounding {}".format(self.name)
@@ -543,6 +606,28 @@ def widths_offsets_for_ground(list_of_conductors, list_of_gaps):
             offsets.append(offsets[-1] + widths[c] / 2 + list_of_gaps[c] + widths[c + 1] / 2)
 
     return widths, offsets
+
+
+def sort_grounding_conductors(grounded_conductors, total_conductors):
+    real_conductors = []
+    for i in range(total_conductors):
+        real_conductors.append(i)
+    free = []
+    closed = []
+    grounded = []
+
+    for i in range(len(grounded_conductors)):
+        left_ind = grounded_conductors[i][0]
+        right_ind = grounded_conductors[i][1]
+        for j in range(int(left_ind), int(right_ind), 1):
+            closed.append(j)
+            grounded.append(j)
+        grounded.append(right_ind)
+    for conductor in real_conductors:
+        if not conductor in grounded:
+            free.append(conductor)
+
+    return real_conductors, closed, free
 
 
 class RectFanout(DesignElement):
