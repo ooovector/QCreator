@@ -845,18 +845,21 @@ class RectFanout(DesignElement):
                                        rl=np.zeros_like(groups_cl[group_id]),
                                        gl=np.zeros_like(groups_cl[group_id]),
                                        name=self.name + '_group' + str(group_id))
-                mapping = [terminal_mapping[('wide', i)] for i in range(self.groups_first_conductor[group_id],
-                                                                        self.groups_last_conductor[group_id])]
+
+                if self.port.order:
+                    mapping = [terminal_mapping[('wide', len(self.w) - i - 1)]
+                           for i in range(self.groups_first_conductor[group_id], self.groups_last_conductor[group_id])]
+                else:
+                    mapping = [terminal_mapping[('wide', i)]
+                               for i in
+                               range(self.groups_first_conductor[group_id], self.groups_last_conductor[group_id])]
 
                 if self.groups_last_conductor[group_id] - self.groups_first_conductor[group_id] == 1 and \
                         self.group_names[group_id] in terminal_mapping:
                     mapping = mapping + [terminal_mapping[self.group_names[group_id]]]
                 else:
-                    mapping = mapping + [terminal_mapping[(self.group_names[group_id], i)] for i in range(0,
-                                                                                                          self.groups_last_conductor[
-                                                                                                              group_id] -
-                                                                                                          self.groups_first_conductor[
-                                                                                                              group_id])]
+                    mapping = mapping + [terminal_mapping[(self.group_names[group_id], i)]
+                        for i in range(0, self.groups_last_conductor[group_id] - self.groups_first_conductor[group_id])]
                 tls_instance.add_element(line, mapping)
                 group_lines.append(line)
         #            else:

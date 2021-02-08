@@ -407,6 +407,7 @@ class Sample:
             rendering_meander = elements.CPW(name=name, points=points_for_creation, w=w, s=s, g=g,
                                              layer_configuration=self.layer_configuration, r=radius)
             self.add(rendering_meander)
+            self.connections.extend([((rendering_meander, 'port1', 0), (o1, port1, 0))])
         else:
             t1 = o1.get_terminals()[port1]
             t2 = o2.get_terminals()[port2]
@@ -450,6 +451,8 @@ class Sample:
                 rendering_meander = elements.CPW(name=name, points=points_for_creation, w=w, s=s, g=g,
                                                  layer_configuration=self.layer_configuration, r=radius)
                 self.add(rendering_meander)
+                self.connections.extend([((rendering_meander, 'port1', 0), (o1, port1, 0)),
+                                         ((rendering_meander, 'port2', 0), (o2, port2, 0))])
             else:
                 raise ValueError('CPW parameters are not equal!')
 
