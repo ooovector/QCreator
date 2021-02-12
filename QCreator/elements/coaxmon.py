@@ -24,7 +24,8 @@ class Coaxmon(DesignElement):
     def __init__(self, name: str, center: Tuple[float, float],
                  center_radius: float, inner_couplers_radius: float,
                  outer_couplers_radius: float, inner_ground_radius: float, outer_ground_radius: float,
-                 layer_configuration: LayerConfiguration, Couplers, jj_params: Dict, transformations: Dict):
+                 layer_configuration: LayerConfiguration, Couplers, jj_params: Dict, transformations: Dict,
+                 calculate_capacitance: False):
         super().__init__(type='qubit', name=name)
         #qubit parameters
         self.transformations = transformations# to mirror the structure
@@ -54,7 +55,18 @@ class Coaxmon(DesignElement):
                           'coupler2': None,
                           'coupler3': None,
                           'coupler4': None,
-                          'flux line': None}
+                          'flux line': None,
+                          'qubit': None}
+        # model evaluation
+        self.calculate_capacitance = calculate_capacitance
+        self.tls_cache = []
+        self.L=15e-9#20nHr
+        self.C = {'coupler0': None,
+                  'coupler1': None,
+                  'coupler2': None,
+                  'coupler3': None,
+                  'coupler4': None,
+                  'qubit': None}
         self.layers = []
 
     def render(self):
@@ -99,24 +111,28 @@ class Coaxmon(DesignElement):
 
         # set terminals for couplers
         self.set_terminals()
+        qubit=deepcopy(result)
+        if self.calculate_capacitance is False:
+            qubit_cap_parts = None
+            qubit = None
         if 'mirror' in self.transformations:
             return {'positive': result.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
                     'restricted': result_restricted,
-                    'qubit': result,
+                    'qubit': qubit.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]) if qubit is not None else None,
                     'qubit_cap': qubit_cap_parts,
                     'JJ': JJ.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
                     }
         if 'rotate' in self.transformations:
             return {'positive': result.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
                     'restricted': result_restricted,
-                    'qubit': result,
+                    'qubit': qubit.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]) if qubit is not None else None,
                     'qubit_cap': qubit_cap_parts,
                     'JJ': JJ.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
                     }
         elif self.transformations == {}:
             return {'positive': result,
                     'restricted': result_restricted,
-                    'qubit': result,
+                    'qubit': qubit,
                     'qubit_cap': qubit_cap_parts,
                     'JJ': JJ,
                     }
@@ -135,8 +151,8 @@ class Coaxmon(DesignElement):
                 coupler_connection = coupler.connection
                 coupler_phi = coupler.phi
             if coupler.connection is not None:
-                self.terminals['coupler'+str(id)] = DesignTerminal(coupler_connection,
-                                                               coupler_phi, g=coupler.w, s=coupler.g,
+                self.terminals['coupler'+str(id)] = DesignTerminal(tuple(coupler_connection),
+                                                                   coupler_phi*np.pi+np.pi, g=coupler.g, s=coupler.s,
                                                                 w=coupler.w, type='cpw')
         return True
     def get_terminals(self):
@@ -188,7 +204,32 @@ class Coaxmon(DesignElement):
         return {'positive': result,
                 'remove': remove,
                 }
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict,
+                   track_changes: bool = True) -> list:
+        #scaling factor for C
+        scal_C = 1e-15
+        JJ = tlsim.Inductor(self.L)
+        C = tlsim.Capacitor(c=self.C['qubit']*scal_C)
+        GND = tlsim.Short()
+        tls_instance.add_element(GND, [0])
+        # tls_instance.add_element(JJ, [0, terminal_mapping['qubit']])
+        tls_instance.add_element(C, [0, terminal_mapping['qubit']])
+        mut_cap = []
+        cap_g = []
+        for id, coupler in enumerate(self.couplers):
+            if coupler.coupler_type == 'coupler':
+                c0 = tlsim.Capacitor(c=self.C['coupler'+str(id)][1]*scal_C)
+                c0g = tlsim.Capacitor(c=self.C['coupler'+str(id)][0]*scal_C)
+                tls_instance.add_element(c0, [terminal_mapping['qubit'], terminal_mapping['coupler'+str(id)]])
+                tls_instance.add_element(c0g, [terminal_mapping['coupler'+str(id)], 0])
+                mut_cap.append(c0)
+                cap_g.append(c0g)
+            # elif coupler.coupler_type =='grounded':
+            #     tls_instance.add_element(tlsim.Short(), [terminal_mapping['flux line'], 0])
 
+        if track_changes:
+            self.tls_cache.append([JJ, C]+mut_cap+cap_g)
+        return [GND, C]+mut_cap+cap_g
 
 class CoaxmonCoupler:
     """
@@ -202,12 +243,13 @@ class CoaxmonCoupler:
     5) w - the width of the core of the coupler's rectangular connector to other structures
     6) g - the gap of the coupler's rectangular connector to other structures
     """
-    def __init__(self, arc_start, arc_finish, phi, coupler_type=None, w=None, g=None):
+    def __init__(self, arc_start, arc_finish, phi, coupler_type=None, w=None, g=None,s=None):
         self.arc_start = arc_start
         self.arc_finish = arc_finish
         self.phi = phi
         self.w = w
         self.g = g
+        self.s = s
         self.coupler_type = coupler_type
         self.connection = None
         self.result_coupler = None
