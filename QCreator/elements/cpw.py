@@ -261,7 +261,7 @@ class Narrowing(DesignElement):
         y_end = self.position[1] + self.length / 2 * np.sin(self.orientation)
 
         self.terminals = {'port1': DesignTerminal((x_begin, y_begin), self.orientation, w=w1, s=s1, g=g1, type='cpw'),
-                          'port2': DesignTerminal((x_end, y_end), self.orientation + np.pi, w=w2, s=s2, g=g2,
+                          'port2': DesignTerminal((x_end, y_end), self.orientation, w=w2, s=s2, g=g2,
                                                   type='cpw')}
 
         self.tls_cache = []

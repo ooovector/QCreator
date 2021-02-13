@@ -53,7 +53,7 @@ class MMCoupler(DesignElement):
         # coupler terminals
         self.terminals = {'coupler1': qubit1.get_terminals()[coupler1_name],
                           'coupler2': qubit2.get_terminals()[coupler2_name],
-                          'flux line': None}
+                          'flux_line': None}
         self.layers = []
 
     def render(self):
@@ -224,7 +224,7 @@ class MMCoupler(DesignElement):
             flux_line_output = (self.connection1[0]+(self.core/2+self.gap+self.ground)*coeff, connection[1] )
             remove = gdspy.FlexPath(deepcopy([connection, flux_line_output]), [self.w, self.w],
                                     offset=[-self.s, self.s], layer=self.layer_configuration.total_layer)
-            self.terminals['flux line'] = DesignTerminal(flux_line_output, np.pi if coeff==-1 else 0,
+            self.terminals['flux_line'] = DesignTerminal(flux_line_output, np.pi if coeff==-1 else 0,
                                                          g=self.g, s=self.s,
                                                          w=self.w, type='cpw')
             # add connection to the ground
@@ -245,7 +245,7 @@ class MMCoupler(DesignElement):
             flux_line_output = (connection[0], self.squid_params['y']-(self.gap+self.ground)*np.cos(self.squid_params['angle']) )
             remove = gdspy.FlexPath(deepcopy([connection, flux_line_output]), [self.w, self.w],
                                     offset=[-self.s, self.s], layer=self.layer_configuration.total_layer)
-            self.terminals['flux line'] = DesignTerminal(flux_line_output, self.squid_params['angle']-np.pi/2,
+            self.terminals['flux_line'] = DesignTerminal(flux_line_output, self.squid_params['angle']+np.pi/2,
                                                          g=self.g, s=self.s,
                                                          w=self.w, type='cpw')
         return {'positive': result,
