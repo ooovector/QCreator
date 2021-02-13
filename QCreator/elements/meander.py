@@ -43,8 +43,8 @@ class CPWMeander:
 
         scale_eff = (meander_length_eff - constant_scale_eff + 0 * delta * number_of_curves) / number_of_curves
         x = constant_scale_eff / number_of_curves - 0 * delta
-        if x <= 4 * delta:
-            raise ValueError('Length of the meander is too long or restricted parameters are to small!')
+        #if x <= 4 * delta:
+        #    raise ValueError('Length of the meander is too long or restricted parameters are to small!')
 
         points_of_meander = [(self.initial_point[0][0], self.initial_point[0][1]),
                              (self.initial_point[0][0] + self.connector_length * np.cos(self.orientation),

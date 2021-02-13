@@ -50,22 +50,22 @@ class Coaxmon(DesignElement):
         self.gap = self.grounded.g
         self.ground = self.grounded.w
         # qubit terminals
-        self.terminals = {'coupler0': None,
-                          'coupler1': None,
-                          'coupler2': None,
-                          'coupler3': None,
-                          'coupler4': None,
-                          'flux line': None,
+        self.terminals = {#'coupler0': None,
+                          #'coupler1': None,
+                          #'coupler2': None,
+                          #'coupler3': None,
+                          #'coupler4': None,
+                          #'flux line': None,
                           'qubit': None}
         # model evaluation
         self.calculate_capacitance = calculate_capacitance
         self.tls_cache = []
         self.L=15e-9#20nHr
-        self.C = {'coupler0': None,
-                  'coupler1': None,
-                  'coupler2': None,
-                  'coupler3': None,
-                  'coupler4': None,
+        self.C = {#'coupler0': None,
+                  #'coupler1': None,
+                  #'coupler2': None,
+                  #'coupler3': None,
+                  #'coupler4': None,
                   'qubit': None}
         self.layers = []
 
@@ -199,7 +199,7 @@ class Coaxmon(DesignElement):
         flux_line_output_connection = (flux_line_output[0]+bug*np.cos(np.pi+orientation),
                                        flux_line_output[1]+bug*np.sin(np.pi+orientation))
         remove = gdspy.FlexPath(deepcopy([connection,flux_line_output]), [self.core, self.core], offset=[-self.gap,self.gap], layer=self.layer_configuration.total_layer)
-        self.terminals['flux line'] = DesignTerminal(flux_line_output_connection, orientation, g=self.grounded.w, s=self.grounded.g,
+        self.terminals['flux_line'] = DesignTerminal(flux_line_output_connection, orientation, g=self.grounded.w, s=self.grounded.g,
                                                      w=self.grounded.w, type='cpw')
         return {'positive': result,
                 'remove': remove,
@@ -209,17 +209,17 @@ class Coaxmon(DesignElement):
         #scaling factor for C
         scal_C = 1e-15
         JJ = tlsim.Inductor(self.L)
-        C = tlsim.Capacitor(c=self.C['qubit']*scal_C)
+        C = tlsim.Capacitor(c=self.C['qubit']*scal_C, name=self.name+' qubit-ground')
         GND = tlsim.Short()
         tls_instance.add_element(GND, [0])
-        # tls_instance.add_element(JJ, [0, terminal_mapping['qubit']])
+        tls_instance.add_element(JJ, [0, terminal_mapping['qubit']])
         tls_instance.add_element(C, [0, terminal_mapping['qubit']])
         mut_cap = []
         cap_g = []
         for id, coupler in enumerate(self.couplers):
             if coupler.coupler_type == 'coupler':
-                c0 = tlsim.Capacitor(c=self.C['coupler'+str(id)][1]*scal_C)
-                c0g = tlsim.Capacitor(c=self.C['coupler'+str(id)][0]*scal_C)
+                c0 = tlsim.Capacitor(c=self.C['coupler'+str(id)][1]*scal_C, name=self.name+' qubit-coupler'+str(id))
+                c0g = tlsim.Capacitor(c=self.C['coupler'+str(id)][0]*scal_C, name=self.name+' coupler'+str(id)+'-ground')
                 tls_instance.add_element(c0, [terminal_mapping['qubit'], terminal_mapping['coupler'+str(id)]])
                 tls_instance.add_element(c0g, [terminal_mapping['coupler'+str(id)], 0])
                 mut_cap.append(c0)
@@ -229,7 +229,7 @@ class Coaxmon(DesignElement):
 
         if track_changes:
             self.tls_cache.append([JJ, C]+mut_cap+cap_g)
-        return [GND, C]+mut_cap+cap_g
+        return [JJ, C]+mut_cap+cap_g
 
 class CoaxmonCoupler:
     """
