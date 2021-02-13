@@ -97,7 +97,7 @@ class Inductor(TLSystemElement):
         return np.asarray([[1, -1, 1j*omega*self.L, 0], [0,0,1,1]], dtype=complex)
 
     def dynamic_equations(self):
-        b = np.asarray([[0, 0, self.L, 0], [0, 0, 0, 0]]) # derivatives
+        b = np.asarray([[0, 0, -self.L, 0], [0, 0, 0, 0]]) # derivatives
         a = np.asarray([[1,-1, 0, 0], [0, 0, 1, 1]]) # current values
         return a, b
 
