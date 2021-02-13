@@ -66,7 +66,7 @@ class Capacitor(TLSystemElement):
 
     def dynamic_equations(self):
         b = np.asarray([[self.C, -self.C, 0, 0], [0, 0, 0, 0]]) # derivatives
-        a = np.asarray([[0, 0, 1, 0], [0, 0, 1, 1]]) # current values
+        a = np.asarray([[0, 0, -1, 0], [0, 0, 1, 1]]) # current values
         return a, b
 
     def energy(self, mode):
