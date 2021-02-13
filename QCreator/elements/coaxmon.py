@@ -142,17 +142,17 @@ class Coaxmon(DesignElement):
             if 'mirror' in self.transformations:
                 if coupler.connection is not None:
                     coupler_connection = mirror_point(coupler.connection, self.transformations['mirror'][0], self.transformations['mirror'][1])
-                    coupler_phi = np.arctan2(coupler_connection[1]-self.center[1], coupler_connection[0]-self.center[0])
+                    coupler_phi = np.arctan2(coupler_connection[1]-self.center[1], coupler_connection[0]-self.center[0])+ np.pi
             if 'rotate' in self.transformations:
                 if coupler.connection is not None:
                     coupler_connection = rotate_point(coupler.connection, self.transformations['rotate'][0], self.transformations['rotate'][1])
-                    coupler_phi = np.arctan2(coupler_connection[1]-self.center[1], coupler_connection[0]-self.center[0])
+                    coupler_phi = np.arctan2(coupler_connection[1]-self.center[1], coupler_connection[0]-self.center[0])+ np.pi
             if self.transformations == {}:
                 coupler_connection = coupler.connection
-                coupler_phi = coupler.phi
+                coupler_phi = coupler.phi*np.pi + np.pi
             if coupler.connection is not None:
                 self.terminals['coupler'+str(id)] = DesignTerminal(tuple(coupler_connection),
-                                                                   coupler_phi*np.pi+np.pi, g=coupler.g, s=coupler.s,
+                                                                   coupler_phi, g=coupler.g, s=coupler.s,
                                                                 w=coupler.w, type='cpw')
         return True
     def get_terminals(self):
@@ -199,6 +199,16 @@ class Coaxmon(DesignElement):
         flux_line_output_connection = (flux_line_output[0]+bug*np.cos(np.pi+orientation),
                                        flux_line_output[1]+bug*np.sin(np.pi+orientation))
         remove = gdspy.FlexPath(deepcopy([connection,flux_line_output]), [self.core, self.core], offset=[-self.gap,self.gap], layer=self.layer_configuration.total_layer)
+        if 'mirror' in self.transformations:
+            flux_line_output_connection = mirror_point(flux_line_output_connection, self.transformations['mirror'][0],
+                                                  self.transformations['mirror'][1])
+            orientation = np.arctan2(flux_line_output_connection[1] - self.center[1], flux_line_output_connection[0] - self.center[0])+np.pi
+        if 'rotate' in self.transformations:
+            flux_line_output_connection = rotate_point(flux_line_output_connection, self.transformations['rotate'][0],
+                                                  self.transformations['rotate'][1])
+            orientation = np.arctan2(flux_line_output_connection[1] - self.center[1],flux_line_output_connection[0] - self.center[0])+np.pi
+        if self.transformations == {}:
+            orientation=orientation+np.pi
         self.terminals['flux_line'] = DesignTerminal(flux_line_output_connection, orientation, g=self.grounded.w, s=self.grounded.g,
                                                      w=self.grounded.w, type='cpw')
         return {'positive': result,
