@@ -224,7 +224,7 @@ class MMCoupler(DesignElement):
             flux_line_output = (self.connection1[0]+(self.core/2+self.gap+self.ground)*coeff, connection[1] )
             remove = gdspy.FlexPath(deepcopy([connection, flux_line_output]), [self.w, self.w],
                                     offset=[-self.s, self.s], layer=self.layer_configuration.total_layer)
-            self.terminals['flux_line'] = DesignTerminal(flux_line_output, np.pi if coeff==-1 else 0,
+            self.terminals['flux_line'] = DesignTerminal(flux_line_output, np.pi if coeff==1 else 0,
                                                          g=self.g, s=self.s,
                                                          w=self.w, type='cpw')
             # add connection to the ground
