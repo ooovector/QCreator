@@ -89,7 +89,7 @@ class MMCoupler(DesignElement):
         # # set terminals for couplers
         # self.set_terminals()
         return {'positive': positive,
-                'restricted': restricted,
+                'restrict': restricted,
                 'JJ': self.JJ
                 }
 

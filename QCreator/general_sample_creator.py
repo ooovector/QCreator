@@ -23,8 +23,13 @@ class Sample:
         self.layer_configuration = elements.LayerConfiguration(**configurations)
         self.chip_geometry = elements.ChipGeometry(**configurations)
         self.name = str(name)
-        self.total_cell = gdspy.Cell(self.name)
-        self.restricted_cell = gdspy.Cell(self.name + ' restricted')
+
+        self.lib = gdspy.GdsLibrary(unit=1e-06, precision=1e-09)
+
+        self.total_cell = self.lib.new_cell(self.name, overwrite_duplicate=True, update_references=True)
+        self.restricted_cell = self.lib.new_cell(self.name + ' restricted', overwrite_duplicate=True, update_references=True)
+        # Geometry must be placed in cells.
+
         #for several additional features
         self.qubits_cells = []
         self.qubit_cap_cells = []
@@ -63,8 +68,8 @@ class Sample:
                 self.total_cell.add(result['grid_x'])
             if 'grid_y' in result:
                 self.total_cell.add(result['grid_y'])
-            if 'restricted' in result:
-                self.restricted_cell.add(result['restricted'])
+            if 'restrict' in result:
+                self.restricted_cell.add(result['restrict'])
 
         self.fill_object_arrays()
     def draw_cap(self): # TODO: maybe we need to come up with a better way, but for this moment it's fine
@@ -196,11 +201,11 @@ class Sample:
     # functions to work and calculate capacitance
     def write_to_gds(self, name=None):
         if name is not None:
-            gdspy.write_gds(name + '.gds', cells=None, name='library', unit=1e-06, precision=1e-09, timestamp=None,
+            self.lib.write_gds(name + '.gds', cells=None, timestamp=None,
                             binary_cells=None)
             self.path = os.getcwd() + '\\' + name + '.gds'
         else:
-            gdspy.write_gds(self.name + '.gds', cells=None, name='library', unit=1e-06, precision=1e-09,
+            self.lib.write_gds(self.name + '.gds', cells=None,
                             timestamp=None,
                             binary_cells=None)
             self.path = os.getcwd() + '\\' + self.name + '.gds'

@@ -117,21 +117,21 @@ class Coaxmon(DesignElement):
             qubit = None
         if 'mirror' in self.transformations:
             return {'positive': result.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
-                    'restricted': result_restricted,
+                    'restrict': result_restricted,
                     'qubit': qubit.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]) if qubit is not None else None,
                     'qubit_cap': qubit_cap_parts,
                     'JJ': JJ.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
                     }
         if 'rotate' in self.transformations:
             return {'positive': result.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
-                    'restricted': result_restricted,
+                    'restrict': result_restricted,
                     'qubit': qubit.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]) if qubit is not None else None,
                     'qubit_cap': qubit_cap_parts,
                     'JJ': JJ.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
                     }
         elif self.transformations == {}:
             return {'positive': result,
-                    'restricted': result_restricted,
+                    'restrict': result_restricted,
                     'qubit': qubit,
                     'qubit_cap': qubit_cap_parts,
                     'JJ': JJ,
