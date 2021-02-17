@@ -282,6 +282,8 @@ class Sample:
         :return:
         """
         tls = tlsim.TLSystem()
+        GND = tlsim.Short()
+        tls.add_element(GND,[0])
 
         connections_flat = {}
         max_connection_id = 0  # g connection

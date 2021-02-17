@@ -877,6 +877,84 @@ class RectFanout(DesignElement):
         return "RectFanout {}, n={}, grouping=({}, {})".format(self.name, len(self.w), *self.grouping)
 
 
+class OpenEnd(DesignElement):
+    terminals: Dict[str, DesignTerminal]
+
+    def __init__(self, name: str, position: Tuple[float, float], w: float, s: float, g: float, orientation: float,
+                layer_configuration: LayerConfiguration,gap_length: float = 20, ground_length: float = 20,cap=1e-15):
+        """
+        Create open end (or connect two grounds of CPW).
+        :param name: element identifier
+        :param port: port of CPWCoupler to attach to
+        :param layer_configuration
+        :param h1: height of open end
+        :param h2: width of open end
+        """
+        super().__init__('open_end', name)
+
+        self.position = position
+        self.orientation = orientation
+        self.h1 = gap_length
+        self.h2 = ground_length
+        self.layer_configuration = layer_configuration
+
+        self.tls_cache = []
+        self.cap=cap
+
+        self.w = w
+        self.s = s
+        self.g = g
+
+        self.number_of_conductors = 1
+
+        width_of_line = self.w + 2 * self.s + 2 * self.g
+        angle = self.orientation
+
+        self.gap = width_of_line - 2 * self.g
+
+        self.final_points = (
+            self.position[0] - self.h1 * np.cos(angle), self.position[1] - self.h1 * np.sin(angle))
+        self.final_points_ = (
+            self.final_points[0] - self.h2 * np.cos(angle), self.final_points[1] - self.h2 * np.sin(angle))
+
+        self.terminals = {'wide': DesignTerminal(position=self.position, orientation=self.orientation + np.pi,
+                                                 g=self.g, s=self.s,
+                                                 w=self.w, type='cpw')}
+
+    def render(self):
+        continue_ground = gdspy.FlexPath(points=[self.position, self.final_points],
+                                         width=[self.g, self.g],
+                                         offset=[-self.gap / 2 - self.g / 2, self.gap / 2 + self.g / 2],
+                                         corners='natural', ends='flush', layer=self.layer_configuration.total_layer)
+        add_connection = gdspy.FlexPath(points=[self.final_points, self.final_points_],
+                                        width=self.gap + 2 * self.g,
+                                        corners='natural', ends='flush', layer=self.layer_configuration.total_layer)
+        restrict_total = gdspy.FlexPath(points=[self.position, self.final_points_],
+                                        width=self.gap + 2 * self.g,
+                                        corners='natural', ends='flush',
+                                        layer=self.layer_configuration.restricted_area_layer)
+        positive_total = gdspy.boolean(operand1=continue_ground, operand2=add_connection, operation='or')
+
+        return {'positive': positive_total, 'restrict': restrict_total}
+
+    def get_terminals(self) -> Mapping[str, DesignTerminal]:
+        return self.terminals
+
+    def add_to_tls(self, tls_instance: tlsim.TLSystem,
+                   terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
+        cache = []
+        capacitance_value = self.cap
+        capacitor = tlsim.Capacitor(capacitance_value, 'open_end')
+        cache.append(capacitor)
+        tls_instance.add_element(capacitor,
+                                 [terminal_mapping['wide'], 0])  # tlsim.TLSystem.add_element(name, nodes)
+        if track_changes:
+            self.tls_cache.append(cache)
+        return cache
+
+    def __repr__(self):
+        return "OpenEnd {}".format(self.name)
+
 '''
 class RectFanout(DesignElement):
     def __init__(self, name: str, coupler: CPWCoupler, port: DesignTerminal,

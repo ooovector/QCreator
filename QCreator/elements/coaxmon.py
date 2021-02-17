@@ -220,8 +220,6 @@ class Coaxmon(DesignElement):
         scal_C = 1e-15
         JJ = tlsim.Inductor(self.L)
         C = tlsim.Capacitor(c=self.C['qubit']*scal_C, name=self.name+' qubit-ground')
-        GND = tlsim.Short()
-        tls_instance.add_element(GND, [0])
         tls_instance.add_element(JJ, [0, terminal_mapping['qubit']])
         tls_instance.add_element(C, [0, terminal_mapping['qubit']])
         mut_cap = []
