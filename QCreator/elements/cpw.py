@@ -53,6 +53,11 @@ class CPWCoupler(DesignElement):
         self.width_total, self.widths, self.offsets = widths_offsets(self.w, self.s, self.g)
 
         self.segments = []
+
+        # TODO: is it a correct way to get the impedance?
+        self.z0 = None
+        self.cl=self.cm()[0][0,0] # C per um
+
         self.finalize_points()
 
     def finalize_points(self):
@@ -153,8 +158,10 @@ class CPWCoupler(DesignElement):
         for c in range(len(self.w)):
             cross_section.append(self.w[c])
             cross_section.append(self.s[c + 1])
-
-        return cm.ConformalMapping(cross_section).cl_and_Ll()
+        C, L = cm.ConformalMapping(cross_section).cl_and_Ll()
+        C_inv = np.linalg.inv(C)
+        self.z0 = np.sqrt(np.dot(L, C_inv))[0,0]
+        return C,L
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem,
                    terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
