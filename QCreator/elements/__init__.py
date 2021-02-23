@@ -10,3 +10,5 @@ from . meander import CPWMeander
 from .coaxmon import Coaxmon
 from .coaxmon import CoaxmonCoupler
 from .tqcoupler import MMCoupler
+from .pp_transmon import PP_Transmon
+from .pp_transmon import PP_Transmon_Coupler

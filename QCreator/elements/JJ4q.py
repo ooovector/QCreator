@@ -89,3 +89,37 @@ class JJ_1:
             (x3 + contact_pad1_a+indent , y3 -indent), (x3 - contact_pad1_a-indent , y3-indent)
                              ]
         return  [p0, p1, p2, p3, p4, p4, p5]
+
+
+#manhatten style junctions
+class JJ_2:#hw,hd is the hole width, hole depth of the hole in the bridge between the two Plates of the ParallelPlate Transmon
+    def __init__(self, x0, y0, parameter1, parameter2,hw,hd):
+        self._x0=x0
+        self._y0=y0
+        self.hw = hw
+        self.hd = hd
+
+        self._parameter1=parameter1
+        self._parameter2=parameter2
+
+    def generate_jj(self):
+        #parameters
+        x0 = self._x0
+        y0 = self._y0
+        hw = self.hw
+        hd = self.hd
+
+        #bridge_gap = 10 um, bridge_width = 16
+        #junction material and bridge gap is set to 1nm
+        #l is the length of the thin materia piece extending beynd the initial block
+        bg = 10
+        bw = 16
+        jg = 0.5
+        l  = 20
+        #left arm
+        p0 = gdspy.Rectangle((x0-bg/2-bw/2-hw/2,y0+hd-jg),(x0-bg/2-bw/2-jg,y0-hd/2-jg))
+        p1 = gdspy.Rectangle((x0-bg/2-bw/2-hw/4-jg/2-self._parameter1/2,y0-hd/2-jg),(x0-bg/2-bw/2-hw/4-jg/2+self._parameter1/2,y0-hd/2-jg-l))
+        #right arm
+        p2 = gdspy.Rectangle((x0+ bg/2 + hd-jg,y0-hw-bw/2+jg),(x0+ bg/2 -jg-hd/2,y0-hw-bw/2+hw/2))
+        p3 = gdspy.Rectangle((x0+ bg/2 -jg-hd/2,y0-3/4*hw-bw/2+jg/2-self._parameter2/2),(x0+ bg/2 -jg-hd/2-l,y0-3/4*hw-bw/2+jg/2+self._parameter2/2))
+        return [p0,p1,p2,p3]

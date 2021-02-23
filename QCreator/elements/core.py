@@ -96,7 +96,7 @@ class LayerConfiguration:
         self.airbridges_pad_layer = layer_configurations['air bridge pads']
         self.gridline_x_layer = layer_configurations['vertical gridlines']
         self.gridline_y_layer = layer_configurations['horizontal gridlines']
-
+        self.inverted = layer_configurations['inverted']
 
 class ChipGeometry:
     """

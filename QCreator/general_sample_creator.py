@@ -70,6 +70,8 @@ class Sample:
                 self.total_cell.add(result['grid_y'])
             if 'restrict' in result:
                 self.restricted_cell.add(result['restrict'])
+            if 'inverted' in result:
+                self.total_cell.add(result['inverted'])
 
         self.fill_object_arrays()
     def draw_cap(self): # TODO: maybe we need to come up with a better way, but for this moment it's fine
