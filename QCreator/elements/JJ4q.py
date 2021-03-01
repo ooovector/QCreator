@@ -93,11 +93,12 @@ class JJ_1:
 
 #manhatten style junctions
 class JJ_2:#hw,hd is the hole width, hole depth of the hole in the bridge between the two Plates of the ParallelPlate Transmon
-    def __init__(self, x0, y0, parameter1, parameter2,hw,hd):
+    def __init__(self, x0, y0, parameter1, parameter2,hw,hd,l=20):
         self._x0=x0
         self._y0=y0
         self.hw = hw
         self.hd = hd
+        self.l  = l
 
         self._parameter1=parameter1
         self._parameter2=parameter2
@@ -115,7 +116,7 @@ class JJ_2:#hw,hd is the hole width, hole depth of the hole in the bridge betwee
         bg = 10
         bw = 16
         jg = 0.5
-        l  = 20
+        l  = self.l #standard 20
         #left arm
         p0 = gdspy.Rectangle((x0-bg/2-bw/2-hw/2,y0+hd-jg),(x0-bg/2-bw/2-jg,y0-hd/2-jg))
         p1 = gdspy.Rectangle((x0-bg/2-bw/2-hw/4-jg/2-self._parameter1/2,y0-hd/2-jg),(x0-bg/2-bw/2-hw/4-jg/2+self._parameter1/2,y0-hd/2-jg-l))
