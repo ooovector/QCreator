@@ -65,7 +65,6 @@ class PP_Squid(DesignElement):
         result = gdspy.boolean(ground, P1, 'or', layer=self.layer_configuration.total_layer)
         result = gdspy.boolean(result, P2, 'or', layer=self.layer_configuration.total_layer)
 
-        #change here if case to allow Manhatten-style junctions
         P1_bridge = gdspy.Rectangle((self.center[0]-self.gap/2,self.center[1]+self.h/2),(self.center[0]-self.b_g/2,self.center[1]+self.h/2-self.b_w))
         P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2, self.center[1]+self.h/2-2*self.b_w),(self.center[0] + self.b_g / 2, self.center[1]+self.h/2-3*self.b_w))
 
