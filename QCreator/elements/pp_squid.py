@@ -84,7 +84,15 @@ class PP_Squid(DesignElement):
         fluxline = flux.render(self.center, self.w, self.h)['positive']
 
         #removing ground where the fluxline is
-        result = gdspy.boolean(result, gdspy.Rectangle((self.center[0]-l_arm/2-t_r-self.g_t,self.center[1]+self.h/2+0.01),(self.center[0]+3*l_arm/2+t_r+t_m+self.g_t,self.center[1]+self.h/2+250)), 'not', layer=self.layer_configuration.total_layer)
+        ground_fluxline =True
+        if ground_fluxline == False:
+            result = gdspy.boolean(result, gdspy.Rectangle((self.center[0]-l_arm/2-t_r-self.g_t,self.center[1]+self.h/2+0.01),(self.center[0]+3*l_arm/2+t_r+t_m+self.g_t,self.center[1]+self.h/2+250)), 'not', layer=self.layer_configuration.total_layer)
+        else:
+            result = gdspy.boolean(result, gdspy.Rectangle(
+                (self.center[0] , self.center[1] + self.h / 2 + 0.01),
+                (self.center[0] +  l_arm + t_m, self.center[1] + self.h / 2 + 250)), 'not',
+                                   layer=self.layer_configuration.total_layer)
+
 
         result = gdspy.boolean(result, fluxline, 'or', layer=self.layer_configuration.total_layer)
 
