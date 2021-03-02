@@ -22,10 +22,10 @@ class PP_Squid(DesignElement):
     6) jj_params - parameters of the SQUID which here is 3JJ SQUID.#TODO add more information
     """
     def __init__(self, name: str, center: Tuple[float, float],width: float, height: float,gap: float,bridge_gap:float,bridge_w:float, g_w: float, g_h: float,g_t: float,layer_configuration: LayerConfiguration,
-                 jj_params: Dict,fluxline_params: Dict,Couplers):
+                 jj_params: Dict,fluxline_params: Dict,Couplers,transformations:Dict):
         super().__init__(type='qubit', name=name)
         #qubit parameters
-        #self.transformations = transformations# to mirror the structure
+        self.transformations = transformations# to mirror the structure
         self.center = center
         self.w = width
         self.h = height
@@ -192,9 +192,34 @@ class PP_Squid(DesignElement):
             self.JJ_coordinates = (self.center[0],self.center[1])
             JJ = self.generate_JJ()
 
-        return {'positive': result,
-                    'restricted': result_restricted,
-                    'qubit': result,
+        qubit = deepcopy(result)
+
+        # if self.calculate_capacitance is False:
+        #    qubit_cap_parts = None
+        #    qubit = None
+        if 'mirror' in self.transformations:
+            return {'positive': result.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
+                    'restrict': result_restricted,
+                    'qubit': qubit.mirror(self.transformations['mirror'][0],
+                                          self.transformations['mirror'][1]) if qubit is not None else None,
+                    'qubit_cap': qubit_cap_parts,
+                    'JJ': JJ.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
+                    'inverted': inverted.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1])
+                    }
+        if 'rotate' in self.transformations:
+            print('hey')
+            return {'positive': result.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
+                    'restrict': result_restricted,
+                    'qubit': qubit.rotate(self.transformations['rotate'][0],
+                                          self.transformations['rotate'][1]) if qubit is not None else None,
+                    'qubit_cap': qubit_cap_parts,
+                    'JJ': JJ.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
+                    'inverted': inverted.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1])
+                    }
+        elif self.transformations == {}:
+            return {'positive': result,
+                    'restrict': result_restricted,
+                    'qubit': qubit,
                     'qubit_cap': qubit_cap_parts,
                     'JJ': JJ,
                     'inverted': inverted

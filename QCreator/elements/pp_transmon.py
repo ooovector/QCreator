@@ -21,10 +21,10 @@ class PP_Transmon(DesignElement):
     6) jj_params - parameters of the SQUID which here is 3JJ SQUID.#TODO add more information
     """
     def __init__(self, name: str, center: Tuple[float, float],width: float, height: float,gap: float,bridge_gap:float,bridge_w:float, g_w: float, g_h: float,g_t: float,layer_configuration: LayerConfiguration,
-                 jj_params: Dict,Couplers):
+                 jj_params: Dict,Couplers,transformations: Dict):
         super().__init__(type='qubit', name=name)
         #qubit parameters
-        #self.transformations = transformations# to mirror the structure
+        self.transformations = transformations# to mirror the structure
         self.center = center
         self.w = width
         self.h = height
@@ -179,7 +179,7 @@ class PP_Transmon(DesignElement):
         if self.JJ_params is not None:
             self.JJ_coordinates = (self.center[0],self.center[1])
             JJ = self.generate_JJ()
-
+        '''
         return {'positive': result,
                     'restricted': result_restricted,
                     'qubit': result,
@@ -187,6 +187,41 @@ class PP_Transmon(DesignElement):
                     'JJ': JJ,
                     'inverted': inverted
                     }
+        '''
+        qubit=deepcopy(result)
+
+        #if self.calculate_capacitance is False:
+        #    qubit_cap_parts = None
+        #    qubit = None
+        if 'mirror' in self.transformations:
+            return {'positive': result.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
+                    'restrict': result_restricted,
+                    'qubit': qubit.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]) if qubit is not None else None,
+                    'qubit_cap': qubit_cap_parts,
+                    'JJ': JJ.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
+                    'inverted': inverted.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1])
+                    }
+        if 'rotate' in self.transformations:
+            print('hey')
+            return {'positive': result.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
+                    'restrict': result_restricted,
+                    'qubit': qubit.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]) if qubit is not None else None,
+                    'qubit_cap': qubit_cap_parts,
+                    'JJ': JJ.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
+                    'inverted': inverted.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1])
+                    }
+        elif self.transformations == {}:
+            return {'positive': result,
+                    'restrict': result_restricted,
+                    'qubit': qubit,
+                    'qubit_cap': qubit_cap_parts,
+                    'JJ': JJ,
+                    'inverted':inverted
+                    }
+
+
+
+
 
     def generate_ground(self):
         x = self.g_w
@@ -198,17 +233,6 @@ class PP_Transmon(DesignElement):
         ground = gdspy.fast_boolean(ground1, ground2, 'not')
         return ground
 
-    def rotate_point(point, angle, origin):
-        """
-        Rotate a point counterclockwise by a given angle around a given origin.
-
-        The angle should be given in radians.
-        """
-        ox, oy = origin
-        px, py = point
-        qx = ox + np.cos(angle) * (px - ox) - np.sin(angle) * (py - oy)
-        qy = oy + np.sin(angle) * (px - ox) + np.cos(angle) * (py - oy)
-        return qx, qy
 
     def generate_JJ(self):
         #change here to allow Manhatten style junctions
@@ -294,3 +318,31 @@ class PP_Transmon_Coupler:
         return {
             'positive': result
                         }
+
+
+def rotate_point(point, angle, origin):
+    """
+    Rotate a point counterclockwise by a given angle around a given origin.
+
+    The angle should be given in radians.
+    """
+    ox, oy = origin
+    px, py = point
+    qx = ox + np.cos(angle) * (px - ox) - np.sin(angle) * (py - oy)
+    qy = oy + np.sin(angle) * (px - ox) + np.cos(angle) * (py - oy)
+    return qx, qy
+
+def mirror_point(point,ref1,ref2):
+    """
+       Mirror a point by a given line specified by 2 points ref1 and ref2.
+    """
+    [x1, y1] =ref1
+    [x2, y2] =ref2
+
+    dx = x2-x1
+    dy = y2-y1
+    a = (dx * dx - dy * dy) / (dx * dx + dy * dy)
+    b = 2 * dx * dy / (dx * dx + dy * dy)
+    x2 = round(a * (point[0] - x1) + b * (point[1] - y1) + x1)
+    y2 = round(b * (point[0] - x1) - a * (point[1] - y1) + y1)
+    return x2, y2
