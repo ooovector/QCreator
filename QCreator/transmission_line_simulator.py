@@ -490,29 +490,22 @@ class TLSystem:
     def boundary_condition_matrix_det(self, omega):
         matrix = self.create_boundary_problem_matrix(omega)
         return np.linalg.det(matrix)
-
     def boundary_condition_matrix_abs_det(self, omega):
         matrix = self.create_boundary_problem_matrix(omega)
         det = np.linalg.det(matrix)
         return np.log10((det.real)**2 + (det.imag)**2)
-
     def solve_problem(self, frequency_approximation, epsilon, step):
-
         '''
         This is a stupid method for solving the problem. It looks like gradient descent method
         '''
-
         x = frequency_approximation
         func = self.create_boundary_problem_matrix(frequency_approximation)
-
         number_of_iterations = 0
-
         while (self.create_boundary_problem_matrix(x) - 0) > epsilon:
             number_of_iterations = number_of_iterations + 1
             print('not', number_of_iterations)
             print(x)
             grad = (self.create_boundary_problem_matrix(x+step) - self.create_boundary_problem_matrix(x))/step
-
             if grad < 0:
                 x = x + step#*grad
             elif grad > 0:
@@ -522,14 +515,12 @@ class TLSystem:
                 break
         result = x
         return result
-
     def res(self):
         print('self.nodes', self.nodes)
         print('self.elements', self.elements)
         print('self.node_multiplicity', self.node_multiplicity)
         print('self.terminal_node_mapping', self.terminal_node_mapping)
         print('self.dof_mapping', self.dof_mapping)
-
         print('self.nodes', type(self.nodes))
         print('self.elements', type(self.elements))
         print('self.node_multiplicity', type(self.node_multiplicity))
@@ -537,4 +528,3 @@ class TLSystem:
         print('self.dof_mapping', type(self.dof_mapping))
         return
 """
-

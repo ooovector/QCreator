@@ -120,13 +120,30 @@ class Sample:
 
     def ground(self, o: elements.DesignElement, port: str, name: str, grounding_width: float,
                grounding_between: List[Tuple[int, int]]):
-        if port == 'port1':
-            reverse_type = 'Negative'
-        else:
-            reverse_type = 'Positive'
+        t = o.get_terminals()[port]
 
-        closed_end = elements.RectGrounding(name, o.get_terminals()[port], grounding_width, grounding_between,
-                                            self.layer_configuration, reverse_type)
+        if type(t.w) and type(t.s) == list:
+            w_ = t.w
+            s_ = t.s
+
+        elif type(t.w) == float or type(t.w) == int:
+            w_ = [t.w]
+            s_ = [t.s, t.s]
+        else:
+            raise ValueError('Unexpected types of CPW parameters')
+        g_ = t.g
+
+        # if port == 'port1':
+        #     reverse_type = 'Negative'
+        # else:
+        #     reverse_type = 'Positive'
+
+        position_ = t.position
+        orientation_ = t.orientation
+
+        closed_end = elements.RectGrounding(name, position_, orientation_, w_, s_, g_, grounding_width,
+                                            grounding_between,
+                                            self.layer_configuration)
         self.add(closed_end)
 
         conductor_in_narrow = 0
@@ -134,12 +151,34 @@ class Sample:
         for conductor_id in range(closed_end.initial_number_of_conductors):
             self.connections.append(((o, port, conductor_id), (closed_end, 'wide', conductor_id)))
 
-        # if closed_end.final_number_of_conductors:
-        #     for conductor_id in closed_end.free_core_conductors:
-        #         self.connections.append(((closed_end, 'wide', conductor_id), (closed_end, 'narrow', conductor_in_narrow)))
-        #         conductor_in_narrow += 1
-
         return closed_end
+
+    def open_end(self, o: elements.DesignElement, port: str, name: str):
+        position_ = o.get_terminals()[port].position
+        orientation_ = o.get_terminals()[port].orientation
+
+        if type(o.get_terminals()[port].w) and type(o.get_terminals()[port].s) == list:
+            w_ = o.get_terminals()[port].w
+            s_ = o.get_terminals()[port].s
+            g_ = o.get_terminals()[port].g
+
+        elif type(o.get_terminals()[port].w) == float or type(o.get_terminals()[port].w) == int:
+            w_ = [o.get_terminals()[port].w]
+            s_ = [o.get_terminals()[port].s, o.get_terminals()[port].s]
+            g_ = o.get_terminals()[port].g
+
+        else:
+            raise ValueError('Unexpected data types of CPW parameters')
+
+        open_end = elements.OpenEnd(name, position_, w_, s_, g_, orientation_, self.layer_configuration)
+        # open_end = elements.OpenEnd(name, o.get_terminals()[port], self.layer_configuration)
+        self.add(open_end)
+
+        for conductor_id in range(open_end.number_of_conductors):
+            self.connections.append(((o, port, conductor_id), (open_end, 'wide', conductor_id)))
+
+        return open_end
+
 
     def connect_cpw(self, o1: elements.DesignElement, o2: elements.DesignElement, port1: str, port2: str, name: str,
                     points: list):
