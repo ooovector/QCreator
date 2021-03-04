@@ -1,5 +1,6 @@
 import numpy as np
 from abc import *
+from scipy.constants import e, hbar
 
 
 class TLSystemElement:
@@ -280,6 +281,54 @@ class TLCoupler(TLSystemElement):
     def __repr__(self):
         return "TL {} (n={})".format(self.name, self.n)
 
+class JosephsonJunction(TLSystemElement):
+    """
+    JosephsonJunction is a nonlinear element with energy E = E_J(1 − cos φ).
+    However, in approximation it can be represented as element with linear inductance L_J = Φ_0 / (2 pi I_c),
+    where I_c is a critical current.
+    """
+
+    def num_terminals(self):
+        return 2
+
+    def num_degrees_of_freedom(self):
+        return 0
+
+    def boundary_condition(self, omega):
+        return np.asarray([[1, -1, 1j * omega * self.L_lin, 0], [0, 0, 1, 1]], dtype=complex)
+
+    def dynamic_equations(self):
+        b = np.asarray([[0, 0, self.L_lin, 0], [0, 0, 0, 0]])  # derivatives
+        a = np.asarray([[1, -1, 0, 0], [0, 0, 1, 1]])  # current values
+        return a, b
+
+    def energy_matrix(self):
+        energy = np.asarray([
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, self.L_lin, 0],
+            [0, 0, 0, 0]
+        ]) / 2
+        return energy
+
+    def nonlinear_perturbation(self):
+        p = np.asarray([
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 0]
+        ])
+        v = - (2 * e / hbar) ** 4 * self.E_J / 24 * self.L_lin ** 4 * np.kron(p, p)
+
+        # np.conj(np.kron(mode1, mode2)) @ v @ (np.kron(mode1, mode2))
+
+        return v
+
+    def __init__(self, e_j=None, name=''):
+        super().__init__('JJ', name)
+        self.E_J = e_j
+        phi_0 = hbar / (2 * e)  # reduced flux quantum
+        self.L_lin = phi_0 ** 2 / self.E_J  # linear part of JJ
 
 class TLSystem:
     def __init__(self):
