@@ -946,8 +946,14 @@ class RectFanout(DesignElement):
                     self.tls_cache.append(coupled_line)
 
             else:
+                # if elem == 'center':
+                #     l = 0
+                # else:
+                #     l = structure_for_tls[elem]['l']
+                l_line = 1.2 * structure_for_tls[elem]['l']
+
                 line = tlsim.TLCoupler(n=number_of_conductors,
-                                       l=structure_for_tls[elem]['l'],
+                                       l=l_line,
                                        cl=structure_for_tls[elem]['Cl'],
                                        ll=structure_for_tls[elem]['Ll'],
                                        rl=np.zeros_like(structure_for_tls[elem]['Cl']),
