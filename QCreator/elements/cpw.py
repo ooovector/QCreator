@@ -154,7 +154,12 @@ class CPWCoupler(DesignElement):
             cross_section.append(self.w[c])
             cross_section.append(self.s[c + 1])
 
-        return cm.ConformalMapping(cross_section).cl_and_Ll()
+        ll, cl = cm.ConformalMapping(cross_section).cl_and_Ll()
+
+        if not self.terminals['port1'].order:
+            ll, cl = ll[::-1, ::-1], cl[::-1, ::-1]
+
+        return ll, cl
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem,
                    terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
@@ -420,8 +425,8 @@ class RectGrounding(DesignElement):
         if len(delta_list) > len(short_list):
             widths_of_cpw_new.extend(delta_list[len(delta_list) - 1])
 
-        if reverse_type == 'Negative':
-            widths_of_cpw_new.reverse()
+        #if reverse_type == 'Negative':
+        #    widths_of_cpw_new.reverse()
 
         list_of_conductors = []
         list_of_gaps = []
@@ -448,7 +453,7 @@ class RectGrounding(DesignElement):
                 self.terminals = {
                     'wide': DesignTerminal(position=self.position, orientation=self.orientation,
                                            g=self.g, s=self.s,
-                                           w=self.w, type='cpw'),
+                                           w=self.w, type='cpw', order=False),
                     'narrow': DesignTerminal(position=new_end_points, orientation=self.orientation, g=self.g,
                                              s=self.narrow_port_s[0],
                                              w=self.narrow_port_w[0], type='cpw')}
@@ -457,7 +462,7 @@ class RectGrounding(DesignElement):
                 self.terminals = {
                     'wide': DesignTerminal(position=self.position, orientation=self.orientation,
                                            g=self.g, s=self.s,
-                                           w=self.w, type='cpw'),
+                                           w=self.w, type='cpw', order=False),
                     'narrow': DesignTerminal(position=new_end_points, orientation=self.orientation, g=self.g,
                                              s=self.narrow_port_s,
                                              w=self.narrow_port_w, type='cpw')}
@@ -466,7 +471,7 @@ class RectGrounding(DesignElement):
             self.terminals = {
                 'wide': DesignTerminal(position=self.position, orientation=self.orientation,
                                        g=self.g, s=self.s[0],
-                                       w=self.w[0], type='cpw')}
+                                       w=self.w[0], type='cpw', order=False)}
 
         self.widths_ground, self.offsets_ground = widths_offsets_for_ground(list_of_conductors, list_of_gaps)
         self.widths_of_cpw_new = widths_of_cpw_new
