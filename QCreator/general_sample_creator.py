@@ -105,6 +105,18 @@ class Sample:
     # def ground(self, element: elements.DesignElement, port: str):
     #     self.connections.append(((element, port), ('gnd', 'gnd')))
 
+    def connect(self, o1, p1, o2, p2):
+        reverse = o1.get_terminals()[p1].order == o2.get_terminals()[p2].order
+        try:
+            for conductor_id in range(len(o1.get_terminals()[p1].w)):
+                if reverse:
+                    conductor_second = len(o1.get_terminals()[p1].w) - 1 - conductor_id
+                else:
+                    conductor_second = conductor_id
+                self.connections.append(((o1, p1, conductor_id), (o2, p2, conductor_second)))
+        except TypeError:
+            self.connections.append(((o1, p1, 0), (o2, p2, 0)))
+
     def fanout(self, o: elements.DesignElement, port: str, name: str, grouping: Tuple[int, int],
                down_s_right: float = None, center_s_left: float = None,
                center_s_right: float = None, up_s_left: float = None):
@@ -113,9 +125,7 @@ class Sample:
                                      down_s_right=down_s_right, center_s_left=center_s_left,
                                      center_s_right=center_s_right, up_s_left=up_s_left)
         self.add(fanout)
-        for conductor_id in range(len(fanout.w)):
-            self.connections.append(((o, port, conductor_id), (fanout, 'wide', conductor_id)))
-
+        self.connect(o, port, fanout, 'wide')
         return fanout
 
     def ground(self, o: elements.DesignElement, port: str, name: str, grounding_width: float,
@@ -148,8 +158,9 @@ class Sample:
 
         conductor_in_narrow = 0
 
-        for conductor_id in range(closed_end.initial_number_of_conductors):
-            self.connections.append(((o, port, conductor_id), (closed_end, 'wide', conductor_id)))
+        #for conductor_id in range(closed_end.initial_number_of_conductors):
+        #    self.connections.append(((o, port, conductor_id), (closed_end, 'wide', conductor_id)))
+        self.connect(o, port, closed_end, 'wide')
 
         return closed_end
 
@@ -174,9 +185,7 @@ class Sample:
         # open_end = elements.OpenEnd(name, o.get_terminals()[port], self.layer_configuration)
         self.add(open_end)
 
-        for conductor_id in range(open_end.number_of_conductors):
-            self.connections.append(((o, port, conductor_id), (open_end, 'wide', conductor_id)))
-
+        self.connect(o, port, open_end, 'wide')
         return open_end
 
 
@@ -224,8 +233,9 @@ class Sample:
         cpw = elements.CPW(name, points, w, s, g, self.layer_configuration, r=self.default_cpw_radius(w, s, g),
                            corner_type='round', orientation1=orientation1, orientation2=orientation2)
         self.add(cpw)
-        self.connections.extend([((cpw, 'port1', 0), (o1, port1, 0)), ((cpw, 'port2', 0), (o2, port2, 0))])
-
+        #self.connections.extend([((cpw, 'port1', 0), (o1, port1, 0)), ((cpw, 'port2', 0), (o2, port2, 0))])
+        self.connect(cpw, 'port1', o1, port1)
+        self.connect(cpw, 'port2', o2, port2)
         return cpw
 
     def watch(self):
@@ -525,8 +535,10 @@ class Sample:
                 rendering_meander = elements.CPW(name=name, points=points_for_creation, w=w, s=s, g=g,
                                                  layer_configuration=self.layer_configuration, r=radius)
                 self.add(rendering_meander)
-                self.connections.extend([((rendering_meander, 'port1', 0), (o1, port1, 0)),
-                                         ((rendering_meander, 'port2', 0), (o2, port2, 0))])
+#                self.connections.extend([((rendering_meander, 'port1', 0), (o1, port1, 0)),
+#                                         ((rendering_meander, 'port2', 0), (o2, port2, 0))])
+                self.connect(rendering_meander, 'port1', o1, port1)
+                self.connect(rendering_meander, 'port2', o2, port2)
             else:
                 raise ValueError('CPW parameters are not equal!')
 
