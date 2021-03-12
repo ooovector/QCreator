@@ -105,6 +105,18 @@ class Sample:
     # def ground(self, element: elements.DesignElement, port: str):
     #     self.connections.append(((element, port), ('gnd', 'gnd')))
 
+    def connect(self, o1, p1, o2, p2):
+        reverse = o1.get_terminals()[p1].order == o2.get_terminals()[p2].order
+        try:
+            for conductor_id in range(len(o1.get_terminals()[p1].w)):
+                if reverse:
+                    conductor_second = len(o1.get_terminals()[p1].w) - 1 - conductor_id
+                else:
+                    conductor_second = conductor_id
+                self.connections.append(((o1, p1, conductor_id), (o2, p2, conductor_second)))
+        except TypeError:
+            self.connections.append(((o1, p1, 0), (o2, p2, 0)))
+
     def fanout(self, o: elements.DesignElement, port: str, name: str, grouping: Tuple[int, int],
                down_s_right: float = None, center_s_left: float = None,
                center_s_right: float = None, up_s_left: float = None):
@@ -113,33 +125,69 @@ class Sample:
                                      down_s_right=down_s_right, center_s_left=center_s_left,
                                      center_s_right=center_s_right, up_s_left=up_s_left)
         self.add(fanout)
-        for conductor_id in range(len(fanout.w)):
-            self.connections.append(((o, port, conductor_id), (fanout, 'wide', conductor_id)))
-
+        self.connect(o, port, fanout, 'wide')
         return fanout
 
     def ground(self, o: elements.DesignElement, port: str, name: str, grounding_width: float,
                grounding_between: List[Tuple[int, int]]):
-        if port == 'port1':
-            reverse_type = 'Negative'
-        else:
-            reverse_type = 'Positive'
+        t = o.get_terminals()[port]
 
-        closed_end = elements.RectGrounding(name, o.get_terminals()[port], grounding_width, grounding_between,
-                                            self.layer_configuration, reverse_type)
+        if type(t.w) and type(t.s) == list:
+            w_ = t.w
+            s_ = t.s
+
+        elif type(t.w) == float or type(t.w) == int:
+            w_ = [t.w]
+            s_ = [t.s, t.s]
+        else:
+            raise ValueError('Unexpected types of CPW parameters')
+        g_ = t.g
+
+        # if port == 'port1':
+        #     reverse_type = 'Negative'
+        # else:
+        #     reverse_type = 'Positive'
+
+        position_ = t.position
+        orientation_ = t.orientation
+
+        closed_end = elements.RectGrounding(name, position_, orientation_, w_, s_, g_, grounding_width,
+                                            grounding_between,
+                                            self.layer_configuration)
         self.add(closed_end)
 
         conductor_in_narrow = 0
 
-        for conductor_id in range(closed_end.initial_number_of_conductors):
-            self.connections.append(((o, port, conductor_id), (closed_end, 'wide', conductor_id)))
-
-        # if closed_end.final_number_of_conductors:
-        #     for conductor_id in closed_end.free_core_conductors:
-        #         self.connections.append(((closed_end, 'wide', conductor_id), (closed_end, 'narrow', conductor_in_narrow)))
-        #         conductor_in_narrow += 1
+        #for conductor_id in range(closed_end.initial_number_of_conductors):
+        #    self.connections.append(((o, port, conductor_id), (closed_end, 'wide', conductor_id)))
+        self.connect(o, port, closed_end, 'wide')
 
         return closed_end
+
+    def open_end(self, o: elements.DesignElement, port: str, name: str):
+        position_ = o.get_terminals()[port].position
+        orientation_ = o.get_terminals()[port].orientation
+
+        if type(o.get_terminals()[port].w) and type(o.get_terminals()[port].s) == list:
+            w_ = o.get_terminals()[port].w
+            s_ = o.get_terminals()[port].s
+            g_ = o.get_terminals()[port].g
+
+        elif type(o.get_terminals()[port].w) == float or type(o.get_terminals()[port].w) == int:
+            w_ = [o.get_terminals()[port].w]
+            s_ = [o.get_terminals()[port].s, o.get_terminals()[port].s]
+            g_ = o.get_terminals()[port].g
+
+        else:
+            raise ValueError('Unexpected data types of CPW parameters')
+
+        open_end = elements.OpenEnd(name, position_, w_, s_, g_, orientation_, self.layer_configuration)
+        # open_end = elements.OpenEnd(name, o.get_terminals()[port], self.layer_configuration)
+        self.add(open_end)
+
+        self.connect(o, port, open_end, 'wide')
+        return open_end
+
 
     def connect_cpw(self, o1: elements.DesignElement, o2: elements.DesignElement, port1: str, port2: str, name: str,
                     points: list):
@@ -185,8 +233,9 @@ class Sample:
         cpw = elements.CPW(name, points, w, s, g, self.layer_configuration, r=self.default_cpw_radius(w, s, g),
                            corner_type='round', orientation1=orientation1, orientation2=orientation2)
         self.add(cpw)
-        self.connections.extend([((cpw, 'port1', 0), (o1, port1, 0)), ((cpw, 'port2', 0), (o2, port2, 0))])
-
+        #self.connections.extend([((cpw, 'port1', 0), (o1, port1, 0)), ((cpw, 'port2', 0), (o2, port2, 0))])
+        self.connect(cpw, 'port1', o1, port1)
+        self.connect(cpw, 'port2', o2, port2)
         return cpw
 
     def watch(self):
@@ -486,8 +535,10 @@ class Sample:
                 rendering_meander = elements.CPW(name=name, points=points_for_creation, w=w, s=s, g=g,
                                                  layer_configuration=self.layer_configuration, r=radius)
                 self.add(rendering_meander)
-                self.connections.extend([((rendering_meander, 'port1', 0), (o1, port1, 0)),
-                                         ((rendering_meander, 'port2', 0), (o2, port2, 0))])
+#                self.connections.extend([((rendering_meander, 'port1', 0), (o1, port1, 0)),
+#                                         ((rendering_meander, 'port2', 0), (o2, port2, 0))])
+                self.connect(rendering_meander, 'port1', o1, port1)
+                self.connect(rendering_meander, 'port2', o2, port2)
             else:
                 raise ValueError('CPW parameters are not equal!')
 
