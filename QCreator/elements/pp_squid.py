@@ -1,4 +1,3 @@
-
 from .core import DesignElement, LayerConfiguration, DesignTerminal
 from .. import conformal_mapping as cm
 from .. import transmission_line_simulator as tlsim
@@ -22,7 +21,7 @@ class PP_Squid(DesignElement):
     6) jj_params - parameters of the SQUID which here is 3JJ SQUID.#TODO add more information
     """
     def __init__(self, name: str, center: Tuple[float, float],width: float, height: float,gap: float,bridge_gap:float,bridge_w:float, g_w: float, g_h: float,g_t: float,layer_configuration: LayerConfiguration,
-                 jj_params: Dict,fluxline_params: Dict,Couplers,transformations:Dict):
+                 jj_params: Dict,fluxline_params: Dict,Couplers,transformations:Dict,remove_ground = {},secret_shift = 0):
         super().__init__(type='qubit', name=name)
         #qubit parameters
         self.transformations = transformations# to mirror the structure
@@ -47,6 +46,19 @@ class PP_Squid(DesignElement):
         self.layers = []
         self.fluxline_params = fluxline_params
 
+        self.tls_cache = []
+        self.L = 15e-9  # 20nHr
+        self.C = {   'coupler0': None,
+            'coupler1': None,
+             'coupler2': None,
+             'coupler3': None,
+             'coupler4': None,
+            'qubit': None}
+
+        # remove ground on these sites
+        self.remove_ground = remove_ground
+
+        self.secret_shift = secret_shift
 
     def render(self):
         """
@@ -69,8 +81,8 @@ class PP_Squid(DesignElement):
         P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2, self.center[1]+self.h/2-2*self.b_w),(self.center[0] + self.b_g / 2, self.center[1]+self.h/2-3*self.b_w))
 
 
-        qubit_cap_parts.append(gdspy.boolean(P1, P1_bridge, 'or', layer=8))
-        qubit_cap_parts.append(gdspy.boolean(P2, P2_bridge, 'or', layer=9))
+        qubit_cap_parts.append(gdspy.boolean(P1, P1_bridge, 'or', layer=8+self.secret_shift))
+        qubit_cap_parts.append(gdspy.boolean(P2, P2_bridge, 'or', layer=9+self.secret_shift))
 
         result = gdspy.boolean(result, P1_bridge, 'or', layer=self.layer_configuration.total_layer)
         result = gdspy.boolean(result, P2_bridge, 'or', layer=self.layer_configuration.total_layer)
@@ -179,11 +191,10 @@ class PP_Squid(DesignElement):
                         (self.center[0] - self.g_w / 2 + l1 - gap - self.g_t, self.center[1] - self.g_h / 2), (self.center[0] - self.g_w / 2 + l1 + l2 + self.g_t + gap,self.center[1] - self.g_h / 2 - t - gap - gap - self.g_t)), 'or',layer=self.layer_configuration.inverted)
 
                 if coupler.coupler_type == 'coupler':
-                        qubit_cap_parts.append(gdspy.boolean(coupler.result_coupler, coupler.result_coupler, 'or',layer=10+id))
-                        self.layers.append(10+id)
+                        qubit_cap_parts.append(gdspy.boolean(coupler.result_coupler, coupler.result_coupler, 'or',layer=10+id+self.secret_shift))
+                        self.layers.append(10+id+self.secret_shift)
                         last_step_cap.append(coupler.result_coupler)
         qubit_cap_parts.append(gdspy.boolean(result,last_step_cap,'not'))
-        print(qubit_cap_parts)
 
         inverted = gdspy.boolean(box, result, 'not',layer=self.layer_configuration.inverted)
 
@@ -233,6 +244,17 @@ class PP_Squid(DesignElement):
         ground1 = gdspy.Rectangle((z[0] - x / 2, z[1] - y / 2), (z[0] + x / 2, z[1] + y / 2))
         ground2 = gdspy.Rectangle((z[0] - x / 2 + t, z[1] - y / 2 + t), (z[0] + x / 2 - t, z[1] + y / 2 - t))
         ground = gdspy.fast_boolean(ground1, ground2, 'not')
+
+        for key in self.remove_ground:
+            if key == 'left':
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2,z[1] - y / 2+t), (z[0] - x / 2 +t, z[1] + y / 2-t)) , 'not')
+            if key == 'right':
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] + x / 2,z[1] - y / 2+t), (z[0] + x / 2 -t, z[1] + y / 2-t)) , 'not')
+            if key == 'top':
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2+t,z[1] + y / 2), (z[0] + x / 2-t, z[1] + y / 2-t)) , 'not')
+            if key == 'bottom':
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2+t,z[1] - y / 2), (z[0] + x / 2-t, z[1] - y / 2+t)) , 'not')
+
         return ground
 
     def rotate_point(point, angle, origin):
@@ -262,6 +284,31 @@ class PP_Squid(DesignElement):
         result.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
 
         return result
+
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict,
+                   track_changes: bool = True) -> list:
+        #scaling factor for C
+        scal_C = 1e-15
+        JJ = tlsim.Inductor(self.L)
+        C = tlsim.Capacitor(c=self.C['qubit']*scal_C, name=self.name+' qubit-ground')
+        tls_instance.add_element(JJ, [0, terminal_mapping['qubit']])
+        tls_instance.add_element(C, [0, terminal_mapping['qubit']])
+        mut_cap = []
+        cap_g = []
+        for id, coupler in enumerate(self.couplers):
+            if coupler.coupler_type == 'coupler':
+                c0 = tlsim.Capacitor(c=self.C['coupler'+str(id)][1]*scal_C, name=self.name+' qubit-coupler'+str(id)+self.secret_shift)
+                c0g = tlsim.Capacitor(c=self.C['coupler'+str(id)][0]*scal_C, name=self.name+' coupler'+str(id)+'-ground'+self.secret_shift)
+                tls_instance.add_element(c0, [terminal_mapping['qubit'], terminal_mapping['coupler'+str(id)+self.secret_shift]])
+                tls_instance.add_element(c0g, [terminal_mapping['coupler'+str(id)+self.secret_shift], 0])
+                mut_cap.append(c0)
+                cap_g.append(c0g)
+            # elif coupler.coupler_type =='grounded':
+            #     tls_instance.add_element(tlsim.Short(), [terminal_mapping['flux line'], 0])
+
+        if track_changes:
+            self.tls_cache.append([JJ, C]+mut_cap+cap_g)
+        return [JJ, C]+mut_cap+cap_g
 
 
 class PP_Squid_Coupler:
