@@ -241,14 +241,23 @@ class PP_Transmon(DesignElement):
         ground2 = gdspy.Rectangle((z[0] - x / 2 + t, z[1] - y / 2 + t), (z[0] + x / 2 - t, z[1] + y / 2 - t))
         ground = gdspy.fast_boolean(ground1, ground2, 'not')
         for key in self.remove_ground:
+            factor = 1.0
             if key == 'left':
-                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2,z[1] - y / 2+t), (z[0] - x / 2 +t, z[1] + y / 2-t)) , 'not')
+                if self.remove_ground[key] != None:
+                    factor = self.remove_ground[key]
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2,z[1] - factor*y / 2+t), (z[0] - x / 2 +t, z[1] + factor*y / 2-t)) , 'not')
             if key == 'right':
-                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] + x / 2,z[1] - y / 2+t), (z[0] + x / 2 -t, z[1] + y / 2-t)) , 'not')
+                if self.remove_ground[key] != None:
+                    factor = self.remove_ground[key]
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] + x / 2,z[1] - factor*y / 2+t), (z[0] + x / 2 -t, z[1] + factor*y / 2-t)) , 'not')
             if key == 'top':
-                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2+t,z[1] + y / 2), (z[0] + x / 2-t, z[1] + y / 2-t)) , 'not')
+                if self.remove_ground[key] != None:
+                    factor = self.remove_ground[key]
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - factor*x / 2+t,z[1] + y / 2), (z[0] + factor*x / 2-t, z[1] + y / 2-t)) , 'not')
             if key == 'bottom':
-                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2+t,z[1] - y / 2), (z[0] + x / 2-t, z[1] - y / 2+t)) , 'not')
+                if self.remove_ground[key] != None:
+                    factor = self.remove_ground[key]
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - factor*x / 2+t,z[1] - y / 2), (z[0] + factor*x / 2-t, z[1] - y / 2+t)) , 'not')
 
         return ground
 
