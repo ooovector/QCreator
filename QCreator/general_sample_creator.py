@@ -459,90 +459,192 @@ class Sample:
         return (firstline.end[0] + 2 * narrowing_length + airbridge[0] * 2 + airbridge[1], firstline.end[1]), None
 
     def connect_meander(self, name: str, o1: elements.DesignElement, port1: str, meander_length: float,
-                        restricted_scale: float, constant_scale: float = 0., o2: elements.DesignElement = None,
-                        port2: str = None, radius: float = 0., connector: float = 10.):
-        if not o2:
-            t1 = o1.get_terminals()[port1]
-            w = t1.w
-            s = t1.s
-            g = t1.g
-            # w1 = t1.w
-            # s1 = t1.s
-            # g1 = t1.g
-            # if type(w1) == list or type(s1) == list:
-            #     if len(w1) == 1 and len(s1) == 2:
-            #         w = w1[0]
-            #         s = s1[0]
-            #         g = g1
-            #     else:
-            #         raise ValueError('Unexpected size of CPW')
-            # else:
-            #     w = w1[0]
-            #     s = s1[0]
-            #     g = g1
-            delta = g + s + w / 2
-            connector_length = connector + 2 * delta
-            angle = t1.orientation + np.pi
-            initial_point = [(t1.position[0], t1.position[1])]
-            meander = elements.CPWMeander(initial_point=initial_point, w=w, s=s, g=g, meander_length=meander_length,
-                                          restricted_scale=restricted_scale, constant_scale=constant_scale,
-                                          orientation=angle, connector_length=connector_length)
-            points_for_creation = meander.points
-            rendering_meander = elements.CPW(name=name, points=points_for_creation, w=w, s=s, g=g,
-                                             layer_configuration=self.layer_configuration, r=radius)
-            self.add(rendering_meander)
-            self.connections.extend([((rendering_meander, 'port1', 0), (o1, port1, 0))])
+                        length_left: float, length_right: float, first_step_orientation:float, meander_orientation: float,
+                        end_point = None, end_orientation = None, meander_type='round'):
+        # make small indent from the starting point
+        t1 = o1.get_terminals()[port1]
+        points = [tuple(t1.position)]
+        (w, s, g) = (t1.w, t1.s, t1.g)
+        indent_length = 50#(w+2*s)*2
+        points.append((t1.position[0]+np.cos(t1.orientation+np.pi)*indent_length,
+                       t1.position[1]+np.sin(t1.orientation+np.pi)*indent_length))
+        indent_first = length_left if first_step_orientation == 'left' else length_right
+        points.append((points[-1][0]+np.cos(meander_orientation)*indent_first,
+                       points[-1][1]+np.sin(meander_orientation)*indent_first))
+        if end_point is not None:
+            end_point_indent = [(end_point[0] + np.cos(end_orientation + np.pi) * indent_length,
+                              end_point[1] + np.sin(end_orientation + np.pi) * indent_length)]
         else:
-            t1 = o1.get_terminals()[port1]
-            t2 = o2.get_terminals()[port2]
-            w1, s1, g1 = t1.w, t1.s, t1.g
-            w2, s2, g2 = t2.w, t2.s, t2.g
-            if w1 == w2 and s1 == s2 and g1 == g2:
-                w, s, g = w1, s1, g1
-                delta = g + s + w / 2
-                connector_length = connector + 4 * delta
-                distance = np.sqrt((t1.position[0] - t2.position[0]) ** 2 + (t1.position[1] - t2.position[1]) ** 2)
-
-                angle = np.arctan((t1.position[1] - t2.position[1]) / (t1.position[0] - t2.position[0]))
-
-                initial_point = [(t1.position[0], t1.position[1])]
-                final_point = [(t2.position[0], t2.position[1])]
-
-                meander = elements.CPWMeander(initial_point=initial_point, w=w, s=s, g=g, meander_length=meander_length,
-                                              restricted_scale=restricted_scale, constant_scale=distance,
-                                              orientation=angle, connector_length=connector_length)
-                points_for_creation = meander.points
-                # TODO: create a meander connection with different angles
-                # TODO: create a meander connection using connector_cpw
-                # points_for_creation = meander.points[1:len(meander.points) - 1]
-
-                # angle1 = np.arctan(
-                #     (t1.position[1] - points_for_creation[0][1]) / (t1.position[0] - points_for_creation[0][0]))
-                # angle2 = np.arctan(
-                #     (points_for_creation[-1][1] - t2.position[1]) / (points_for_creation[-1][0] - t2.position[0]))
-                #
-                # points_for_creation.insert(0, (t1.position[0] + connector_length * np.cos(angle1),
-                #                                t1.position[1] + connector_length * np.sin(angle1)))
-                #
-                # points_for_creation.insert(len(points_for_creation),
-                #                            (points_for_creation[-1][0] + connector_length * np.cos(angle2),
-                #                             points_for_creation[-1][1] + connector_length * np.sin(angle2)))
-
-                # points_for_creation.insert(0, (t1.position[0], t1.position[1]))
-                #
-                # points_for_creation.insert(len(points_for_creation), (t2.position[0], t2.position[1]))
-
-                rendering_meander = elements.CPW(name=name, points=points_for_creation, w=w, s=s, g=g,
-                                                 layer_configuration=self.layer_configuration, r=radius)
-                self.add(rendering_meander)
-#                self.connections.extend([((rendering_meander, 'port1', 0), (o1, port1, 0)),
-#                                         ((rendering_meander, 'port2', 0), (o2, port2, 0))])
-                self.connect(rendering_meander, 'port1', o1, port1)
-                self.connect(rendering_meander, 'port2', o2, port2)
+            end_point_indent = []
+        #check that we have enough distance
+        rendering_meander = elements.CPW(name=name, points=deepcopy(points+end_point_indent), w=w, s=s, g=g,
+                                         layer_configuration=self.layer_configuration, r=40,
+                                         corner_type=meander_type)
+        if rendering_meander.length > meander_length:
+            print('error, length is too small')
+            return 1
+        # lets fill the whole rectangular
+        default_bend_diameter = (w+2*s+2*g)*2
+        if meander_type == 'flush':
+            meander_step = length_left + length_right+default_bend_diameter
+        elif meander_type == 'round':
+            meander_step = length_left + length_right + default_bend_diameter*np.pi/2
+        # print(meander_length-rendering_meander.length)
+        # meander_length+=length_left
+        N = int((meander_length-rendering_meander.length) // meander_step)
+        # print("N",N)
+        # print(meander_step)
+        if N == 0:
+            print("meander is too small, N=0")
+        # subtract one to connect to the end point, here i assume that the distance
+        # from the end of the meander is less than the meander step
+        if end_orientation is not None:
+            N=N-1
+        # make a meander
+        i=1
+        while i <=N:
+            list = [(points[-1][0] + np.sin(meander_orientation)*default_bend_diameter,
+                     points[-1][1] - np.cos(meander_orientation)*default_bend_diameter)]
+            points.extend(list)
+            list = [(points[-1][0] + np.sin(meander_orientation-np.pi/2+np.pi*((i-1)%2)) * (length_left + length_right),
+                     points[-1][1] - np.cos(meander_orientation-np.pi/2+np.pi*((i-1)%2)) * (length_left + length_right))]
+            points.extend(list)
+            i=i+1
+        # print(points)
+        # print(calculate_total_length(points))
+        if end_orientation is not None:
+            i=0
+        else:
+            rendering_meander = elements.CPW(name=name, points=deepcopy(points), w=w, s=s, g=g,
+                                             layer_configuration=self.layer_configuration, r=40,
+                                             corner_type=meander_type)
+            # print(rendering_meander.length)
+            # print(meander_length)
+            tail = np.abs(np.floor(rendering_meander.length - meander_length))
+            # print(tail)
+            if tail < default_bend_diameter:
+                list = [(points[-1][0] + np.sin(meander_orientation-np.pi/2+np.pi*((i-1-1)%2)) * tail,
+                     points[-1][1] - np.cos(meander_orientation-np.pi/2+np.pi*((i-1-1)%2)) * tail)]
+                points.extend(list)
             else:
-                raise ValueError('CPW parameters are not equal!')
-
+                list = [(points[-1][0] + np.sin(meander_orientation) * default_bend_diameter,
+                         points[-1][1] - np.cos(meander_orientation) * default_bend_diameter)]
+                points.extend(list)
+                list = [(points[-1][0] + np.sin(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) *
+                         (tail - default_bend_diameter*np.pi/2),
+                         points[-1][1] - np.cos(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) *
+                         (tail - default_bend_diameter*np.pi/2))]
+                points.extend(list)
+                rendering_meander = elements.CPW(name=name, points=deepcopy(points), w=w, s=s, g=g,
+                                                 layer_configuration=self.layer_configuration, r=40,
+                                                 corner_type=meander_type)
+                # print(rendering_meander.length)
+                error=np.abs(rendering_meander.length - meander_length)
+                # print(error)
+                points.pop(-1)
+                list = [(points[-1][0] + np.sin(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) *
+                         (tail - default_bend_diameter*np.pi/2+error),
+                         points[-1][1] - np.cos(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) *
+                         (tail - default_bend_diameter*np.pi/2+error))]
+                points.extend(list)
+        rendering_meander = elements.CPW(name=name, points=deepcopy(points), w=w, s=s, g=g,
+                                         layer_configuration=self.layer_configuration, r=40,
+                                         corner_type=meander_type)
+        print(points)
+        print(rendering_meander.length)
+        self.connections.extend([((rendering_meander, 'port1', 0), (o1, port1, 0))])
+        self.add(rendering_meander)
         return rendering_meander
+        # check the distance to the end
+#         calculate_total_length()
+#
+#         #write some points to connect
+#         #make an indent from the open end
+#
+#
+#
+#
+#         if not o2:
+#             t1 = o1.get_terminals()[port1]
+#             w = t1.w
+#             s = t1.s
+#             g = t1.g
+#             # w1 = t1.w
+#             # s1 = t1.s
+#             # g1 = t1.g
+#             # if type(w1) == list or type(s1) == list:
+#             #     if len(w1) == 1 and len(s1) == 2:
+#             #         w = w1[0]
+#             #         s = s1[0]
+#             #         g = g1
+#             #     else:
+#             #         raise ValueError('Unexpected size of CPW')
+#             # else:
+#             #     w = w1[0]
+#             #     s = s1[0]
+#             #     g = g1
+#             delta = g + s + w / 2
+#             connector_length = connector + 2 * delta
+#             angle = t1.orientation + np.pi
+#             initial_point = [(t1.position[0], t1.position[1])]
+#             meander = elements.CPWMeander(initial_point=initial_point, w=w, s=s, g=g, meander_length=meander_length,
+#                                           restricted_scale=restricted_scale, constant_scale=constant_scale,
+#                                           orientation=angle, connector_length=connector_length)
+#             points_for_creation = meander.points
+#             rendering_meander = elements.CPW(name=name, points=points_for_creation, w=w, s=s, g=g,
+#                                              layer_configuration=self.layer_configuration, r=radius)
+#             self.add(rendering_meander)
+#             self.connections.extend([((rendering_meander, 'port1', 0), (o1, port1, 0))])
+#         else:
+#             t1 = o1.get_terminals()[port1]
+#             t2 = o2.get_terminals()[port2]
+#             w1, s1, g1 = t1.w, t1.s, t1.g
+#             w2, s2, g2 = t2.w, t2.s, t2.g
+#             if w1 == w2 and s1 == s2 and g1 == g2:
+#                 w, s, g = w1, s1, g1
+#                 delta = g + s + w / 2
+#                 connector_length = connector + 4 * delta
+#                 distance = np.sqrt((t1.position[0] - t2.position[0]) ** 2 + (t1.position[1] - t2.position[1]) ** 2)
+#
+#                 angle = np.arctan((t1.position[1] - t2.position[1]) / (t1.position[0] - t2.position[0]))
+#
+#                 initial_point = [(t1.position[0], t1.position[1])]
+#                 final_point = [(t2.position[0], t2.position[1])]
+#
+#                 meander = elements.CPWMeander(initial_point=initial_point, w=w, s=s, g=g, meander_length=meander_length,
+#                                               restricted_scale=restricted_scale, constant_scale=distance,
+#                                               orientation=angle, connector_length=connector_length)
+#                 points_for_creation = meander.points
+#                 # TODO: create a meander connection with different angles
+#                 # TODO: create a meander connection using connector_cpw
+#                 # points_for_creation = meander.points[1:len(meander.points) - 1]
+#
+#                 # angle1 = np.arctan(
+#                 #     (t1.position[1] - points_for_creation[0][1]) / (t1.position[0] - points_for_creation[0][0]))
+#                 # angle2 = np.arctan(
+#                 #     (points_for_creation[-1][1] - t2.position[1]) / (points_for_creation[-1][0] - t2.position[0]))
+#                 #
+#                 # points_for_creation.insert(0, (t1.position[0] + connector_length * np.cos(angle1),
+#                 #                                t1.position[1] + connector_length * np.sin(angle1)))
+#                 #
+#                 # points_for_creation.insert(len(points_for_creation),
+#                 #                            (points_for_creation[-1][0] + connector_length * np.cos(angle2),
+#                 #                             points_for_creation[-1][1] + connector_length * np.sin(angle2)))
+#
+#                 # points_for_creation.insert(0, (t1.position[0], t1.position[1]))
+#                 #
+#                 # points_for_creation.insert(len(points_for_creation), (t2.position[0], t2.position[1]))
+#
+#                 rendering_meander = elements.CPW(name=name, points=points_for_creation, w=w, s=s, g=g,
+#                                                  layer_configuration=self.layer_configuration, r=radius)
+#                 self.add(rendering_meander)
+# #                self.connections.extend([((rendering_meander, 'port1', 0), (o1, port1, 0)),
+# #                                         ((rendering_meander, 'port2', 0), (o2, port2, 0))])
+#                 self.connect(rendering_meander, 'port1', o1, port1)
+#                 self.connect(rendering_meander, 'port2', o2, port2)
+#             else:
+#                 raise ValueError('CPW parameters are not equal!')
+
 
 
 # TODO: might be useflu for elements/cpw.py to caluclate the line of the cpw line
@@ -552,3 +654,5 @@ def calculate_total_length(points):
     for i, j in points[1:]:
         length += np.sqrt((i - i0) ** 2 + (j - j0) ** 2)
     return length
+
+
