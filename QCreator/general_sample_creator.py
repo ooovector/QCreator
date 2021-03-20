@@ -462,6 +462,7 @@ class Sample:
                         length_left: float, length_right: float, first_step_orientation:float, meander_orientation: float,
                         end_point = None, end_orientation = None, meander_type='round'):
         # make small indent from the starting point
+        print('Meander')
         t1 = o1.get_terminals()[port1]
         points = [tuple(t1.position)]
         (w, s, g) = (t1.w, t1.s, t1.g)
