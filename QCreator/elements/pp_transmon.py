@@ -21,10 +21,10 @@ class PP_Transmon(DesignElement):
     6) jj_params - parameters of the SQUID which here is 3JJ SQUID.#TODO add more information
     """
     def __init__(self, name: str, center: Tuple[float, float],width: float, height: float,gap: float,bridge_gap:float,bridge_w:float, g_w: float, g_h: float,g_t: float,layer_configuration: LayerConfiguration,
-                 jj_params: Dict,Couplers):
+                 jj_params: Dict,Couplers,transformations: Dict,remove_ground = {},secret_shift = 0):
         super().__init__(type='qubit', name=name)
         #qubit parameters
-        #self.transformations = transformations# to mirror the structure
+        self.transformations = transformations# to mirror the structure
         self.center = center
         self.w = width
         self.h = height
@@ -45,6 +45,20 @@ class PP_Transmon(DesignElement):
         self.JJ = None
         self.layers = []
 
+        #self.calculate_capacitance = calculate_capacitance
+        self.tls_cache = []
+        self.L = 15e-9  # 20nHr
+        self.C = {   'coupler0': None,
+             'coupler1': None,
+             'coupler2': None,
+             'coupler3': None,
+             'coupler4': None,
+             'qubit': None}
+
+        #remove ground on these sites
+        self.remove_ground = remove_ground
+
+        self.secret_shift = secret_shift
 
 
     def render(self):
@@ -77,8 +91,8 @@ class PP_Transmon(DesignElement):
             P2_bridge = gdspy.Rectangle((self.center[0]+self.gap/2,self.center[1]-self.b_w/2),(self.center[0]+self.b_g/2,self.center[1]+self.b_w/2))
 
 
-        qubit_cap_parts.append(gdspy.boolean(P1, P1_bridge, 'or', layer=8))
-        qubit_cap_parts.append(gdspy.boolean(P2, P2_bridge, 'or', layer=9))
+        qubit_cap_parts.append(gdspy.boolean(P1, P1_bridge, 'or', layer=8+self.secret_shift))
+        qubit_cap_parts.append(gdspy.boolean(P2, P2_bridge, 'or', layer=9+self.secret_shift))
 
         result = gdspy.boolean(result, P1_bridge, 'or', layer=self.layer_configuration.total_layer)
         result = gdspy.boolean(result, P2_bridge, 'or', layer=self.layer_configuration.total_layer)
@@ -167,11 +181,10 @@ class PP_Transmon(DesignElement):
                         (self.center[0] - self.g_w / 2 + l1 - gap - self.g_t, self.center[1] - self.g_h / 2), (self.center[0] - self.g_w / 2 + l1 + l2 + self.g_t + gap,self.center[1] - self.g_h / 2 - t - gap - gap - self.g_t)), 'or',layer=self.layer_configuration.inverted)
 
                 if coupler.coupler_type == 'coupler':
-                        qubit_cap_parts.append(gdspy.boolean(coupler.result_coupler, coupler.result_coupler, 'or',layer=10+id))
-                        self.layers.append(10+id)
+                        qubit_cap_parts.append(gdspy.boolean(coupler.result_coupler, coupler.result_coupler, 'or',layer=10+id+self.secret_shift))
+                        self.layers.append(10+id+self.secret_shift)
                         last_step_cap.append(coupler.result_coupler)
         qubit_cap_parts.append(gdspy.boolean(result,last_step_cap,'not'))
-        print(qubit_cap_parts)
 
         inverted = gdspy.boolean(box, result, 'not',layer=self.layer_configuration.inverted)
 
@@ -179,13 +192,44 @@ class PP_Transmon(DesignElement):
         if self.JJ_params is not None:
             self.JJ_coordinates = (self.center[0],self.center[1])
             JJ = self.generate_JJ()
-
+        '''
         return {'positive': result,
                     'restricted': result_restricted,
                     'qubit': result,
                     'qubit_cap': qubit_cap_parts,
                     'JJ': JJ,
                     'inverted': inverted
+                    }
+        '''
+        qubit=deepcopy(result)
+
+        #if self.calculate_capacitance is False:
+        #    qubit_cap_parts = None
+        #    qubit = None
+        if 'mirror' in self.transformations:
+            return {'positive': result.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
+                    'restrict': result_restricted,
+                    'qubit': qubit.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]) if qubit is not None else None,
+                    'qubit_cap': qubit_cap_parts,
+                    'JJ': JJ.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
+                    'inverted': inverted.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1])
+                    }
+        if 'rotate' in self.transformations:
+            print('hey')
+            return {'positive': result.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
+                    'restrict': result_restricted,
+                    'qubit': qubit.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]) if qubit is not None else None,
+                    'qubit_cap': qubit_cap_parts,
+                    'JJ': JJ.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
+                    'inverted': inverted.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1])
+                    }
+        elif self.transformations == {}:
+            return {'positive': result,
+                    'restrict': result_restricted,
+                    'qubit': qubit,
+                    'qubit_cap': qubit_cap_parts,
+                    'JJ': JJ,
+                    'inverted':inverted
                     }
 
     def generate_ground(self):
@@ -196,19 +240,18 @@ class PP_Transmon(DesignElement):
         ground1 = gdspy.Rectangle((z[0] - x / 2, z[1] - y / 2), (z[0] + x / 2, z[1] + y / 2))
         ground2 = gdspy.Rectangle((z[0] - x / 2 + t, z[1] - y / 2 + t), (z[0] + x / 2 - t, z[1] + y / 2 - t))
         ground = gdspy.fast_boolean(ground1, ground2, 'not')
+        for key in self.remove_ground:
+            if key == 'left':
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2,z[1] - y / 2+t), (z[0] - x / 2 +t, z[1] + y / 2-t)) , 'not')
+            if key == 'right':
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] + x / 2,z[1] - y / 2+t), (z[0] + x / 2 -t, z[1] + y / 2-t)) , 'not')
+            if key == 'top':
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2+t,z[1] + y / 2), (z[0] + x / 2-t, z[1] + y / 2-t)) , 'not')
+            if key == 'bottom':
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2+t,z[1] - y / 2), (z[0] + x / 2-t, z[1] - y / 2+t)) , 'not')
+
         return ground
 
-    def rotate_point(point, angle, origin):
-        """
-        Rotate a point counterclockwise by a given angle around a given origin.
-
-        The angle should be given in radians.
-        """
-        ox, oy = origin
-        px, py = point
-        qx = ox + np.cos(angle) * (px - ox) - np.sin(angle) * (py - oy)
-        qy = oy + np.sin(angle) * (px - ox) + np.cos(angle) * (py - oy)
-        return qx, qy
 
     def generate_JJ(self):
         #change here to allow Manhatten style junctions
@@ -230,6 +273,33 @@ class PP_Transmon(DesignElement):
         result.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
 
         return result
+
+
+    #for the capacity
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict,
+                   track_changes: bool = True) -> list:
+        #scaling factor for C
+        scal_C = 1e-15
+        JJ = tlsim.Inductor(self.L)
+        C = tlsim.Capacitor(c=self.C['qubit']*scal_C, name=self.name+' qubit-ground')
+        tls_instance.add_element(JJ, [0, terminal_mapping['qubit']])
+        tls_instance.add_element(C, [0, terminal_mapping['qubit']])
+        mut_cap = []
+        cap_g = []
+        for id, coupler in enumerate(self.couplers):
+            if coupler.coupler_type == 'coupler':
+                c0 = tlsim.Capacitor(c=self.C['coupler'+str(id)][1]*scal_C, name=self.name+' qubit-coupler'+str(id)+self.secret_shift)
+                c0g = tlsim.Capacitor(c=self.C['coupler'+str(id)][0]*scal_C, name=self.name+' coupler'+str(id)+'-ground'+self.secret_shift)
+                tls_instance.add_element(c0, [terminal_mapping['qubit'], terminal_mapping['coupler'+str(id)+self.secret_shift]])
+                tls_instance.add_element(c0g, [terminal_mapping['coupler'+str(id)+self.secret_shift], 0])
+                mut_cap.append(c0)
+                cap_g.append(c0g)
+            # elif coupler.coupler_type =='grounded':
+            #     tls_instance.add_element(tlsim.Short(), [terminal_mapping['flux line'], 0])
+
+        if track_changes:
+            self.tls_cache.append([JJ, C]+mut_cap+cap_g)
+        return [JJ, C]+mut_cap+cap_g
 
 
 class PP_Transmon_Coupler:
@@ -294,3 +364,31 @@ class PP_Transmon_Coupler:
         return {
             'positive': result
                         }
+
+
+def rotate_point(point, angle, origin):
+    """
+    Rotate a point counterclockwise by a given angle around a given origin.
+
+    The angle should be given in radians.
+    """
+    ox, oy = origin
+    px, py = point
+    qx = ox + np.cos(angle) * (px - ox) - np.sin(angle) * (py - oy)
+    qy = oy + np.sin(angle) * (px - ox) + np.cos(angle) * (py - oy)
+    return qx, qy
+
+def mirror_point(point,ref1,ref2):
+    """
+       Mirror a point by a given line specified by 2 points ref1 and ref2.
+    """
+    [x1, y1] =ref1
+    [x2, y2] =ref2
+
+    dx = x2-x1
+    dy = y2-y1
+    a = (dx * dx - dy * dy) / (dx * dx + dy * dy)
+    b = 2 * dx * dy / (dx * dx + dy * dy)
+    x2 = round(a * (point[0] - x1) + b * (point[1] - y1) + x1)
+    y2 = round(b * (point[0] - x1) - a * (point[1] - y1) + y1)
+    return x2, y2

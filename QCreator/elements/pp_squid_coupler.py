@@ -9,7 +9,7 @@ from . import JJ4q
 from copy import deepcopy
 
 
-class PP_Squid(DesignElement):
+class PP_Squid_C(DesignElement):
     """
     PP-Transmon consists of several parts:
     1) Central part - central circuit
@@ -19,9 +19,11 @@ class PP_Squid(DesignElement):
     4)layer_configuration
     5)Couplers - coupler classes
     6) jj_params - parameters of the SQUID which here is 3JJ SQUID.#TODO add more information
+    7) remove_ground - removes the ground on the specified site (left,right, top, bottom)
+    8) arms - the parameters for the squid arms for coupling left and right qubits
     """
     def __init__(self, name: str, center: Tuple[float, float],width: float, height: float,gap: float,bridge_gap:float,bridge_w:float, g_w: float, g_h: float,g_t: float,layer_configuration: LayerConfiguration,
-                 jj_params: Dict,fluxline_params: Dict,Couplers,transformations:Dict,remove_ground = {},secret_shift = 0):
+                 jj_params: Dict,fluxline_params: Dict,Couplers,transformations:Dict,arms:Dict,remove_ground = {},secret_shift = 0):
         super().__init__(type='qubit', name=name)
         #qubit parameters
         self.transformations = transformations# to mirror the structure
@@ -58,6 +60,9 @@ class PP_Squid(DesignElement):
         # remove ground on these sites
         self.remove_ground = remove_ground
 
+        #small coupling pads
+        self.arms = arms
+
         self.secret_shift = secret_shift
 
     def render(self):
@@ -71,6 +76,20 @@ class PP_Squid(DesignElement):
 
         P1 = gdspy.Rectangle((self.center[0]-self.gap/2-self.w,self.center[1]-self.h/2),(self.center[0]-self.gap/2,self.center[1]+self.h/2))
         P2 = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w, self.center[1] - self.h / 2),(self.center[0] + self.gap / 2, self.center[1] + self.h / 2))
+
+        #coupler arms left and right
+        left_arm    = gdspy.Rectangle((self.center[0]-self.gap/2-self.w,self.center[1]-self.arms['l.w']/2),(self.center[0]-self.g_w/2+self.g_t+self.arms['l.g'],self.center[1]+self.arms['l.w']/2))
+        left_arm    = gdspy.boolean(gdspy.Rectangle((self.center[0]-self.g_w/2+self.g_t+self.arms['l.g'],self.center[1]-self.arms['l.ph']/2),(self.center[0]-self.g_w/2+self.g_t+self.arms['l.g']+self.arms['l.pw'],self.center[1]+self.arms['l.ph']/2)), left_arm, 'or')
+        P1          = gdspy.boolean(P1, left_arm, 'or')
+
+        right_arm = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w, self.center[1] + self.arms['r.w'] / 2), (
+        self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'], self.center[1] - self.arms['r.w'] / 2))
+        right_arm = gdspy.boolean(gdspy.Rectangle(
+            (self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'], self.center[1] + self.arms['r.ph'] / 2), (
+            self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'] - self.arms['r.pw'],
+            self.center[1] - self.arms['r.ph'] / 2)), right_arm, 'or')
+
+        P2 = gdspy.boolean(P2, right_arm, 'or')
 
 
         self.layers.append(9)
