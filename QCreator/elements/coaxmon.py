@@ -198,7 +198,7 @@ class Coaxmon(DesignElement):
         bug = 1
         flux_line_output_connection = (flux_line_output[0]+bug*np.cos(np.pi+orientation),
                                        flux_line_output[1]+bug*np.sin(np.pi+orientation))
-        remove = gdspy.FlexPath(deepcopy([connection,flux_line_output]), [self.core, self.core], offset=[-self.gap,self.gap], layer=self.layer_configuration.total_layer)
+        remove = gdspy.FlexPath(deepcopy([connection,flux_line_output]), [self.gap, self.gap], offset=[-self.core/2-self.gap/2,self.core/2+self.gap/2])
         if 'mirror' in self.transformations:
             flux_line_output_connection = mirror_point(flux_line_output_connection, self.transformations['mirror'][0],
                                                   self.transformations['mirror'][1])
