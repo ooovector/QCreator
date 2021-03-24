@@ -12,5 +12,6 @@ from .coaxmon import CoaxmonCoupler
 from .tqcoupler import MMCoupler
 from .pp_transmon import PP_Transmon
 from .pp_transmon import PP_Transmon_Coupler
+from .xmon import Xmon
 
 from .pp_squid import PP_Squid
