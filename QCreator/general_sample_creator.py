@@ -493,8 +493,9 @@ class Sample:
         # print(meander_length-rendering_meander.length)
         # meander_length+=length_left
         N = int((meander_length-rendering_meander.length) // meander_step)
-        # print("N",N)
-        # print(meander_step)
+        print((meander_length-rendering_meander.length))
+        print("N",N)
+        print('meander step: ',meander_step)
         if N == 0:
             print("meander is too small, N=0")
         # subtract one to connect to the end point, here i assume that the distance
@@ -522,7 +523,21 @@ class Sample:
             # print(rendering_meander.length)
             # print(meander_length)
             tail = np.abs(np.floor(rendering_meander.length - meander_length))
-            # print(tail)
+            print("tail is, ",tail)
+            if tail >= meander_step:
+                list = [(points[-1][0] + np.sin(meander_orientation) * default_bend_diameter,
+                         points[-1][1] - np.cos(meander_orientation) * default_bend_diameter)]
+                points.extend(list)
+                list = [(points[-1][0] + np.sin(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) * (
+                        length_left + length_right),
+                         points[-1][1] - np.cos(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) * (
+                                 length_left + length_right))]
+                points.extend(list)
+                i = i + 1
+                rendering_meander = elements.CPW(name=name, points=deepcopy(points), w=w, s=s, g=g,
+                                                 layer_configuration=self.layer_configuration, r=40,
+                                                 corner_type=meander_type)
+                tail = np.abs(np.floor(rendering_meander.length - meander_length))
             if tail < default_bend_diameter:
                 list = [(points[-1][0] + np.sin(meander_orientation-np.pi/2+np.pi*((i-1-1)%2)) * tail,
                      points[-1][1] - np.cos(meander_orientation-np.pi/2+np.pi*((i-1-1)%2)) * tail)]
