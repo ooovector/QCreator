@@ -5,8 +5,7 @@ import gdspy
 from .. import conformal_mapping as cm
 from .. import transmission_line_simulator as tlsim
 from typing import List, Tuple, Mapping, Union, Iterable, Dict
-from copy import deepcopy
-
+from copy import  deepcopy
 
 class CPWCoupler(DesignElement):
     def __init__(self, name: str, points: List[Tuple[float, float]], w: List[float], s: List[float], g: float,
@@ -135,15 +134,15 @@ class CPWCoupler(DesignElement):
             if segment['type'] == 'turn':
                 self.length += np.abs(segment['turn']) * self.r
                 orientation = np.arctan2(first_point[1] - first_point_before[1], first_point[0] - first_point_before[0])
-                first_point_for_rotation = deepcopy(first_point)
-                first_point = (first_point[0] + np.sin(-segment['turn']) * self.r,
-                               first_point[1] - (1 - np.cos(-segment['turn'])) * self.r)
+                first_point_for_rotation=deepcopy(first_point)
+                first_point = (first_point[0]+np.sin(-segment['turn']) * self.r,
+                               first_point[1]-(1-np.cos(-segment['turn']))*self.r)
                 if segment['turn'] > 0:
-                    orientation = np.pi + orientation
-                first_point = np.floor(rotate_point(first_point, orientation, first_point_for_rotation))
+                    orientation=np.pi+orientation
+                first_point=np.floor(rotate_point(first_point,orientation,first_point_for_rotation))
             else:
                 final_point = segment['endpoint']
-                self.segments[segment_num + 1]['startpoint'] = first_point
+                self.segments[segment_num+1]['startpoint'] = first_point
                 self.length += np.sqrt(np.sum((final_point - first_point) ** 2))
                 first_point_before = first_point
                 first_point = final_point
@@ -224,7 +223,6 @@ class CPWCoupler(DesignElement):
     def __repr__(self):
         return 'CPWCoupler "{}", n={}, l={:4.3f}'.format(self.name, len(self.w), np.round(self.length, 3))
 
-
 def rotate_point(point, angle, origin):
     """
     Rotate a point counterclockwise by a given angle around a given origin.
@@ -236,8 +234,6 @@ def rotate_point(point, angle, origin):
     qx = ox + np.cos(angle) * (px - ox) - np.sin(angle) * (py - oy)
     qy = oy + np.sin(angle) * (px - ox) + np.cos(angle) * (py - oy)
     return qx, qy
-
-
 class CPW(CPWCoupler):
     def __init__(self, name: str, points: List[Tuple[float, float]], w: float, s: float, g: float,
                  layer_configuration: LayerConfiguration, r: float, corner_type: str = 'round',
@@ -462,7 +458,7 @@ class RectGrounding(DesignElement):
         if len(delta_list) > len(short_list):
             widths_of_cpw_new.extend(delta_list[len(delta_list) - 1])
 
-        # if reverse_type == 'Negative':
+        #if reverse_type == 'Negative':
         #    widths_of_cpw_new.reverse()
 
         list_of_conductors = []
@@ -988,14 +984,8 @@ class RectFanout(DesignElement):
                     self.tls_cache.append(coupled_line)
 
             else:
-                # if elem == 'center':
-                #     l = 0
-                # else:
-                #     l = structure_for_tls[elem]['l']
-                l_line = 1.2 * structure_for_tls[elem]['l']
-
                 line = tlsim.TLCoupler(n=number_of_conductors,
-                                       l=l_line,
+                                       l=structure_for_tls[elem]['l'],
                                        cl=structure_for_tls[elem]['Cl'],
                                        ll=structure_for_tls[elem]['Ll'],
                                        rl=np.zeros_like(structure_for_tls[elem]['Cl']),
@@ -1003,6 +993,7 @@ class RectFanout(DesignElement):
                                        name=self.name + '_line_' + str(len(cache)))
 
                 for conductor_id in range(begin_conductor, begin_conductor + number_of_conductors):
+
                     mapping_ += [terminal_mapping[('middle', conductor_id)]]
 
                 begin_conductor += number_of_conductors
@@ -1013,7 +1004,7 @@ class RectFanout(DesignElement):
 
                     elif (elem, 0) in terminal_mapping:
 
-                        for conductor_id in range(number_of_conductors - 1, -1, -1):
+                        for conductor_id in range(number_of_conductors-1, -1, -1):
                             mapping_ += [terminal_mapping[(elem, conductor_id)]]
 
                 else:
@@ -1228,7 +1219,7 @@ class OpenEnd(DesignElement):
                    terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
         if self.number_of_conductors == 1:
             cache = []
-            capacitance_value = 1e-15 * 20 * 0
+            capacitance_value = 1e-15*20*0
             capacitor = tlsim.Capacitor(capacitance_value, 'open_end')
             cache.append(capacitor)
             tls_instance.add_element(capacitor,
@@ -1251,7 +1242,6 @@ class OpenEnd(DesignElement):
 
     def __repr__(self):
         return "OpenEnd {}".format(self.name)
-
 
 '''
 class RectFanout(DesignElement):
