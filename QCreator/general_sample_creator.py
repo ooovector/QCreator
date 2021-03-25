@@ -70,8 +70,11 @@ class Sample:
                 self.total_cell.add(result['grid_y'])
             if 'restrict' in result:
                 self.restricted_cell.add(result['restrict'])
-            if 'inverted' in result:
-                self.total_cell.add(result['inverted'])
+            if 'airbridges_pads' in result:
+                self.total_cell.add(result['airbridges_pads'])
+            if 'airbridges' in result:
+                self.total_cell.add(result['airbridges'])
+
 
         self.fill_object_arrays()
     def draw_cap(self): # TODO: maybe we need to come up with a better way, but for this moment it's fine
@@ -389,6 +392,75 @@ class Sample:
 
         return np.asarray(s)
 
+    def generate_bridge_over_cpw(self, name: str, o: elements.DesignElement, pads_geometry_: Tuple[float, float],
+                                 bridge_geometry_: Tuple[float, float], distance_between_pads_: float,
+                                 min_spacing: float):
+        """
+        This method add air bridges on CPW line.
+        :param name:
+        :param o:
+        :param pads_geometry_:
+        :param bridge_geometry_:
+        :param distance_between_pads_:
+        :param min_spacing: distance between air bridges
+        """
+
+        if o not in self.objects:
+            raise ValueError('Object o1 not in sample')
+
+        t = o.get_terminals()['port1']
+        w = t.w
+        s = t.s
+        g = t.g
+
+        assert t.type == 'cpw'
+
+        # filter segment points
+        filtered_segments = {'start': [], 'final': []}
+
+        for segment in o.segments:
+            if segment['type'] == 'segment':
+                distance_between_points = np.sqrt((segment['startpoint'][0] - segment['endpoint'][0]) ** 2 + (
+                        segment['startpoint'][1] - segment['endpoint'][1]) ** 2)
+                if distance_between_points > bridge_geometry_[1] + 2 * min_spacing:
+                    filtered_segments['start'].append(segment['startpoint'])
+                    filtered_segments['final'].append(segment['endpoint'])
+
+        number_of_segments = len(filtered_segments['start'])
+
+        for segment in range(number_of_segments):
+            x0 = filtered_segments['start'][segment][0]
+            y0 = filtered_segments['start'][segment][1]
+            x1 = filtered_segments['final'][segment][0]
+            y1 = filtered_segments['final'][segment][1]
+
+            orientation_ = np.arctan2(y1 - y0, x1 - x0)
+
+            segment_length = np.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2)
+            number_of_bridges = int((segment_length - min_spacing) // (bridge_geometry_[1] + min_spacing)) + 1
+
+            t_list = []
+            for i in range(0, number_of_bridges):
+                t_list.append(((i + 1) * (bridge_geometry_[1] / 2 + min_spacing)) / segment_length)
+
+            subsegments_points = [(x0, y0)]
+            for t in t_list:
+                x, y = parametric_equation_of_line(x0, y0, x1, y1, t)
+                subsegments_points.append((x, y))
+
+            subsegments_points.append((x1, y1))
+
+            for bridge_elem in range(number_of_bridges):
+                bridge_elem = elements.AirbridgeOverCPW(name=name, position=subsegments_points[bridge_elem + 1],
+                                                        orientation=orientation_, w=w, s=s, g=g,
+                                                        pads_geometry=pads_geometry_, bridge_geometry=bridge_geometry_,
+                                                        layer_configuration=self.layer_configuration,
+                                                        distance_between_pads=distance_between_pads_)
+                self.add(bridge_elem)
+
+        return subsegments_points
+
+
     '''
     Deprecated stuff?
     # General methods for all qubit classes
@@ -655,5 +727,16 @@ def calculate_total_length(points):
     for i, j in points[1:]:
         length += np.sqrt((i - i0) ** 2 + (j - j0) ** 2)
     return length
+
+
+def parametric_equation_of_line(x0, y0, x1, y1, t):
+    ax = x1 - x0
+    ay = y1 - y0
+
+    x = x0 + ax * t
+    y = y0 + ay * t
+
+    return x, y
+
 
 
