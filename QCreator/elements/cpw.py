@@ -130,7 +130,7 @@ class CPWCoupler(DesignElement):
                 # print(self.length, self.segments[-1:])
 
         first_point = self.segments[0]['endpoint']
-        for segment in self.segments[1:]:
+        for segment_num, segment in enumerate(self.segments[1:]):
             if segment['type'] == 'turn':
                 self.length += np.abs(segment['turn']) * self.r
                 orientation = np.arctan2(first_point[1] - first_point_before[1], first_point[0] - first_point_before[0])
@@ -142,6 +142,7 @@ class CPWCoupler(DesignElement):
                 first_point=np.floor(rotate_point(first_point,orientation,first_point_for_rotation))
             else:
                 final_point = segment['endpoint']
+                self.segments[segment_num+1]['startpoint'] = first_point
                 self.length += np.sqrt(np.sum((final_point - first_point) ** 2))
                 first_point_before = first_point
                 first_point = final_point
