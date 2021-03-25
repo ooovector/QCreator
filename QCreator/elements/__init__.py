@@ -1,5 +1,5 @@
 from .core import DesignElement, DesignTerminal, LayerConfiguration, ChipGeometry
-from .airbridge import CPWGroundAirBridge, AirBridge
+from .airbridge import CPWGroundAirBridge, AirBridge, AirbridgeOverCPW
 from .chip_edge_ground import ChipEdgeGround, Pads
 from .pad import Pad, default_pad_geometry
 from .cpw import CPWCoupler, CPW, Narrowing, RectFanout, RectGrounding, OpenEnd
