@@ -5,7 +5,7 @@ from . import elements
 from . import transmission_line_simulator as tlsim
 from typing import NamedTuple, SupportsFloat, Any, Iterable, Tuple, List
 
-from . import  meshing
+from . import meshing
 from copy import deepcopy
 
 Bridges_over_line_param = NamedTuple('Bridge_params',
@@ -27,10 +27,11 @@ class Sample:
         self.lib = gdspy.GdsLibrary(unit=1e-06, precision=1e-09)
 
         self.total_cell = self.lib.new_cell(self.name, overwrite_duplicate=True, update_references=True)
-        self.restricted_cell = self.lib.new_cell(self.name + ' restricted', overwrite_duplicate=True, update_references=True)
+        self.restricted_cell = self.lib.new_cell(self.name + ' restricted', overwrite_duplicate=True,
+                                                 update_references=True)
         # Geometry must be placed in cells.
 
-        #for several additional features
+        # for several additional features
         self.qubits_cells = []
         self.qubit_cap_cells = []
         self.caps_list = []
@@ -75,9 +76,9 @@ class Sample:
             if 'airbridges' in result:
                 self.total_cell.add(result['airbridges'])
 
-
         self.fill_object_arrays()
-    def draw_cap(self): # TODO: maybe we need to come up with a better way, but for this moment it's fine
+
+    def draw_cap(self):  # TODO: maybe we need to come up with a better way, but for this moment it's fine
         """
         This function creates new cells with specified qubits
         1) cells for full qubits
@@ -89,7 +90,8 @@ class Sample:
             result = object_.get()
             if 'qubit_cap' in result:
                 if result['qubit_cap'] is not None:
-                    cap_cell = self.lib.new_cell('qubit capacitance cell ' + str(qubit_cap_cell_counter), overwrite_duplicate=True, update_references=True)
+                    cap_cell = self.lib.new_cell('qubit capacitance cell ' + str(qubit_cap_cell_counter),
+                                                 overwrite_duplicate=True, update_references=True)
                     cap_cell.add(result['qubit_cap'])
                     self.qubit_cap_cells.append(cap_cell)
                     qubit_cap_cell_counter = qubit_cap_cell_counter + 1
@@ -105,6 +107,7 @@ class Sample:
     def fill_object_arrays(self):
         self.qubits = [i for i in self.objects if i.type == 'qubit']
         self.couplers = [i for i in self.objects if i.type == 'qubit coupler']
+
     # def ground(self, element: elements.DesignElement, port: str):
     #     self.connections.append(((element, port), ('gnd', 'gnd')))
 
@@ -161,7 +164,7 @@ class Sample:
 
         conductor_in_narrow = 0
 
-        #for conductor_id in range(closed_end.initial_number_of_conductors):
+        # for conductor_id in range(closed_end.initial_number_of_conductors):
         #    self.connections.append(((o, port, conductor_id), (closed_end, 'wide', conductor_id)))
         self.connect(o, port, closed_end, 'wide')
 
@@ -190,7 +193,6 @@ class Sample:
 
         self.connect(o, port, open_end, 'wide')
         return open_end
-
 
     def connect_cpw(self, o1: elements.DesignElement, o2: elements.DesignElement, port1: str, port2: str, name: str,
                     points: list):
@@ -236,7 +238,7 @@ class Sample:
         cpw = elements.CPW(name, points, w, s, g, self.layer_configuration, r=self.default_cpw_radius(w, s, g),
                            corner_type='round', orientation1=orientation1, orientation2=orientation2)
         self.add(cpw)
-        #self.connections.extend([((cpw, 'port1', 0), (o1, port1, 0)), ((cpw, 'port2', 0), (o2, port2, 0))])
+        # self.connections.extend([((cpw, 'port1', 0), (o1, port1, 0)), ((cpw, 'port2', 0), (o2, port2, 0))])
         self.connect(cpw, 'port1', o1, port1)
         self.connect(cpw, 'port2', o2, port2)
         return cpw
@@ -256,16 +258,16 @@ class Sample:
     def write_to_gds(self, name=None):
         if name is not None:
             self.lib.write_gds(name + '.gds', cells=None, timestamp=None,
-                            binary_cells=None)
+                               binary_cells=None)
             self.path = os.getcwd() + '\\' + name + '.gds'
         else:
             self.lib.write_gds(self.name + '.gds', cells=None,
-                            timestamp=None,
-                            binary_cells=None)
+                               timestamp=None,
+                               binary_cells=None)
             self.path = os.getcwd() + '\\' + self.name + '.gds'
         print("Gds file has been writen here: ", self.path)
 
-    def calculate_qubit_capacitance(self, cell,qubit, mesh_volume, name=None):
+    def calculate_qubit_capacitance(self, cell, qubit, mesh_volume, name=None):
         self.write_to_gds(name)
         mesh = meshing.Meshing(path=self.path,
                                cell_name=cell.name,
@@ -276,18 +278,20 @@ class Sample:
         mesh.write_into_file(os.getcwd() + '\\' + 'mesh_4k_data')
         mesh.run_fastcap(os.getcwd() + '\\' + 'mesh_4k_results')
         print("Capacitance results have been writen here: ", os.getcwd() + '\\' + 'mesh_4k_results')
-        caps = np.round(mesh.get_capacitances(),1)
-        self.fill_cap_matrix(qubit,caps) # TODO: can we improve this way?
+        caps = np.round(mesh.get_capacitances(), 1)
+        self.fill_cap_matrix(qubit, caps)  # TODO: can we improve this way?
         self.caps_list.append(caps)
         return caps
+
     def fill_cap_matrix(self, qubit, caps):
-        qubit.C['qubit']=caps[1][1]
-        i=2
+        qubit.C['qubit'] = caps[1][1]
+        i = 2
         for id, coupler in enumerate(qubit.couplers):
             if coupler.coupler_type == 'coupler':
-                qubit.C['coupler'+str(id)] = (caps[i][i], -caps[1][i])
-                i=i+1
+                qubit.C['coupler' + str(id)] = (caps[i][i], -caps[1][i])
+                i = i + 1
         return True
+
     # TODO: Nice function for bridges over cpw, need to update
     def connect_bridged_cpw(self, name, points, core, gap, ground, nodes=None, end=None, R=40, corner_type='round',
                             bridge_params=None):
@@ -337,7 +341,7 @@ class Sample:
         """
         tls = tlsim.TLSystem()
         GND = tlsim.Short()
-        tls.add_element(GND,[0])
+        tls.add_element(GND, [0])
 
         connections_flat = {}
         max_connection_id = 0  # g connection
@@ -352,7 +356,7 @@ class Sample:
             terminal_node_assignments = {}
             for terminal_name, terminal in object_.get_terminals().items():
                 num_conductors = 1
-                if hasattr(terminal,'w'):
+                if hasattr(terminal, 'w'):
                     if hasattr(terminal.w, '__iter__'):
                         num_conductors = len(terminal.w)
 
@@ -405,61 +409,107 @@ class Sample:
         :param min_spacing: distance between air bridges
         """
 
-        if o not in self.objects:
-            raise ValueError('Object o1 not in sample')
-
         t = o.get_terminals()['port1']
+        assert t.type == 'cpw'
+
         w = t.w
         s = t.s
         g = t.g
+        radius = o.r
 
-        assert t.type == 'cpw'
+        segments_ = o.segments
+        number_of_segments = len(segments_)
 
-        # filter segment points
-        filtered_segments = {'start': [], 'final': []}
-
-        for segment in o.segments:
-            if segment['type'] == 'segment':
-                distance_between_points = np.sqrt((segment['startpoint'][0] - segment['endpoint'][0]) ** 2 + (
-                        segment['startpoint'][1] - segment['endpoint'][1]) ** 2)
+        for elem in range(number_of_segments):
+            if segments_[elem]['type'] == 'segment':
+                distance_between_points = np.sqrt(
+                    (segments_[elem]['startpoint'][0] - segments_[elem]['endpoint'][0]) ** 2 + (
+                            segments_[elem]['startpoint'][1] - segments_[elem]['endpoint'][1]) ** 2)
                 if distance_between_points > bridge_geometry_[1] + 2 * min_spacing:
-                    filtered_segments['start'].append(segment['startpoint'])
-                    filtered_segments['final'].append(segment['endpoint'])
+                    segments_[elem]['bridge'] = 'yes'
+                else:
+                    segments_[elem]['bridge'] = 'no'
+            elif segments_[elem]['type'] == 'turn':
+                segments_[elem]['startpoint'] = segments_[elem - 1]['endpoint']
+                segments_[elem]['endpoint'] = segments_[elem + 1]['startpoint']
 
-        number_of_segments = len(filtered_segments['start'])
+                segments_[elem]['orientation1'] = np.arctan2(
+                    -segments_[elem - 1]['startpoint'][1] + segments_[elem - 1]['endpoint'][1],
+                    -segments_[elem - 1]['startpoint'][0] + segments_[elem - 1]['endpoint'][0])
+                segments_[elem]['orientation2'] = np.arctan2(
+                    segments_[elem + 1]['startpoint'][1] - segments_[elem + 1]['endpoint'][1],
+                    segments_[elem + 1]['startpoint'][0] - segments_[elem + 1]['endpoint'][0])
 
-        for segment in range(number_of_segments):
-            x0 = filtered_segments['start'][segment][0]
-            y0 = filtered_segments['start'][segment][1]
-            x1 = filtered_segments['final'][segment][0]
-            y1 = filtered_segments['final'][segment][1]
+            else:
+                segments_[elem]['bridge'] = 'no'
 
-            orientation_ = np.arctan2(y1 - y0, x1 - x0)
+        real_segments = o.segments[1: len(o.segments) + 1]
 
-            segment_length = np.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2)
-            number_of_bridges = int((segment_length - min_spacing) // (bridge_geometry_[1] + min_spacing)) + 1
+        total_cpw = []
+        all_bridges = []
 
-            t_list = []
-            for i in range(0, number_of_bridges):
-                t_list.append(((i + 1) * (bridge_geometry_[1] / 2 + min_spacing)) / segment_length)
+        for elem in range(len(real_segments)):
+            if real_segments[elem]['type'] == 'turn':
+                x0, y0, x1, y1 = segment_points(real_segments[elem])
+                points_ = [(x0, y0), (x1, y1)]
+                line = elements.CPW(name=name + str(len(total_cpw)),
+                                    points=points_, w=w, s=s, g=g,
+                                    layer_configuration=self.layer_configuration, r=self.default_cpw_radius(w, s, g),
+                                    orientation1=real_segments[elem]['orientation1'],
+                                    orientation2=real_segments[elem]['orientation2'])
+                self.add(line)
+                total_cpw.append(line)
 
-            subsegments_points = [(x0, y0)]
-            for t in t_list:
-                x, y = parametric_equation_of_line(x0, y0, x1, y1, t)
-                subsegments_points.append((x, y))
+            elif real_segments[elem]['type'] == 'segment':
+                if real_segments[elem]['bridge'] == 'yes':
+                    x0, y0, x1, y1 = segment_points(real_segments[elem])
 
-            subsegments_points.append((x1, y1))
+                    orientation_ = np.arctan2(y1 - y0, x1 - x0)
 
-            for bridge_elem in range(number_of_bridges):
-                bridge_elem = elements.AirbridgeOverCPW(name=name, position=subsegments_points[bridge_elem + 1],
-                                                        orientation=orientation_, w=w, s=s, g=g,
-                                                        pads_geometry=pads_geometry_, bridge_geometry=bridge_geometry_,
-                                                        layer_configuration=self.layer_configuration,
-                                                        distance_between_pads=distance_between_pads_)
-                self.add(bridge_elem)
+                    segment_length = np.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2)
+                    number_of_bridges = int((segment_length - min_spacing) // (bridge_geometry_[1] + min_spacing)) + 1
 
-        return subsegments_points
+                    t_list = []
+                    for i in range(0, number_of_bridges):
+                        t_list.append(((i + 1) * (bridge_geometry_[1] / 2 + min_spacing)) / segment_length)
 
+                    subsegments_points = [(x0, y0)]
+                    for t in t_list:
+                        x, y = parametric_equation_of_line(x0, y0, x1, y1, t)
+                        subsegments_points.append((x, y))
+
+                    subsegments_points.append((x1, y1))
+
+                    bridges = []
+
+                    for bridge_elem in range(number_of_bridges + 1):
+                        line = elements.CPW(name=name + str(len(total_cpw)),
+                                            points=subsegments_points[bridge_elem:bridge_elem + 2], w=w, s=s, g=g,
+                                            layer_configuration=self.layer_configuration, r=radius)
+                        self.add(line)
+                        total_cpw.append(line)
+
+                    for bridge_elem in range(number_of_bridges):
+                        bridge_elem = elements.AirbridgeOverCPW(name=name + str(len(all_bridges)),
+                                                                position=subsegments_points[bridge_elem + 1],
+                                                                orientation=orientation_, w=w, s=s, g=g,
+                                                                pads_geometry=pads_geometry_,
+                                                                bridge_geometry=bridge_geometry_,
+                                                                layer_configuration=self.layer_configuration,
+                                                                distance_between_pads=distance_between_pads_)
+                        bridges.append(bridge_elem)
+                        all_bridges.append(bridge_elem)
+                        self.add(bridge_elem)
+                else:
+                    x0, y0, x1, y1 = segment_points(real_segments[elem])
+                    points_ = ([x0, y0], [x1, y1])
+                    line = elements.CPW(name=name + str(len(total_cpw)), points=points_, w=w, s=s, g=g,
+                                        layer_configuration=self.layer_configuration, r=0)
+                    self.add(line)
+                    total_cpw.append(line)
+            else:
+                continue
+        return total_cpw, all_bridges
 
     '''
     Deprecated stuff?
@@ -531,40 +581,41 @@ class Sample:
         return (firstline.end[0] + 2 * narrowing_length + airbridge[0] * 2 + airbridge[1], firstline.end[1]), None
 
     def connect_meander(self, name: str, o1: elements.DesignElement, port1: str, meander_length: float,
-                        length_left: float, length_right: float, first_step_orientation:float, meander_orientation: float,
-                        end_point = None, end_orientation = None, meander_type='round'):
+                        length_left: float, length_right: float, first_step_orientation: float,
+                        meander_orientation: float,
+                        end_point=None, end_orientation=None, meander_type='round'):
         # make small indent from the starting point
         print('Meander')
         t1 = o1.get_terminals()[port1]
         points = [tuple(t1.position)]
         (w, s, g) = (t1.w, t1.s, t1.g)
-        indent_length = 50#(w+2*s)*2
-        points.append((t1.position[0]+np.cos(t1.orientation+np.pi)*indent_length,
-                       t1.position[1]+np.sin(t1.orientation+np.pi)*indent_length))
+        indent_length = 50  # (w+2*s)*2
+        points.append((t1.position[0] + np.cos(t1.orientation + np.pi) * indent_length,
+                       t1.position[1] + np.sin(t1.orientation + np.pi) * indent_length))
         indent_first = length_left if first_step_orientation == 'left' else length_right
-        points.append((points[-1][0]+np.cos(meander_orientation)*indent_first,
-                       points[-1][1]+np.sin(meander_orientation)*indent_first))
+        points.append((points[-1][0] + np.cos(meander_orientation) * indent_first,
+                       points[-1][1] + np.sin(meander_orientation) * indent_first))
         if end_point is not None:
             end_point_indent = [(end_point[0] + np.cos(end_orientation + np.pi) * indent_length,
-                              end_point[1] + np.sin(end_orientation + np.pi) * indent_length)]
+                                 end_point[1] + np.sin(end_orientation + np.pi) * indent_length)]
         else:
             end_point_indent = []
-        #check that we have enough distance
-        rendering_meander = elements.CPW(name=name, points=deepcopy(points+end_point_indent), w=w, s=s, g=g,
+        # check that we have enough distance
+        rendering_meander = elements.CPW(name=name, points=deepcopy(points + end_point_indent), w=w, s=s, g=g,
                                          layer_configuration=self.layer_configuration, r=40,
                                          corner_type=meander_type)
         if rendering_meander.length > meander_length:
             print('error, length is too small')
             return 1
         # lets fill the whole rectangular
-        default_bend_diameter = (w+2*s+2*g)*2
+        default_bend_diameter = (w + 2 * s + 2 * g) * 2
         if meander_type == 'flush':
-            meander_step = length_left + length_right+default_bend_diameter
+            meander_step = length_left + length_right + default_bend_diameter
         elif meander_type == 'round':
-            meander_step = length_left + length_right + default_bend_diameter*np.pi/2
+            meander_step = length_left + length_right + default_bend_diameter * np.pi / 2
         # print(meander_length-rendering_meander.length)
         # meander_length+=length_left
-        N = int((meander_length-rendering_meander.length) // meander_step)
+        N = int((meander_length - rendering_meander.length) // meander_step)
         # print("N",N)
         # print(meander_step)
         if N == 0:
@@ -572,21 +623,23 @@ class Sample:
         # subtract one to connect to the end point, here i assume that the distance
         # from the end of the meander is less than the meander step
         if end_orientation is not None:
-            N=N-1
+            N = N - 1
         # make a meander
-        i=1
-        while i <=N:
-            list = [(points[-1][0] + np.sin(meander_orientation)*default_bend_diameter,
-                     points[-1][1] - np.cos(meander_orientation)*default_bend_diameter)]
+        i = 1
+        while i <= N:
+            list = [(points[-1][0] + np.sin(meander_orientation) * default_bend_diameter,
+                     points[-1][1] - np.cos(meander_orientation) * default_bend_diameter)]
             points.extend(list)
-            list = [(points[-1][0] + np.sin(meander_orientation-np.pi/2+np.pi*((i-1)%2)) * (length_left + length_right),
-                     points[-1][1] - np.cos(meander_orientation-np.pi/2+np.pi*((i-1)%2)) * (length_left + length_right))]
+            list = [(points[-1][0] + np.sin(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) * (
+                    length_left + length_right),
+                     points[-1][1] - np.cos(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) * (
+                             length_left + length_right))]
             points.extend(list)
-            i=i+1
+            i = i + 1
         # print(points)
         # print(calculate_total_length(points))
         if end_orientation is not None:
-            i=0
+            i = 0
         else:
             rendering_meander = elements.CPW(name=name, points=deepcopy(points), w=w, s=s, g=g,
                                              layer_configuration=self.layer_configuration, r=40,
@@ -596,29 +649,29 @@ class Sample:
             tail = np.abs(np.floor(rendering_meander.length - meander_length))
             # print(tail)
             if tail < default_bend_diameter:
-                list = [(points[-1][0] + np.sin(meander_orientation-np.pi/2+np.pi*((i-1-1)%2)) * tail,
-                     points[-1][1] - np.cos(meander_orientation-np.pi/2+np.pi*((i-1-1)%2)) * tail)]
+                list = [(points[-1][0] + np.sin(meander_orientation - np.pi / 2 + np.pi * ((i - 1 - 1) % 2)) * tail,
+                         points[-1][1] - np.cos(meander_orientation - np.pi / 2 + np.pi * ((i - 1 - 1) % 2)) * tail)]
                 points.extend(list)
             else:
                 list = [(points[-1][0] + np.sin(meander_orientation) * default_bend_diameter,
                          points[-1][1] - np.cos(meander_orientation) * default_bend_diameter)]
                 points.extend(list)
                 list = [(points[-1][0] + np.sin(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) *
-                         (tail - default_bend_diameter*np.pi/2),
+                         (tail - default_bend_diameter * np.pi / 2),
                          points[-1][1] - np.cos(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) *
-                         (tail - default_bend_diameter*np.pi/2))]
+                         (tail - default_bend_diameter * np.pi / 2))]
                 points.extend(list)
                 rendering_meander = elements.CPW(name=name, points=deepcopy(points), w=w, s=s, g=g,
                                                  layer_configuration=self.layer_configuration, r=40,
                                                  corner_type=meander_type)
                 # print(rendering_meander.length)
-                error=np.abs(rendering_meander.length - meander_length)
+                error = np.abs(rendering_meander.length - meander_length)
                 # print(error)
                 points.pop(-1)
                 list = [(points[-1][0] + np.sin(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) *
-                         (tail - default_bend_diameter*np.pi/2+error),
+                         (tail - default_bend_diameter * np.pi / 2 + error),
                          points[-1][1] - np.cos(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) *
-                         (tail - default_bend_diameter*np.pi/2+error))]
+                         (tail - default_bend_diameter * np.pi / 2 + error))]
                 points.extend(list)
         rendering_meander = elements.CPW(name=name, points=deepcopy(points), w=w, s=s, g=g,
                                          layer_configuration=self.layer_configuration, r=40,
@@ -629,6 +682,8 @@ class Sample:
         self.add(rendering_meander)
         return rendering_meander
         # check the distance to the end
+
+
 #         calculate_total_length()
 #
 #         #write some points to connect
@@ -719,7 +774,6 @@ class Sample:
 #                 raise ValueError('CPW parameters are not equal!')
 
 
-
 # TODO: might be useflu for elements/cpw.py to caluclate the line of the cpw line
 def calculate_total_length(points):
     i0, j0 = points[0]
@@ -738,5 +792,13 @@ def parametric_equation_of_line(x0, y0, x1, y1, t):
 
     return x, y
 
+
+def segment_points(segment):
+    x0 = segment['startpoint'][0]
+    y0 = segment['startpoint'][1]
+    x1 = segment['endpoint'][0]
+    y1 = segment['endpoint'][1]
+
+    return x0, y0, x1, y1
 
 

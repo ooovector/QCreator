@@ -69,12 +69,12 @@ class AirbridgeOverCPW(DesignElement):
         precision = 0.001
 
         # create CPW line under airbridge
-        cpw_line = gdspy.FlexPath(points=[self.position - self.p, self.position + self.p],
-                                  width=[self.g, self.w, self.g],
-                                  offset=[- self.w / 2 - self.s - self.g / 2, 0, self.w / 2 + self.s + self.g / 2],
-                                  ends='flush',
-                                  corners='natural', bend_radius=bend_radius, precision=precision,
-                                  layer=self.layer_configuration.total_layer)
+        # cpw_line = gdspy.FlexPath(points=[self.position - self.p, self.position + self.p],
+        #                           width=[self.g, self.w, self.g],
+        #                           offset=[- self.w / 2 - self.s - self.g / 2, 0, self.w / 2 + self.s + self.g / 2],
+        #                           ends='flush',
+        #                           corners='natural', bend_radius=bend_radius, precision=precision,
+        #                           layer=self.layer_configuration.total_layer)
         # create pads of bridge
         pad1 = gdspy.Rectangle(
             (self.position[0] + self.pads_geometry[1] / 2, self.position[1] + self.distance_between_pads / 2),
@@ -100,15 +100,28 @@ class AirbridgeOverCPW(DesignElement):
 
         bridge.rotate(self.orientation, self.position)
 
-        return {'positive': cpw_line, 'airbridges_pads': contacts, 'airbridges': bridge}
+        # return {'positive': cpw_line, 'airbridges_pads': contacts, 'airbridges': bridge}
+        return {'airbridges_pads': contacts, 'airbridges': bridge}
 
     def get_terminals(self) -> dict:
         return self.terminals
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int],
                    track_changes: bool = True) -> list:
+        #TODO: calculate bridge_capacitance???
+        bridge_capacitance = 1e-15
 
-        pass
+        c1 = tlsim.Capacitor(c=bridge_capacitance)
+        elements = [c1]
+        if track_changes:
+            self.tls_cache.append(elements)
+
+        tls_instance.add_element(c1, [terminal_mapping['port1'], 0])
+
+        return elements
+    def __repr__(self):
+        return "AirbridgeOverCPW {}".format(self.name)
+
 
 
 class AirBridge:
