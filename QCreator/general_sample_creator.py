@@ -396,16 +396,16 @@ class Sample:
 
         return np.asarray(s)
 
-    def generate_bridge_over_cpw(self, name: str, o: elements.DesignElement, pads_geometry_: Tuple[float, float],
-                                 bridge_geometry_: Tuple[float, float], distance_between_pads_: float,
+    def generate_bridge_over_cpw(self, name: str, o: elements.DesignElement, pads_geometry: Tuple[float, float],
+                                 bridge_geometry: Tuple[float, float], distance_between_pads: float,
                                  min_spacing: float):
         """
         This method add air bridges on CPW line.
         :param name:
         :param o:
-        :param pads_geometry_:
-        :param bridge_geometry_:
-        :param distance_between_pads_:
+        :param pads_geometry:
+        :param bridge_geometry:
+        :param distance_between_pads:
         :param min_spacing: distance between air bridges
         """
 
@@ -420,15 +420,18 @@ class Sample:
         segments_ = o.segments
         number_of_segments = len(segments_)
 
+        # firstly we should sort all segments to understand which of them can be render with bridges
         for elem in range(number_of_segments):
+
             if segments_[elem]['type'] == 'segment':
                 distance_between_points = np.sqrt(
                     (segments_[elem]['startpoint'][0] - segments_[elem]['endpoint'][0]) ** 2 + (
                             segments_[elem]['startpoint'][1] - segments_[elem]['endpoint'][1]) ** 2)
-                if distance_between_points > bridge_geometry_[1] + 2 * min_spacing:
+                if distance_between_points > pads_geometry[1] + 2 * min_spacing:
                     segments_[elem]['bridge'] = 'yes'
                 else:
                     segments_[elem]['bridge'] = 'no'
+
             elif segments_[elem]['type'] == 'turn':
                 segments_[elem]['startpoint'] = segments_[elem - 1]['endpoint']
                 segments_[elem]['endpoint'] = segments_[elem + 1]['startpoint']
@@ -459,6 +462,8 @@ class Sample:
                                     orientation2=real_segments[elem]['orientation2'])
                 self.add(line)
                 total_cpw.append(line)
+                if elem > 0:
+                    self.connect(total_cpw[elem - 1], 'port2', total_cpw[elem], 'port1')
 
             elif real_segments[elem]['type'] == 'segment':
                 if real_segments[elem]['bridge'] == 'yes':
@@ -467,39 +472,63 @@ class Sample:
                     orientation_ = np.arctan2(y1 - y0, x1 - x0)
 
                     segment_length = np.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2)
-                    number_of_bridges = int((segment_length - min_spacing) // (bridge_geometry_[1] + min_spacing)) + 1
+                    number_of_bridges = int((segment_length - min_spacing) // (pads_geometry[1] + min_spacing))
 
-                    t_list = []
-                    for i in range(0, number_of_bridges):
-                        t_list.append(((i + 1) * (bridge_geometry_[1] / 2 + min_spacing)) / segment_length)
+                    t_list = []  # list of parameters for lines
+                    bridges_t_list = []  # list of parameters for bridges
+
+                    for i in range(number_of_bridges):
+                        bridges_t_list.append(((i + 1) * (pads_geometry[1] / 2 + min_spacing) + i * pads_geometry[
+                            1] / 2) / segment_length)
+                        delta1 = ((i + 1) * min_spacing + i * pads_geometry[1]) / segment_length
+                        delta2 = ((min_spacing + pads_geometry[1]) * (i + 1)) / segment_length
+                        t_list.append(delta1)
+                        t_list.append(delta2)
 
                     subsegments_points = [(x0, y0)]
+                    bridges_points = []
+
                     for t in t_list:
                         x, y = parametric_equation_of_line(x0, y0, x1, y1, t)
                         subsegments_points.append((x, y))
 
+                    for t in bridges_t_list:
+                        x, y = parametric_equation_of_line(x0, y0, x1, y1, t)
+                        bridges_points.append((x, y))
+
                     subsegments_points.append((x1, y1))
 
                     bridges = []
+                    sub_cpw = []
 
                     for bridge_elem in range(number_of_bridges + 1):
                         line = elements.CPW(name=name + str(len(total_cpw)),
-                                            points=subsegments_points[bridge_elem:bridge_elem + 2], w=w, s=s, g=g,
+                                            points=subsegments_points[2 * bridge_elem:2 * bridge_elem + 2], w=w, s=s,
+                                            g=g,
                                             layer_configuration=self.layer_configuration, r=radius)
                         self.add(line)
+                        sub_cpw.append(line)
                         total_cpw.append(line)
 
                     for bridge_elem in range(number_of_bridges):
                         bridge_elem = elements.AirbridgeOverCPW(name=name + str(len(all_bridges)),
-                                                                position=subsegments_points[bridge_elem + 1],
+                                                                position=bridges_points[bridge_elem],
                                                                 orientation=orientation_, w=w, s=s, g=g,
-                                                                pads_geometry=pads_geometry_,
-                                                                bridge_geometry=bridge_geometry_,
+                                                                pads_geometry=pads_geometry,
+                                                                bridge_geometry=bridge_geometry,
                                                                 layer_configuration=self.layer_configuration,
-                                                                distance_between_pads=distance_between_pads_)
+                                                                distance_between_pads=distance_between_pads)
                         bridges.append(bridge_elem)
                         all_bridges.append(bridge_elem)
                         self.add(bridge_elem)
+
+                    if elem > 0:
+                        self.connect(total_cpw[elem - 1], 'port2', sub_cpw[0], 'port1')
+
+                    for i in range(number_of_bridges):
+                        self.connect(sub_cpw[i], 'port2', bridges[i], 'port1')
+                        self.connect(bridges[i], 'port2', sub_cpw[i + 1], 'port1')
+
                 else:
                     x0, y0, x1, y1 = segment_points(real_segments[elem])
                     points_ = ([x0, y0], [x1, y1])
@@ -507,6 +536,9 @@ class Sample:
                                         layer_configuration=self.layer_configuration, r=0)
                     self.add(line)
                     total_cpw.append(line)
+
+                    if elem > 0:
+                        self.connect(total_cpw[elem - 1], 'port2', total_cpw[elem], 'port1')
             else:
                 continue
         return total_cpw, all_bridges
@@ -585,7 +617,7 @@ class Sample:
                         meander_orientation: float,
                         end_point=None, end_orientation=None, meander_type='round'):
         # make small indent from the starting point
-        bend_radius=40
+        bend_radius = 40
         # print('Meander')
         t1 = o1.get_terminals()[port1]
         points = [tuple(t1.position)]
@@ -609,7 +641,7 @@ class Sample:
             print('error, length is too small')
             return 1
         # lets fill the whole rectangular
-        default_bend_diameter = bend_radius*2+5
+        default_bend_diameter = bend_radius * 2 + 5
         if meander_type == 'flush':
             meander_step = length_left + length_right + default_bend_diameter
         elif meander_type == 'round':
@@ -652,16 +684,16 @@ class Sample:
             tail = np.abs(np.floor(rendering_meander.length - meander_length))
             # print(tail)
             # print((default_bend_diameter - 2 * bend_radius) + np.pi * bend_radius)
-            if tail < np.pi * bend_radius/2:
-                list= [(points[-1][0] + np.sin(meander_orientation - np.pi / 2 + np.pi * ((i) % 2)) * tail,
+            if tail < np.pi * bend_radius / 2:
+                list = [(points[-1][0] + np.sin(meander_orientation - np.pi / 2 + np.pi * ((i) % 2)) * tail,
                          points[-1][1] - np.cos(meander_orientation - np.pi / 2 + np.pi * ((i) % 2)) * tail)]
                 points.extend(list)
                 rendering_meander = elements.CPW(name=name, points=deepcopy(points), w=w, s=s, g=g,
                                                  layer_configuration=self.layer_configuration, r=bend_radius,
                                                  corner_type=meander_type)
             elif tail < (default_bend_diameter - 2 * bend_radius) + np.pi * bend_radius + 1:
-                list = [(points[-1][0] + np.sin(meander_orientation) * (bend_radius+1),
-                         points[-1][1] - np.cos(meander_orientation) * (bend_radius+1))]
+                list = [(points[-1][0] + np.sin(meander_orientation) * (bend_radius + 1),
+                         points[-1][1] - np.cos(meander_orientation) * (bend_radius + 1))]
                 points.extend(list)
                 # print(points)
                 rendering_meander = elements.CPW(name=name, points=deepcopy(points), w=w, s=s, g=g,
@@ -830,5 +862,3 @@ def segment_points(segment):
     y1 = segment['endpoint'][1]
 
     return x0, y0, x1, y1
-
-

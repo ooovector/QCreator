@@ -5,6 +5,7 @@ import gdspy
 from typing import Tuple, Mapping, Any
 from .drawing import combine
 from .cpw_primitives import Trapezoid
+from .. import conformal_mapping as cm
 
 
 class AirbridgeOverCPW(DesignElement):
@@ -14,15 +15,16 @@ class AirbridgeOverCPW(DesignElement):
                  distance_between_pads: float = None):
         """
         Airbridge crossover element over CPW. Some parameters of this element depend on CPW structure.
+        Here y axe is parallel to CPW.
         :param name: element name
         :param position: position of element (center position)
         :param orientation: orientation of element
-        :param w:
+        :param w: CPW signal conductor under bridge
         :param s:
         :param g:
-        :param distance_between_pads:
-        :param pads_geometry: rectangle parameters of airbridge's pads width (CPW width) and length
-        :bridge_geometry:
+        :param distance_between_pads: distance between two pads of airbridge
+        :param pads_geometry: rectangle parameters of airbridge's pads width (first parameter) and length (second parameter)
+        :bridge_geometry: rectangle parameters of airbridge
         :layer_configuration
 
         """
@@ -62,19 +64,21 @@ class AirbridgeOverCPW(DesignElement):
         self.terminals = {'port1': DesignTerminal(position=self.position - self.p, orientation=self.orientation,
                                                   type='cpw', w=self.w, s=self.s, g=self.g, disconnected='short'),
                           'port2': DesignTerminal(position=self.position + self.p, orientation=self.orientation + np.pi,
-                                                  type='cpw', w=self.w, s=self.s, g=self.g, disconnected='short')}
+                                                  type='cpw', w=self.w, s=self.s, g=self.g, disconnected='short'),
+                          'port': DesignTerminal(position=self.position, orientation=self.orientation + np.pi,
+                                                 type='cpw', w=self.w, s=self.s, g=self.g, disconnected='short')}
 
     def render(self):
         bend_radius = self.g
         precision = 0.001
 
         # create CPW line under airbridge
-        # cpw_line = gdspy.FlexPath(points=[self.position - self.p, self.position + self.p],
-        #                           width=[self.g, self.w, self.g],
-        #                           offset=[- self.w / 2 - self.s - self.g / 2, 0, self.w / 2 + self.s + self.g / 2],
-        #                           ends='flush',
-        #                           corners='natural', bend_radius=bend_radius, precision=precision,
-        #                           layer=self.layer_configuration.total_layer)
+        cpw_line = gdspy.FlexPath(points=[self.position - self.p, self.position + self.p],
+                                  width=[self.g, self.w, self.g],
+                                  offset=[- self.w / 2 - self.s - self.g / 2, 0, self.w / 2 + self.s + self.g / 2],
+                                  ends='flush',
+                                  corners='natural', bend_radius=bend_radius, precision=precision,
+                                  layer=self.layer_configuration.total_layer)
         # create pads of bridge
         pad1 = gdspy.Rectangle(
             (self.position[0] + self.pads_geometry[1] / 2, self.position[1] + self.distance_between_pads / 2),
@@ -100,28 +104,57 @@ class AirbridgeOverCPW(DesignElement):
 
         bridge.rotate(self.orientation, self.position)
 
-        # return {'positive': cpw_line, 'airbridges_pads': contacts, 'airbridges': bridge}
-        return {'airbridges_pads': contacts, 'airbridges': bridge}
+        return {'positive': cpw_line, 'airbridges_pads': contacts, 'airbridges': bridge}
 
     def get_terminals(self) -> dict:
         return self.terminals
 
+    def cm(self):
+        cross_section = [self.s, self.w, self.s]
+
+        ll, cl = cm.ConformalMapping(cross_section).cl_and_Ll()
+
+        if not self.terminals['port1'].order:
+            ll, cl = ll[::-1, ::-1], cl[::-1, ::-1]
+
+        return ll, cl
+
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int],
                    track_changes: bool = True) -> list:
-        #TODO: calculate bridge_capacitance???
+        # TODO: calculate bridge_capacitance???
         bridge_capacitance = 1e-15
 
         c1 = tlsim.Capacitor(c=bridge_capacitance)
-        elements = [c1]
+        cl, ll = self.cm()
+        line1_length = self.pads_geometry[1] / 2
+        line1 = tlsim.TLCoupler(n=1,
+                                l=line1_length,
+                                cl=cl,
+                                ll=ll,
+                                rl=np.zeros((1, 1)),
+                                gl=np.zeros((1, 1)),
+                                name=self.name + '_line1')
+        line2 = tlsim.TLCoupler(n=1,
+                                l=self.p,
+                                cl=cl,
+                                ll=ll,
+                                rl=np.zeros((1, 1)),
+                                gl=np.zeros((1, 1)),
+                                name=self.name + '_line2')
+
+        elements = [c1, line1, line2]
         if track_changes:
             self.tls_cache.append(elements)
 
-        tls_instance.add_element(c1, [terminal_mapping['port1'], 0])
+        tls_instance.add_element(line1, [terminal_mapping['port1'], terminal_mapping['port']])
+        tls_instance.add_element(line2, [terminal_mapping['port'], terminal_mapping['port2']])
+
+        tls_instance.add_element(c1, [terminal_mapping['port'], 0])
 
         return elements
+
     def __repr__(self):
         return "AirbridgeOverCPW {}".format(self.name)
-
 
 
 class AirBridge:
