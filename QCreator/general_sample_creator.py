@@ -585,7 +585,8 @@ class Sample:
                         meander_orientation: float,
                         end_point=None, end_orientation=None, meander_type='round'):
         # make small indent from the starting point
-        print('Meander')
+        bend_radius=40
+        # print('Meander')
         t1 = o1.get_terminals()[port1]
         points = [tuple(t1.position)]
         (w, s, g) = (t1.w, t1.s, t1.g)
@@ -602,17 +603,18 @@ class Sample:
             end_point_indent = []
         # check that we have enough distance
         rendering_meander = elements.CPW(name=name, points=deepcopy(points + end_point_indent), w=w, s=s, g=g,
-                                         layer_configuration=self.layer_configuration, r=40,
+                                         layer_configuration=self.layer_configuration, r=bend_radius,
                                          corner_type=meander_type)
         if rendering_meander.length > meander_length:
             print('error, length is too small')
             return 1
         # lets fill the whole rectangular
-        default_bend_diameter = (w + 2 * s + 2 * g) * 2
+        default_bend_diameter = bend_radius*2+5
         if meander_type == 'flush':
             meander_step = length_left + length_right + default_bend_diameter
         elif meander_type == 'round':
-            meander_step = length_left + length_right + default_bend_diameter * np.pi / 2
+            meander_step = length_left - bend_radius + length_right - bend_radius + \
+                           (default_bend_diameter - 2 * bend_radius) + np.pi * bend_radius
         # print(meander_length-rendering_meander.length)
         # meander_length+=length_left
         N = int((meander_length - rendering_meander.length) // meander_step)
@@ -635,6 +637,7 @@ class Sample:
                      points[-1][1] - np.cos(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) * (
                              length_left + length_right))]
             points.extend(list)
+
             i = i + 1
         # print(points)
         # print(calculate_total_length(points))
@@ -642,42 +645,69 @@ class Sample:
             i = 0
         else:
             rendering_meander = elements.CPW(name=name, points=deepcopy(points), w=w, s=s, g=g,
-                                             layer_configuration=self.layer_configuration, r=40,
+                                             layer_configuration=self.layer_configuration, r=bend_radius,
                                              corner_type=meander_type)
             # print(rendering_meander.length)
             # print(meander_length)
             tail = np.abs(np.floor(rendering_meander.length - meander_length))
             # print(tail)
-            if tail < default_bend_diameter:
-                list = [(points[-1][0] + np.sin(meander_orientation - np.pi / 2 + np.pi * ((i - 1 - 1) % 2)) * tail,
-                         points[-1][1] - np.cos(meander_orientation - np.pi / 2 + np.pi * ((i - 1 - 1) % 2)) * tail)]
+            # print((default_bend_diameter - 2 * bend_radius) + np.pi * bend_radius)
+            if tail < np.pi * bend_radius/2:
+                list= [(points[-1][0] + np.sin(meander_orientation - np.pi / 2 + np.pi * ((i) % 2)) * tail,
+                         points[-1][1] - np.cos(meander_orientation - np.pi / 2 + np.pi * ((i) % 2)) * tail)]
                 points.extend(list)
+                rendering_meander = elements.CPW(name=name, points=deepcopy(points), w=w, s=s, g=g,
+                                                 layer_configuration=self.layer_configuration, r=bend_radius,
+                                                 corner_type=meander_type)
+            elif tail < (default_bend_diameter - 2 * bend_radius) + np.pi * bend_radius + 1:
+                list = [(points[-1][0] + np.sin(meander_orientation) * (bend_radius+1),
+                         points[-1][1] - np.cos(meander_orientation) * (bend_radius+1))]
+                points.extend(list)
+                # print(points)
+                rendering_meander = elements.CPW(name=name, points=deepcopy(points), w=w, s=s, g=g,
+                                                 layer_configuration=self.layer_configuration, r=bend_radius,
+                                                 corner_type=meander_type)
+                tail = np.abs(np.floor(rendering_meander.length - meander_length))
+                # print(tail)
+                list = [(points[-1][0] + np.sin(meander_orientation) * tail,
+                         points[-1][1] - np.cos(meander_orientation) * tail)]
+                points.extend(list)
+                rendering_meander = elements.CPW(name=name, points=deepcopy(points), w=w, s=s, g=g,
+                                                 layer_configuration=self.layer_configuration, r=bend_radius,
+                                                 corner_type=meander_type)
             else:
+                # print("I'm here")
                 list = [(points[-1][0] + np.sin(meander_orientation) * default_bend_diameter,
                          points[-1][1] - np.cos(meander_orientation) * default_bend_diameter)]
                 points.extend(list)
-                list = [(points[-1][0] + np.sin(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) *
-                         (tail - default_bend_diameter * np.pi / 2),
-                         points[-1][1] - np.cos(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) *
-                         (tail - default_bend_diameter * np.pi / 2))]
-                points.extend(list)
                 rendering_meander = elements.CPW(name=name, points=deepcopy(points), w=w, s=s, g=g,
-                                                 layer_configuration=self.layer_configuration, r=40,
+                                                 layer_configuration=self.layer_configuration, r=bend_radius,
                                                  corner_type=meander_type)
                 # print(rendering_meander.length)
                 error = np.abs(rendering_meander.length - meander_length)
                 # print(error)
-                points.pop(-1)
+
                 list = [(points[-1][0] + np.sin(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) *
-                         (tail - default_bend_diameter * np.pi / 2 + error),
+                         error,
                          points[-1][1] - np.cos(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) *
-                         (tail - default_bend_diameter * np.pi / 2 + error))]
+                         error)]
                 points.extend(list)
-        rendering_meander = elements.CPW(name=name, points=deepcopy(points), w=w, s=s, g=g,
-                                         layer_configuration=self.layer_configuration, r=40,
-                                         corner_type=meander_type)
-        print(points)
-        print(rendering_meander.length)
+                rendering_meander = elements.CPW(name=name, points=deepcopy(points), w=w, s=s, g=g,
+                                                 layer_configuration=self.layer_configuration, r=bend_radius,
+                                                 corner_type=meander_type)
+                # print(points)
+                # points.pop(-1)
+                error = np.abs(rendering_meander.length - meander_length)
+                list = [(points[-1][0] + np.sin(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) *
+                         (error),
+                         points[-1][1] - np.cos(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) *
+                         (error))]
+                points.extend(list)
+                rendering_meander = elements.CPW(name=name, points=deepcopy(points), w=w, s=s, g=g,
+                                                 layer_configuration=self.layer_configuration, r=bend_radius,
+                                                 corner_type=meander_type)
+        # print(points)
+        # print(rendering_meander.length)
         self.connections.extend([((rendering_meander, 'port1', 0), (o1, port1, 0))])
         self.add(rendering_meander)
         return rendering_meander

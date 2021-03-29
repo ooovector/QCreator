@@ -128,7 +128,9 @@ class CPWCoupler(DesignElement):
                 self.segments.append({'type': 'segment', 'endpoint': point})
                 # self.length += np.sqrt(np.sum((point - last_point) ** 2))
                 # print(self.length, self.segments[-1:])
+        self.calculate_length()
 
+    def calculate_length(self):
         first_point = self.segments[0]['endpoint']
         for segment_num, segment in enumerate(self.segments[1:]):
             if segment['type'] == 'turn':
@@ -150,14 +152,12 @@ class CPWCoupler(DesignElement):
     def render(self):
         bend_radius = self.g
         precision = 0.001
-
         p1 = gdspy.FlexPath([self.segments[0]['endpoint']], width=self.widths, offset=self.offsets, ends='flush',
-                            corners='natural', bend_radius=bend_radius, precision=precision,
-                            layer=self.layer_configuration.total_layer)
+                                 corners='natural', bend_radius=bend_radius, precision=precision,
+                                 layer=self.layer_configuration.total_layer)
         p2 = gdspy.FlexPath([self.segments[0]['endpoint']], width=self.width_total, offset=0, ends='flush',
-                            corners='natural', bend_radius=self.g, precision=precision,
-                            layer=self.layer_configuration.restricted_area_layer)
-
+                                 corners='natural', bend_radius=self.g, precision=precision,
+                                 layer=self.layer_configuration.restricted_area_layer)
         for segment in self.segments[1:]:
             if segment['type'] == 'turn':
                 p1.turn(self.r, angle=segment['turn'])
