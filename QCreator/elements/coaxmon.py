@@ -142,7 +142,7 @@ class Coaxmon(DesignElement):
             if 'mirror' in self.transformations:
                 if coupler.connection is not None:
                     coupler_connection = mirror_point(coupler.connection, self.transformations['mirror'][0], self.transformations['mirror'][1])
-                    coupler_phi = np.arctan2(coupler_connection[1]-self.center[1], coupler_connection[0]-self.center[0])+ np.pi
+                    coupler_phi = np.arctan2(coupler_connection[1]-self.center[1], coupler_connection[0]-self.center[0])+ np.pi*0
             if 'rotate' in self.transformations:
                 if coupler.connection is not None:
                     coupler_connection = rotate_point(coupler.connection, self.transformations['rotate'][0], self.transformations['rotate'][1])
