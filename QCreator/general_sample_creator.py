@@ -248,11 +248,9 @@ class Sample:
 
     def cpw_shift(self, element, port_name, length):
         return [(element.get_terminals()[port_name].position[0] + \
-                 length * np.cos(element.get_terminals()[port_name].orientation),
+                 length * np.cos(element.get_terminals()[port_name].orientation+np.pi),
                  element.get_terminals()[port_name].position[1] + \
-                 length * np.sin(element.get_terminals()[port_name].orientation)),
-
-                ]
+                 length * np.sin(element.get_terminals()[port_name].orientation+np.pi)),]
 
     # functions to work and calculate capacitance
     def write_to_gds(self, name=None):
