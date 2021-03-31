@@ -142,11 +142,13 @@ class Coaxmon(DesignElement):
             if 'mirror' in self.transformations:
                 if coupler.connection is not None:
                     coupler_connection = mirror_point(coupler.connection, self.transformations['mirror'][0], self.transformations['mirror'][1])
-                    coupler_phi = np.arctan2(coupler_connection[1]-self.center[1], coupler_connection[0]-self.center[0])+ np.pi
+                    qubit_center = mirror_point(deepcopy(self.center), self.transformations['mirror'][0], self.transformations['mirror'][1])
+                    coupler_phi = np.arctan2(coupler_connection[1]-qubit_center[1], coupler_connection[0]-qubit_center[0])+np.pi
             if 'rotate' in self.transformations:
                 if coupler.connection is not None:
                     coupler_connection = rotate_point(coupler.connection, self.transformations['rotate'][0], self.transformations['rotate'][1])
-                    coupler_phi = np.arctan2(coupler_connection[1]-self.center[1], coupler_connection[0]-self.center[0])+ np.pi
+                    qubit_center = rotate_point(deepcopy(self.center), self.transformations['rotate'][0], self.transformations['rotate'][1])
+                    coupler_phi = np.arctan2(coupler_connection[1]-qubit_center[1], coupler_connection[0]-qubit_center[0])+ np.pi
             if self.transformations == {}:
                 coupler_connection = coupler.connection
                 coupler_phi = coupler.phi*np.pi + np.pi
@@ -198,7 +200,7 @@ class Coaxmon(DesignElement):
         bug = 1
         flux_line_output_connection = (flux_line_output[0]+bug*np.cos(np.pi+orientation),
                                        flux_line_output[1]+bug*np.sin(np.pi+orientation))
-        remove = gdspy.FlexPath(deepcopy([connection,flux_line_output]), [self.core, self.core], offset=[-self.gap,self.gap], layer=self.layer_configuration.total_layer)
+        remove = gdspy.FlexPath(deepcopy([connection,flux_line_output]), [self.gap, self.gap], offset=[-self.core/2-self.gap/2,self.core/2+self.gap/2])
         if 'mirror' in self.transformations:
             flux_line_output_connection = mirror_point(flux_line_output_connection, self.transformations['mirror'][0],
                                                   self.transformations['mirror'][1])

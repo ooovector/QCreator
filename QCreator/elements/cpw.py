@@ -5,7 +5,7 @@ import gdspy
 from .. import conformal_mapping as cm
 from .. import transmission_line_simulator as tlsim
 from typing import List, Tuple, Mapping, Union, Iterable, Dict
-
+from copy import  deepcopy
 
 class CPWCoupler(DesignElement):
     def __init__(self, name: str, points: List[Tuple[float, float]], w: List[float], s: List[float], g: float,
@@ -86,6 +86,7 @@ class CPWCoupler(DesignElement):
         for point_id, point in enumerate(adapted_points):
             if point_id == 0 or point_id == len(adapted_points) - 1:
                 self.segments.append({'type': 'endpoint', 'endpoint': point})
+                # first_point = self.segments[0]['endpoint']
                 continue
             current_corner_type = 'pointy'
             if self.corner_type == 'round':
@@ -119,22 +120,44 @@ class CPWCoupler(DesignElement):
 
                 self.segments.append({'type': 'segment', 'endpoint': replaced_point1})
                 self.segments.append({'type': 'turn', 'turn': turn})
-                self.length += (np.sqrt(np.sum((replaced_point1 - last_point) ** 2)) + np.abs(turn) * self.r)
+
+                # self.length += (np.sqrt(np.sum((replaced_point1 - last_point) ** 2)) + np.abs(turn) * self.r)
+                # print(self.length, self.segments[-2:])
+
             else:
                 self.segments.append({'type': 'segment', 'endpoint': point})
-                self.length += np.sqrt(np.sum((point - last_point) ** 2))
+                # self.length += np.sqrt(np.sum((point - last_point) ** 2))
+                # print(self.length, self.segments[-1:])
+        self.calculate_length()
+
+    def calculate_length(self):
+        first_point = self.segments[0]['endpoint']
+        for segment_num, segment in enumerate(self.segments[1:]):
+            if segment['type'] == 'turn':
+                self.length += np.abs(segment['turn']) * self.r
+                orientation = np.arctan2(first_point[1] - first_point_before[1], first_point[0] - first_point_before[0])
+                first_point_for_rotation=deepcopy(first_point)
+                first_point = (first_point[0]+np.sin(-segment['turn']) * self.r,
+                               first_point[1]-(1-np.cos(-segment['turn']))*self.r)
+                if segment['turn'] > 0:
+                    orientation=np.pi+orientation
+                first_point=np.floor(rotate_point(first_point,orientation,first_point_for_rotation))
+            else:
+                final_point = segment['endpoint']
+                self.segments[segment_num+1]['startpoint'] = first_point
+                self.length += np.sqrt(np.sum((final_point - first_point) ** 2))
+                first_point_before = first_point
+                first_point = final_point
 
     def render(self):
         bend_radius = self.g
         precision = 0.001
-
         p1 = gdspy.FlexPath([self.segments[0]['endpoint']], width=self.widths, offset=self.offsets, ends='flush',
-                            corners='natural', bend_radius=bend_radius, precision=precision,
-                            layer=self.layer_configuration.total_layer)
+                                 corners='natural', bend_radius=bend_radius, precision=precision,
+                                 layer=self.layer_configuration.total_layer)
         p2 = gdspy.FlexPath([self.segments[0]['endpoint']], width=self.width_total, offset=0, ends='flush',
-                            corners='natural', bend_radius=self.g, precision=precision,
-                            layer=self.layer_configuration.restricted_area_layer)
-
+                                 corners='natural', bend_radius=self.g, precision=precision,
+                                 layer=self.layer_configuration.restricted_area_layer)
         for segment in self.segments[1:]:
             if segment['type'] == 'turn':
                 p1.turn(self.r, angle=segment['turn'])
@@ -200,7 +223,17 @@ class CPWCoupler(DesignElement):
     def __repr__(self):
         return 'CPWCoupler "{}", n={}, l={:4.3f}'.format(self.name, len(self.w), np.round(self.length, 3))
 
+def rotate_point(point, angle, origin):
+    """
+    Rotate a point counterclockwise by a given angle around a given origin.
 
+    The angle should be given in radians.
+    """
+    ox, oy = origin
+    px, py = point
+    qx = ox + np.cos(angle) * (px - ox) - np.sin(angle) * (py - oy)
+    qy = oy + np.sin(angle) * (px - ox) + np.cos(angle) * (py - oy)
+    return qx, qy
 class CPW(CPWCoupler):
     def __init__(self, name: str, points: List[Tuple[float, float]], w: float, s: float, g: float,
                  layer_configuration: LayerConfiguration, r: float, corner_type: str = 'round',
