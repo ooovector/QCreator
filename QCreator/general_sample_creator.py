@@ -277,7 +277,7 @@ class Sample:
         mesh.run_fastcap(os.getcwd() + '\\' + 'mesh_4k_results')
         print("Capacitance results have been writen here: ", os.getcwd() + '\\' + 'mesh_4k_results')
         caps = np.round(mesh.get_capacitances(), 1)
-        self.fill_cap_matrix(qubit, caps)  # TODO: can we improve this way?
+        self.fill_cap_matrix_grounded(qubit, caps)  # TODO: can we improve this way?
         self.caps_list.append(caps)
         return caps
 
@@ -287,6 +287,17 @@ class Sample:
         for id, coupler in enumerate(qubit.couplers):
             if coupler.coupler_type == 'coupler':
                 qubit.C['coupler' + str(id)] = (caps[i][i], -caps[1][i])
+                i = i + 1
+        return True
+    def fill_cap_matrix_grounded(self, qubit, caps):
+        qubit.C['qubit'] = caps[1][1]
+        print(caps)
+        i = 2
+        print(qubit.C)
+        for key,value in qubit.terminals.items():
+            if value is not None and key is not 'flux':
+                print(key, value)
+                qubit.C[key] = (caps[i][i], -caps[1][i])
                 i = i + 1
         return True
 
