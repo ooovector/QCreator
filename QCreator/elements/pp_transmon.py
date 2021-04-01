@@ -21,7 +21,7 @@ class PP_Transmon(DesignElement):
     6) jj_params - parameters of the SQUID which here is 3JJ SQUID.#TODO add more information
     """
     def __init__(self, name: str, center: Tuple[float, float],width: float, height: float,gap: float,bridge_gap:float,bridge_w:float, g_w: float, g_h: float,g_t: float,layer_configuration: LayerConfiguration,
-                 jj_params: Dict,Couplers,transformations: Dict,remove_ground = {},secret_shift = 0):
+                 jj_params: Dict,Couplers,transformations: Dict,calculate_capacitance: False,remove_ground = {},secret_shift = 0):
         super().__init__(type='qubit', name=name)
         #qubit parameters
         self.transformations = transformations# to mirror the structure
@@ -45,7 +45,17 @@ class PP_Transmon(DesignElement):
         self.JJ = None
         self.layers = []
 
-        #self.calculate_capacitance = calculate_capacitance
+
+        #terminals
+        self.terminals = {  # 'coupler0': None,
+            # 'coupler1': None,
+            # 'coupler2': None,
+            # 'coupler3': None,
+            # 'coupler4': None,
+            # 'flux line': None,
+            'qubit': None}
+
+        self.calculate_capacitance = calculate_capacitance
         self.tls_cache = []
         self.L = 15e-9  # 20nHr
         self.C = {   'coupler0': None,
@@ -58,8 +68,8 @@ class PP_Transmon(DesignElement):
         #remove ground on these sites
         self.remove_ground = remove_ground
 
+        #for calculating cacities
         self.secret_shift = secret_shift
-
 
     def render(self):
         """
@@ -203,9 +213,12 @@ class PP_Transmon(DesignElement):
         '''
         qubit=deepcopy(result)
 
-        #if self.calculate_capacitance is False:
-        #    qubit_cap_parts = None
-        #    qubit = None
+        # set terminals for couplers
+        self.set_terminals()
+        if self.calculate_capacitance is False:
+            qubit_cap_parts = None
+            qubit = None
+
         if 'mirror' in self.transformations:
             return {'positive': result.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
                     'restrict': result_restricted,
@@ -262,6 +275,59 @@ class PP_Transmon(DesignElement):
         return ground
 
 
+    def set_terminals(self):
+        for id, coupler in enumerate(self.couplers):
+            if 'mirror' in self.transformations:
+                if coupler.connection is not None:
+                    coupler_connection = mirror_point(coupler.connection, self.transformations['mirror'][0], self.transformations['mirror'][1])
+                    qubit_center = mirror_point(deepcopy(self.center), self.transformations['mirror'][0], self.transformations['mirror'][1])
+                    if coupler.side == "left":
+                        coupler_phi = np.pi
+                    if coupler.side == "right":
+                        coupler_phi = 0
+                    if coupler.side == "top":
+                        coupler_phi = -np.pi / 2
+                    if coupler.side == "bottom":
+                        coupler_phi = np.pi / 2
+
+            if 'rotate' in self.transformations:
+                if coupler.connection is not None:
+                    coupler_connection = rotate_point(coupler.connection, self.transformations['rotate'][0], self.transformations['rotate'][1])
+                    qubit_center = rotate_point(deepcopy(self.center), self.transformations['rotate'][0], self.transformations['rotate'][1])
+                    if coupler.side == "left":
+                        coupler_phi = 0+np.arctan2(coupler_connection[1]-coupler.connection[1], coupler_connection[0]-coupler.connection[0])
+                    if coupler.side == "right":
+                        coupler_phi = np.pi+np.arctan2(coupler_connection[1]-coupler.connection[1], coupler_connection[0]-coupler.connection[0])
+                    if coupler.side == "top":
+                        coupler_phi = -np.pi / 2+np.arctan2(coupler_connection[1]-coupler.connection[1], coupler_connection[0]-coupler.connection[0])
+                    if coupler.side == "bottom":
+                        coupler_phi = np.pi / 2+np.arctan2(coupler_connection[1]-coupler.connection[1], coupler_connection[0]-coupler.connection[0])
+
+            if self.transformations == {}:
+                coupler_connection = coupler.connection
+                if coupler.side == "left":
+                    coupler_phi = 0
+                if coupler.side == "right":
+                    coupler_phi = np.pi
+                if coupler.side == "top":
+                    coupler_phi = -np.pi/2
+                if coupler.side == "bottom":
+                    coupler_phi = np.pi/2
+            if coupler.connection is not None:
+                self.terminals['coupler'+str(id)] = DesignTerminal(tuple(coupler_connection),
+                                                                   coupler_phi, g=coupler.g, s=coupler.s,
+                                                                w=coupler.w, type='cpw')
+                print(self.terminals)
+        return True
+
+
+    def get_terminals(self):
+        return self.terminals
+
+
+
+
+
     def generate_JJ(self):
         #change here to allow Manhatten style junctions
         if self.JJ_params['manhatten']:
@@ -303,8 +369,6 @@ class PP_Transmon(DesignElement):
                 tls_instance.add_element(c0g, [terminal_mapping['coupler'+str(id)+self.secret_shift], 0])
                 mut_cap.append(c0)
                 cap_g.append(c0g)
-            # elif coupler.coupler_type =='grounded':
-            #     tls_instance.add_element(tlsim.Short(), [terminal_mapping['flux line'], 0])
 
         if track_changes:
             self.tls_cache.append([JJ, C]+mut_cap+cap_g)
@@ -332,6 +396,14 @@ class PP_Transmon_Coupler:
         self.ground_t = 10 #<-- temporary fix for the gds creation
         self.height_left = heightl
         self.height_right = heightr
+        self.connection = None
+        #for defining the terminals
+        self.w = 10 #standard for now
+        self.g = 10 #also temporary fix
+        self.s = gap
+
+
+
     def render(self, center, g_w,g_h):
         result = 0
         if self.side == "left":
@@ -344,6 +416,8 @@ class PP_Transmon_Coupler:
                 result = gdspy.boolean(result, upper, 'or')
                 result = gdspy.boolean(result, lower, 'or')
             result = gdspy.boolean(result, line, 'or')
+
+            self.connection = (center[0]-g_w/2-self.t-self.gap-self.gap,center[1])
 
 
         if self.side == "right":
@@ -358,15 +432,19 @@ class PP_Transmon_Coupler:
                 result = gdspy.boolean(result, lower, 'or')
             result = gdspy.boolean(result, line, 'or')
 
+            self.connection = (center[0] + g_w / 2 + self.t + self.gap + self.gap, center[1] )
+
         if self.side == "top":
             result = gdspy.Rectangle((center[0]-g_w/2+self.l1,center[1]+g_h/2+self.gap),(center[0]-g_w/2+self.l1+self.l2,center[1]+g_h/2+self.gap+self.t))
             line   = gdspy.Rectangle((center[0]-g_w/2+self.l1+self.l2/2-5,center[1]+g_h/2+self.gap+self.t),(center[0]-g_w/2+self.l1+self.l2/2+5,center[1]+g_h/2+self.gap+self.t+self.gap))
             result = gdspy.boolean(result, line, 'or')
+            self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]+g_h/2+self.gap+self.t+self.gap)
 
         if self.side == "bottom":
             result = gdspy.Rectangle((center[0]-g_w/2+self.l1,center[1]-g_h/2-self.gap),(center[0]-g_w/2+self.l1+self.l2,center[1]-g_h/2-self.gap-self.t))
             line   = gdspy.Rectangle((center[0]-g_w/2+self.l1+self.l2/2-5,center[1]-g_h/2-self.gap-self.t),(center[0]-g_w/2+self.l1+self.l2/2+5,center[1]-g_h/2-self.gap-self.t-self.gap))
             result = gdspy.boolean(result, line, 'or')
+            self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]-g_h/2-self.gap-self.t-self.gap)
 
         self.result_coupler = result
 
@@ -386,6 +464,9 @@ def rotate_point(point, angle, origin):
     qx = ox + np.cos(angle) * (px - ox) - np.sin(angle) * (py - oy)
     qy = oy + np.sin(angle) * (px - ox) + np.cos(angle) * (py - oy)
     return qx, qy
+
+
+
 
 def mirror_point(point,ref1,ref2):
     """

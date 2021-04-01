@@ -21,7 +21,7 @@ class PP_Squid(DesignElement):
     6) jj_params - parameters of the SQUID which here is 3JJ SQUID.#TODO add more information
     """
     def __init__(self, name: str, center: Tuple[float, float],width: float, height: float,gap: float,bridge_gap:float,bridge_w:float, g_w: float, g_h: float,g_t: float,layer_configuration: LayerConfiguration,
-                 jj_params: Dict,fluxline_params: Dict,Couplers,transformations:Dict,remove_ground = {},secret_shift = 0):
+                 jj_params: Dict,fluxline_params: Dict,Couplers,transformations:Dict,remove_ground = {},secret_shift = 0,calculate_capacitance = False):
         super().__init__(type='qubit', name=name)
         #qubit parameters
         self.transformations = transformations# to mirror the structure
@@ -55,6 +55,7 @@ class PP_Squid(DesignElement):
              'coupler4': None,
             'qubit': None}
 
+        self.calculate_capacitance = calculate_capacitance
         # remove ground on these sites
         self.remove_ground = remove_ground
 
@@ -205,9 +206,9 @@ class PP_Squid(DesignElement):
 
         qubit = deepcopy(result)
 
-        # if self.calculate_capacitance is False:
-        #    qubit_cap_parts = None
-        #    qubit = None
+        if self.calculate_capacitance is False:
+            qubit_cap_parts = None
+            qubit = None
         if 'mirror' in self.transformations:
             return {'positive': result.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
                     'restrict': result_restricted,
@@ -285,6 +286,60 @@ class PP_Squid(DesignElement):
 
         return result
 
+    def set_terminals(self):
+        for id, coupler in enumerate(self.couplers):
+            if 'mirror' in self.transformations:
+                if coupler.connection is not None:
+                    coupler_connection = mirror_point(coupler.connection, self.transformations['mirror'][0], self.transformations['mirror'][1])
+                    qubit_center = mirror_point(deepcopy(self.center), self.transformations['mirror'][0], self.transformations['mirror'][1])
+                    if coupler.side == "left":
+                        coupler_phi = np.pi
+                    if coupler.side == "right":
+                        coupler_phi = 0
+                    if coupler.side == "top":
+                        coupler_phi = -np.pi / 2
+                    if coupler.side == "bottom":
+                        coupler_phi = np.pi / 2
+
+            if 'rotate' in self.transformations:
+                if coupler.connection is not None:
+                    coupler_connection = rotate_point(coupler.connection, self.transformations['rotate'][0], self.transformations['rotate'][1])
+                    qubit_center = rotate_point(deepcopy(self.center), self.transformations['rotate'][0], self.transformations['rotate'][1])
+                    if coupler.side == "left":
+                        coupler_phi = 0+np.arctan2(coupler_connection[1]-coupler.connection[1], coupler_connection[0]-coupler.connection[0])
+                    if coupler.side == "right":
+                        coupler_phi = np.pi+np.arctan2(coupler_connection[1]-coupler.connection[1], coupler_connection[0]-coupler.connection[0])
+                    if coupler.side == "top":
+                        coupler_phi = -np.pi / 2+np.arctan2(coupler_connection[1]-coupler.connection[1], coupler_connection[0]-coupler.connection[0])
+                    if coupler.side == "bottom":
+                        coupler_phi = np.pi / 2+np.arctan2(coupler_connection[1]-coupler.connection[1], coupler_connection[0]-coupler.connection[0])
+
+            if self.transformations == {}:
+                coupler_connection = coupler.connection
+                if coupler.side == "left":
+                    coupler_phi = 0
+                if coupler.side == "right":
+                    coupler_phi = np.pi
+                if coupler.side == "top":
+                    coupler_phi = -np.pi/2
+                if coupler.side == "bottom":
+                    coupler_phi = np.pi/2
+            if coupler.connection is not None:
+                self.terminals['coupler'+str(id)] = DesignTerminal(tuple(coupler_connection),
+                                                                   coupler_phi, g=coupler.g, s=coupler.s,
+                                                                w=coupler.w, type='cpw')
+                print(self.terminals)
+        return True
+
+    def get_terminals(self):
+        return self.terminals
+
+
+
+
+
+
+
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict,
                    track_changes: bool = True) -> list:
         #scaling factor for C
@@ -330,6 +385,14 @@ class PP_Squid_Coupler:
         self.side = side
         self.coupler_type = coupler_type
         self.ground_t = 10 #<-- temporary fix for the gds creation
+
+        #for defining the terminals
+        self.w = 10 #standard for now
+        self.g = 10 #also temporary fix
+        self.s = gap
+
+
+
         self.height_left = heightl
         self.height_right = heightr
     def render(self, center, g_w,g_h):
@@ -344,7 +407,7 @@ class PP_Squid_Coupler:
                 result = gdspy.boolean(result, upper, 'or')
                 result = gdspy.boolean(result, lower, 'or')
             result = gdspy.boolean(result, line, 'or')
-
+            self.connection = (center[0] - g_w / 2 - self.t - self.gap - self.gap, center[1])
 
         if self.side == "right":
             result = gdspy.Rectangle((center[0]+g_w/2+self.t+self.gap,center[1]-self.height_right*g_h/2-self.gap),(center[0]+g_w/2+self.gap,center[1]+self.height_right*g_h/2+self.gap))
@@ -357,16 +420,19 @@ class PP_Squid_Coupler:
                 result = gdspy.boolean(result, upper, 'or')
                 result = gdspy.boolean(result, lower, 'or')
             result = gdspy.boolean(result, line, 'or')
+            self.connection = (center[0] + g_w / 2 + self.t + self.gap + self.gap, center[1] )
 
         if self.side == "top":
             result = gdspy.Rectangle((center[0]-g_w/2+self.l1,center[1]+g_h/2+self.gap),(center[0]-g_w/2+self.l1+self.l2,center[1]+g_h/2+self.gap+self.t))
             line   = gdspy.Rectangle((center[0]-g_w/2+self.l1+self.l2/2-5,center[1]+g_h/2+self.gap+self.t),(center[0]-g_w/2+self.l1+self.l2/2+5,center[1]+g_h/2+self.gap+self.t+self.gap))
             result = gdspy.boolean(result, line, 'or')
+            self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]+g_h/2+self.gap+self.t+self.gap)
 
         if self.side == "bottom":
             result = gdspy.Rectangle((center[0]-g_w/2+self.l1,center[1]-g_h/2-self.gap),(center[0]-g_w/2+self.l1+self.l2,center[1]-g_h/2-self.gap-self.t))
             line   = gdspy.Rectangle((center[0]-g_w/2+self.l1+self.l2/2-5,center[1]-g_h/2-self.gap-self.t),(center[0]-g_w/2+self.l1+self.l2/2+5,center[1]-g_h/2-self.gap-self.t-self.gap))
             result = gdspy.boolean(result, line, 'or')
+            self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]-g_h/2-self.gap-self.t-self.gap)
 
         self.result_coupler = result
 
