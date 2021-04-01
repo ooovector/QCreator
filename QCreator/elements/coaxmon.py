@@ -55,17 +55,17 @@ class Coaxmon(DesignElement):
                           #'coupler2': None,
                           #'coupler3': None,
                           #'coupler4': None,
-                          #'flux line': None,
+                          #'flux': None,
                           'qubit': None}
         # model evaluation
         self.calculate_capacitance = calculate_capacitance
         self.tls_cache = []
         self.L=15e-9#20nHr
-        self.C = {#'coupler0': None,
-                  #'coupler1': None,
-                  #'coupler2': None,
-                  #'coupler3': None,
-                  #'coupler4': None,
+        self.C = {'coupler0': None,
+                  'coupler1': None,
+                  'coupler2': None,
+                  'coupler3': None,
+                  'coupler4': None,
                   'qubit': None}
         self.layers = []
 
@@ -211,7 +211,7 @@ class Coaxmon(DesignElement):
             orientation = np.arctan2(flux_line_output_connection[1] - self.center[1],flux_line_output_connection[0] - self.center[0])+np.pi
         if self.transformations == {}:
             orientation=orientation+np.pi
-        self.terminals['flux_line'] = DesignTerminal(flux_line_output_connection, orientation, g=self.grounded.w, s=self.grounded.g,
+        self.terminals['flux'] = DesignTerminal(flux_line_output_connection, orientation, g=self.grounded.w, s=self.grounded.g,
                                                      w=self.grounded.w, type='cpw')
         return {'positive': result,
                 'remove': remove,

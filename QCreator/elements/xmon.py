@@ -39,13 +39,15 @@ class Xmon(DesignElement):
                           'crab_down': None,
                           'flux': None,
                           'qubit': None}
+        self.couplers = {}
         self.tls_cache = []
         self.L = 15e-9  # 20nHr
-        self.C = {'qubit': None}
+        self.C = {'crab_left': None,
+                  'crab_right': None,
+                  'crab_up': None,
+                  'crab_down': None,
+                  'qubit': None}
         self.layers = []
-
-
-
 
     def render(self):
         """
@@ -58,14 +60,14 @@ class Xmon(DesignElement):
 
 
         """
-        qubit_cap_parts=[]
+        qubit_cap_parts = []
         # draw center cross:
         # auxillary:
-        cross_hor = gdspy.Rectangle((self.center[0] - self.s/2 - self.length, self.center[1] - self.s/2),
-                                    (self.center[0] + self.s/2 + self.length, self.center[1] + self.s/2))
+        cross_hor = gdspy.Rectangle((self.center[0] - self.s / 2 - self.length, self.center[1] - self.s / 2),
+                                    (self.center[0] + self.s / 2 + self.length, self.center[1] + self.s / 2))
 
-        cross_ver = gdspy.Rectangle((self.center[0] - self.s/2, self.center[1] - self.s/2 - self.length),
-                                    (self.center[0] + self.s/2, self.center[1] + self.s/2 + self.length))
+        cross_ver = gdspy.Rectangle((self.center[0] - self.s / 2, self.center[1] - self.s / 2 - self.length),
+                                    (self.center[0] + self.s / 2, self.center[1] + self.s / 2 + self.length))
 
         # the cross itself
         cross = gdspy.boolean(cross_hor, cross_ver, "or", layer=self.layer_configuration.total_layer)
@@ -74,106 +76,184 @@ class Xmon(DesignElement):
         self.layers.append(9)
         # draw ground cross
         # auxillary
-        cross_gnd_hor_out = gdspy.Rectangle((self.center[0] - self.s/2 - self.length - self.w - self.g, self.center[1] - self.s/2 - self.w - self.g),
-                                            (self.center[0] + self.s/2 + self.length + self.w + self.g, self.center[1] + self.s/2 + self.w + self.g))
-        cross_gnd_hor_in = gdspy.Rectangle((self.center[0] - self.s/2 - self.length - self.w, self.center[1] - self.s/2 - self.w),
-                                           (self.center[0] + self.s/2 + self.length + self.w, self.center[1] + self.s/2 + self.w))
-        cross_gnd_ver_out = gdspy.Rectangle((self.center[0] - self.s/2 - self.w - self.g, self.center[1] - self.s/2 - self.length - self.w - self.g),
-                                            (self.center[0] + self.s/2 + self.w + self.g, self.center[1] + self.s/2 + self.length + self.w + self.g))
-        cross_gnd_ver_in = gdspy.Rectangle((self.center[0] - self.s/2 - self.w, self.center[1] - self.s/2 - self.length - self.w),
-                                           (self.center[0] + self.s/2 + self.w, self.center[1] + self.s/2 + self.length + self.w))
+        cross_gnd_hor_out = gdspy.Rectangle((self.center[0] - self.s / 2 - self.length - self.w - self.g,
+                                             self.center[1] - self.s / 2 - self.w - self.g),
+                                            (self.center[0] + self.s / 2 + self.length + self.w + self.g,
+                                             self.center[1] + self.s / 2 + self.w + self.g))
+        cross_gnd_hor_in = gdspy.Rectangle(
+            (self.center[0] - self.s / 2 - self.length - self.w, self.center[1] - self.s / 2 - self.w),
+            (self.center[0] + self.s / 2 + self.length + self.w, self.center[1] + self.s / 2 + self.w))
+        cross_gnd_ver_out = gdspy.Rectangle((self.center[0] - self.s / 2 - self.w - self.g,
+                                             self.center[1] - self.s / 2 - self.length - self.w - self.g),
+                                            (self.center[0] + self.s / 2 + self.w + self.g,
+                                             self.center[1] + self.s / 2 + self.length + self.w + self.g))
+        cross_gnd_ver_in = gdspy.Rectangle(
+            (self.center[0] - self.s / 2 - self.w, self.center[1] - self.s / 2 - self.length - self.w),
+            (self.center[0] + self.s / 2 + self.w, self.center[1] + self.s / 2 + self.length + self.w))
 
-        cross_gnd_out = gdspy.boolean(cross_gnd_hor_out, cross_gnd_ver_out, "or", layer=self.layer_configuration.total_layer)
+        cross_gnd_out = gdspy.boolean(cross_gnd_hor_out, cross_gnd_ver_out, "or",
+                                      layer=self.layer_configuration.total_layer)
         cross_restrict = cross_gnd_out
-        cross_gnd_in = gdspy.boolean(cross_gnd_hor_in, cross_gnd_ver_in, "or", layer=self.layer_configuration.total_layer)
-
+        cross_gnd_in = gdspy.boolean(cross_gnd_hor_in, cross_gnd_ver_in, "or",
+                                     layer=self.layer_configuration.total_layer)
 
         # the cross ground (things will be added or deleted from this later on
 
         cross_gnd = gdspy.boolean(cross_gnd_out, cross_gnd_in, "not", layer=self.layer_configuration.total_layer)
 
-
         # the following draws a crab around the upper end of the cross
         for word in self.pos:
-            crab_out = gdspy.Rectangle((self.center[0] - self.s/2 - self.w - self.g - self.w - self.b, self.center[1] + self.s/2 + self.length - self.a),
-                                       (self.center[0] + self.s/2 + self.w + self.g + self.w + self.b, self.center[1] + self.s/2 + self.length + self.g + self.w + self.w + self.b))
-            crab_in = gdspy.Rectangle((self.center[0] - self.s/2 - self.w - self.g - self.w, self.center[1] + self.s/2 + self.length - self.a),
-                                      (self.center[0] + self.s/2 + self.w + self.g + self.w, self.center[1] + self.s/2 + self.length + self.w + self.g + self.w))
+            crab_out = gdspy.Rectangle((self.center[0] - self.s / 2 - self.w - self.g - self.w - self.b,
+                                        self.center[1] + self.s / 2 + self.length - self.a),
+                                       (self.center[0] + self.s / 2 + self.w + self.g + self.w + self.b,
+                                        self.center[1] + self.s / 2 + self.length + self.g + self.w + self.w + self.b))
+            crab_in = gdspy.Rectangle((self.center[0] - self.s / 2 - self.w - self.g - self.w,
+                                       self.center[1] + self.s / 2 + self.length - self.a),
+                                      (self.center[0] + self.s / 2 + self.w + self.g + self.w,
+                                       self.center[1] + self.s / 2 + self.length + self.w + self.g + self.w))
             crab_u = gdspy.boolean(crab_out, crab_in, "not", layer=self.layer_configuration.total_layer)
 
-            connect = gdspy.Rectangle((self.center[0] - self.ct['up_s']/2, self.center[1] + self.s/2 + self.length + self.w + self.g + self.w + self.b),
-                                      (self.center[0] + self.ct['up_s']/2, self.center[1] + self.s/2 + self.length + self.w + self.g + self.w + self.b + self.w))
-
-            crab_u = gdspy.boolean(crab_u, connect, "or", layer=self.layer_configuration.total_layer)
             crab_cap_u = crab_u
 
-
-            ognd_u_out = gdspy.Rectangle((self.center[0] - self.s/2 - self.w - self.g - self.w - self.b - self.w - self.g, self.center[1] + self.s/2 + self.length - self.a - self.w - self.g),
-                                         (self.center[0] + self.s/2 + self.w + self.g + self.w + self.b + self.w + self.g, self.center[1] + self.s/2 + self.length + self.g + self.w + self.w + self.b + self.w + self.g))
+            ognd_u_out = gdspy.Rectangle((self.center[
+                                              0] - self.s / 2 - self.w - self.g - self.w - self.b - self.w - self.g,
+                                          self.center[1] + self.s / 2 + self.length - self.a - self.w - self.g),
+                                         (self.center[
+                                              0] + self.s / 2 + self.w + self.g + self.w + self.b + self.w + self.g,
+                                          self.center[
+                                              1] + self.s / 2 + self.length + self.g + self.w + self.w + self.b + self.w + self.g))
             orestrict = ognd_u_out
-            ognd_u_in = gdspy.Rectangle((self.center[0] - self.s/2 - self.w - self.g - self.w - self.b - self.w, self.center[1] + self.s/2 + self.length - self.a - self.w),
-                                        (self.center[0] + self.s/2 + self.w + self.g + self.w + self.b + self.w, self.center[1] + self.s/2 + self.length + self.w + self.g + self.w + self.b + self.w))
-            aux = gdspy.Rectangle((self.center[0] - self.s/2 - self.w, self.center[1] + self.s/2 + self.length - self.a - self.w - self.g),
-                                  (self.center[0] + self.s/2 + self.w, self.center[1] + self.s/2 + self.length - self.a - self.w))
+            ognd_u_in = gdspy.Rectangle((self.center[0] - self.s / 2 - self.w - self.g - self.w - self.b - self.w,
+                                         self.center[1] + self.s / 2 + self.length - self.a - self.w),
+                                        (self.center[0] + self.s / 2 + self.w + self.g + self.w + self.b + self.w,
+                                         self.center[
+                                             1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b + self.w))
+            aux = gdspy.Rectangle((self.center[0] - self.s / 2 - self.w,
+                                   self.center[1] + self.s / 2 + self.length - self.a - self.w - self.g),
+                                  (self.center[0] + self.s / 2 + self.w,
+                                   self.center[1] + self.s / 2 + self.length - self.a - self.w))
             ognd_u_in = gdspy.boolean(ognd_u_in, aux, "or", layer=self.layer_configuration.total_layer)
             ognd_u = gdspy.boolean(ognd_u_out, ognd_u_in, "not", layer=self.layer_configuration.total_layer)
             crab_u = gdspy.boolean(crab_u, ognd_u, "or", layer=self.layer_configuration.total_layer)
 
+            crab_connection = (
+            self.center[0], self.center[1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b + self.w)
 
-            crab_connection = (self.center[0], self.center[1] + self.s/2 + self.length + self.w + self.g + self.w + self.b + self.w)
-
-
-
-            delete = gdspy.Rectangle((self.center[0] - self.ct['up_s']/2 - self.ct['up_w'], self.center[1] + self.s/2 + self.length + self.w + self.g + self.w + self.b + self.w),
-                                    (self.center[0] + self.ct['up_s']/2 + self.ct['up_w'], self.center[1] + self.s/2 + self.length + self.w + self.g + self.w + self.b + self.w + self.g))
-            crab_u = gdspy.boolean(crab_u, delete, 'not', layer=self.layer_configuration.total_layer)
             # rotate the crab depending on it's respective position
 
             if word == 'right':
-                crab_r = crab_u.rotate(-np.pi/2, self.center)
+                delete = gdspy.Rectangle((self.center[0] - self.ct['right_w'] / 2 - self.ct['right_s'], self.center[
+                    1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b + self.w),
+                                         (self.center[0] + self.ct['right_w'] / 2 + self.ct['right_s'], self.center[
+                                             1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b + self.w + self.g))
+                crab_u = gdspy.boolean(crab_u, delete, 'not', layer=self.layer_configuration.total_layer)
+                crab_r = crab_u.rotate(-np.pi / 2, self.center)
+
+                connect = gdspy.Rectangle((self.center[0] - self.ct['right_w'] / 2, self.center[
+                    1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b),
+                                          (self.center[0] + self.ct['right_w'] / 2, self.center[
+                                              1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b + self.w))
+                connect = connect.rotate(-np.pi / 2, self.center)
+                crab_r = gdspy.boolean(crab_r, connect, "or", layer=self.layer_configuration.total_layer)
 
                 cross = gdspy.boolean(cross, crab_r, 'or', layer=self.layer_configuration.total_layer)
-                orestrict = orestrict.rotate(-np.pi/2, self.center)
-                cross_restrict = gdspy.boolean(cross_restrict, orestrict, "or",  layer=self.layer_configuration.restricted_area_layer)
-                crab_connection = rotate_point(crab_connection, -np.pi/2, self.center)
+                orestrict = orestrict.rotate(-np.pi / 2, self.center)
+                cross_restrict = gdspy.boolean(cross_restrict, orestrict, "or",
+                                               layer=self.layer_configuration.restricted_area_layer)
+                crab_connection = rotate_point(crab_connection, -np.pi / 2, self.center)
                 crab_connection_angle = -np.pi
-                self.terminals['crab_right'] = DesignTerminal(crab_connection, crab_connection_angle, g=self.ct['right_g'], s=self.ct['right_s'], w=self.ct['right_w'], type='cpw')
+                self.terminals['crab_right'] = DesignTerminal(crab_connection, crab_connection_angle,
+                                                              g=self.ct['right_g'], s=self.ct['right_s'],
+                                                              w=self.ct['right_w'], type='cpw')
 
-                crab_cap_r = crab_cap_u.rotate(-np.pi/2, self.center)
+                crab_cap_r = crab_cap_u.rotate(-np.pi / 2, self.center)
+                crab_cap_r = gdspy.boolean(crab_cap_r, connect, "or")
                 qubit_cap_parts.append(gdspy.boolean(crab_cap_r, crab_cap_r, 'or', layer=10))
                 self.layers.append(10)
 
             if word == 'up':
-                cross_restrict = gdspy.boolean(cross_restrict, orestrict, "or",  layer=self.layer_configuration.restricted_area_layer)
+                delete = gdspy.Rectangle((self.center[0] - self.ct['up_w'] / 2 - self.ct['up_s'], self.center[
+                    1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b + self.w),
+                                         (self.center[0] + self.ct['up_w'] / 2 + self.ct['up_s'], self.center[
+                                             1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b + self.w + self.g))
+                crab_u = gdspy.boolean(crab_u, delete, 'not', layer=self.layer_configuration.total_layer)
+
+                cross_restrict = gdspy.boolean(cross_restrict, orestrict, "or",
+                                               layer=self.layer_configuration.restricted_area_layer)
+
+                connect = gdspy.Rectangle((self.center[0] - self.ct['up_w'] / 2, self.center[
+                    1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b),
+                                          (self.center[0] + self.ct['up_w'] / 2, self.center[
+                                              1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b + self.w))
+                crab_u = gdspy.boolean(crab_u, connect, "or", layer=self.layer_configuration.total_layer)
+                crab_cap_u = gdspy.boolean(crab_cap_u, connect, "or")
+
                 cross = gdspy.boolean(cross, crab_u, 'or', layer=self.layer_configuration.total_layer)
-                crab_connection_angle = -np.pi/2
-                self.terminals['crab_up'] = DesignTerminal(crab_connection, crab_connection_angle, g=self.ct['up_g'], s=self.ct['up_s'], w=self.ct['up_w'], type='cpw')
+                crab_connection_angle = -np.pi / 2
+                self.terminals['crab_up'] = DesignTerminal(crab_connection, crab_connection_angle, g=self.ct['up_g'],
+                                                           s=self.ct['up_s'], w=self.ct['up_w'], type='cpw')
                 qubit_cap_parts.append(gdspy.boolean(crab_cap_u, crab_cap_u, 'or', layer=11))
                 self.layers.append(11)
 
             if word == 'down':
+                delete = gdspy.Rectangle((self.center[0] - self.ct['down_w'] / 2 - self.ct['down_s'], self.center[
+                    1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b + self.w),
+                                         (self.center[0] + self.ct['down_w'] / 2 + self.ct['down_s'], self.center[
+                                             1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b + self.w + self.g))
+                crab_u = gdspy.boolean(crab_u, delete, 'not', layer=self.layer_configuration.total_layer)
+
                 crab_d = crab_u.rotate(np.pi, self.center)
+
+                connect = gdspy.Rectangle((self.center[0] - self.ct['down_w'] / 2, self.center[
+                    1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b),
+                                          (self.center[0] + self.ct['down_w'] / 2, self.center[
+                                              1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b + self.w))
+                connect = connect.rotate(np.pi, self.center)
+                crab_d = gdspy.boolean(crab_d, connect, "or", layer=self.layer_configuration.total_layer)
+
                 cross = gdspy.boolean(cross, crab_d, 'or', layer=self.layer_configuration.total_layer)
                 orestrict = orestrict.rotate(np.pi, self.center)
-                cross_restrict = gdspy.boolean(cross_restrict, orestrict, "or",  layer=self.layer_configuration.restricted_area_layer)
+                cross_restrict = gdspy.boolean(cross_restrict, orestrict, "or",
+                                               layer=self.layer_configuration.restricted_area_layer)
                 crab_connection = rotate_point(crab_connection, np.pi, self.center)
-                crab_connection_angle = np.pi/2
-                self.terminals['crab_down'] = DesignTerminal(crab_connection, crab_connection_angle, g=self.ct['down_g'], s=self.ct['down_s'], w=self.ct['down_w'], type='cpw')
+                crab_connection_angle = np.pi / 2
+                self.terminals['crab_down'] = DesignTerminal(crab_connection, crab_connection_angle,
+                                                             g=self.ct['down_g'], s=self.ct['down_s'],
+                                                             w=self.ct['down_w'], type='cpw')
 
                 crab_cap_d = crab_cap_u.rotate(np.pi, self.center)
+                crab_cap_d = gdspy.boolean(crab_cap_d, connect, "or")
                 qubit_cap_parts.append(gdspy.boolean(crab_cap_d, crab_cap_d, 'or', layer=12))
                 self.layers.append(12)
 
             if word == 'left':
-                crab_l = crab_u.rotate(np.pi/2, self.center)
-                cross = gdspy.boolean(cross, crab_l, 'or', layer=self.layer_configuration.total_layer)
-                orestrict.rotate(np.pi/2, self.center)
-                cross_restrict = gdspy.boolean(cross_restrict, orestrict, "or",  layer=self.layer_configuration.restricted_area_layer)
-                crab_connection = rotate_point(crab_connection, np.pi/2, self.center)
-                crab_connection_angle = 0
-                self.terminals['crab_left'] = DesignTerminal(crab_connection, crab_connection_angle, g=self.ct['left_g'], s=self.ct['left_s'], w=self.ct['left_w'], type='cpw')
+                delete = gdspy.Rectangle((self.center[0] - self.ct['left_w'] / 2 - self.ct['left_s'], self.center[
+                    1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b + self.w),
+                                         (self.center[0] + self.ct['left_w'] / 2 + self.ct['left_s'], self.center[
+                                             1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b + self.w + self.g))
+                crab_u = gdspy.boolean(crab_u, delete, 'not', layer=self.layer_configuration.total_layer)
 
-                crab_cap_l = crab_cap_u.rotate(np.pi/2, self.center)
+                crab_l = crab_u.rotate(np.pi / 2, self.center)
+
+                connect = gdspy.Rectangle((self.center[0] - self.ct['left_w'] / 2, self.center[
+                    1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b),
+                                          (self.center[0] + self.ct['left_w'] / 2, self.center[
+                                              1] + self.s / 2 + self.length + self.w + self.g + self.w + self.b + self.w))
+                connect = connect.rotate(np.pi / 2, self.center)
+                crab_l = gdspy.boolean(crab_l, connect, "or", layer=self.layer_configuration.total_layer)
+
+                cross = gdspy.boolean(cross, crab_l, 'or', layer=self.layer_configuration.total_layer)
+                orestrict.rotate(np.pi / 2, self.center)
+                cross_restrict = gdspy.boolean(cross_restrict, orestrict, "or",
+                                               layer=self.layer_configuration.restricted_area_layer)
+                crab_connection = rotate_point(crab_connection, np.pi / 2, self.center)
+                crab_connection_angle = 0
+                self.terminals['crab_left'] = DesignTerminal(crab_connection, crab_connection_angle,
+                                                             g=self.ct['left_g'], s=self.ct['left_s'],
+                                                             w=self.ct['left_w'], type='cpw')
+
+                crab_cap_l = crab_cap_u.rotate(np.pi / 2, self.center)
+                crab_cap_l = gdspy.boolean(crab_cap_l, connect, "or")
                 qubit_cap_parts.append(gdspy.boolean(crab_cap_l, crab_cap_l, 'or', layer=13))
                 self.layers.append(13)
 
@@ -192,8 +272,10 @@ class Xmon(DesignElement):
         cross_gnd = gdspy.boolean(cross_gnd, fgnd, "or", layer=self.layer_configuration.total_layer)
 
         # parts of the restricted area
-        cross_restrict = gdspy.boolean(cross_restrict, frestrict, "or",  layer=self.layer_configuration.restricted_area_layer)
-        cross_restrict = gdspy.boolean(cross_restrict, jrestrict, "or",  layer=self.layer_configuration.restricted_area_layer)
+        cross_restrict = gdspy.boolean(cross_restrict, frestrict, "or",
+                                       layer=self.layer_configuration.restricted_area_layer)
+        cross_restrict = gdspy.boolean(cross_restrict, jrestrict, "or",
+                                       layer=self.layer_configuration.restricted_area_layer)
 
         result = gdspy.boolean(cross_gnd, cross, "or", layer=self.layer_configuration.total_layer)
 
@@ -217,7 +299,6 @@ class Xmon(DesignElement):
                 'JJ': jj,
                 'qubit_cap': qubit_cap_parts
                 }
-
 
     def create_jpad(self, cross_gnd):
         # variables
@@ -421,9 +502,10 @@ class Xmon(DesignElement):
         mut_cap = []
         cap_g = []
         for coupler in self.pos:
-            c0 = tlsim.Capacitor(c=self.C['crab_'+str(coupler)][1]*scal_C, name=self.name+' qubit-crab'+str(id))
-            c0g = tlsim.Capacitor(c=self.C['crab_'+str(coupler)][0]*scal_C, name=self.name+' crab'+str(id)+'-ground')
-            tls_instance.add_element(c0, [terminal_mapping['qubit'], terminal_mapping['crab_'+str(id)]])
+            print(self.pos)
+            c0 = tlsim.Capacitor(c=self.C['crab_'+str(coupler)][1]*scal_C, name=self.name+' qubit-crab'+str(coupler))
+            c0g = tlsim.Capacitor(c=self.C['crab_'+str(coupler)][0]*scal_C, name=self.name+' crab'+str(coupler)+'-ground')
+            tls_instance.add_element(c0, [terminal_mapping['qubit'], terminal_mapping['crab_'+str(coupler)]])
             tls_instance.add_element(c0g, [terminal_mapping['crab_'+str(coupler)], 0])
             mut_cap.append(c0)
             cap_g.append(c0g)

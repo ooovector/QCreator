@@ -93,13 +93,15 @@ def draw_double_resonator(sample, elements,
                        grounding_between=[(0, 1), (3, 4)])
 
     # 6. Create closed meander of resonator
-    closed_end_meander1 = sample.connect_meander(name='closed end 1', o1=fanout_for_closed_end, port1=direction1,
+    closed_end_meander1 = sample.connect_meander(name='closed end 1', o1=fanout_for_closed_end,
+                                                 port1=closed_end_direction1,
                                                  meander_length=closed_end_meander_length1,
                                                  length_left=length_left1,
                                                  length_right=length_right1,
                                                  first_step_orientation='left',
                                                  meander_orientation=angle2, meander_type='round')
-    closed_end_meander2 = sample.connect_meander(name='closed end 2', o1=fanout_for_closed_end, port1=direction2,
+    closed_end_meander2 = sample.connect_meander(name='closed end 2', o1=fanout_for_closed_end,
+                                                 port1=closed_end_direction2,
                                                  meander_length=closed_end_meander_length2,
                                                  length_left=length_left2,
                                                  length_right=length_right2,
