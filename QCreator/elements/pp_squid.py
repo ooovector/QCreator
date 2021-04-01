@@ -451,6 +451,7 @@ class PP_Squid_Fluxline:
     5) l_arm - length of one sidearm
     6) h_arm - height of the return arm
     7) s_gap - gap between main and return fluxline
+    --> not yet defined with a terminal, To Do
     """
     def __init__(self, l,t_m,t_r,gap,l_arm,h_arm,s_gap):
         self.l      = l

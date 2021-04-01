@@ -456,7 +456,6 @@ class PP_Transmon_Coupler:
 def rotate_point(point, angle, origin):
     """
     Rotate a point counterclockwise by a given angle around a given origin.
-
     The angle should be given in radians.
     """
     ox, oy = origin
