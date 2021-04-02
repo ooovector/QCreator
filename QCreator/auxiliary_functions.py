@@ -1,51 +1,189 @@
 import numpy as np
 
-def draw_single_resonator_plus_qubit(sample, elements, coupler_start_x, coupler_start_y, coupler_length,
-                                     resonator_core, resonator_ground, tl_core, resonator_gap, tl_gap, grounding_width,
-                                     closed_end_meander_length, qubit, coupler_name):
+def draw_single_resonator(sample, elements,
+                          coupler_start_x, coupler_start_y, coupler_length,
+                          resonator_core,resonator_gap, resonator_ground,
+                          tl_core, tl_gap, tl_ground, grounding_width,
+                          closed_end_meander_length, length_left, length_right,
+                          open_end_legth,
+                          port_orientation='left', direction_orientation='down'):
+    #left-> open end will be done for the left port
     # 2. Create main copler:
-    total_length = 0
-    main_coupler = elements.CPWCoupler('TL-resonator coupler', [(coupler_start_x, central_line_y),
-                                                                (coupler_start_x + coupler_length, central_line_y)],
-                                       [resonator_core, resonator_ground, tl_core],
-                                       [resonator_gap, resonator_gap, tl_gap, tl_gap],
-                                       tl_ground, sample.layer_configuration, r=100)
+    if direction_orientation=='down':
+        main_coupler = elements.CPWCoupler('TL-resonator coupler', [(coupler_start_x, coupler_start_y),
+                                                                    (coupler_start_x + coupler_length, coupler_start_y)],
+                                           [resonator_core, resonator_ground, tl_core],
+                                           [resonator_gap, resonator_gap, tl_gap, tl_gap],
+                                           tl_ground, sample.layer_configuration, r=100)
+    if direction_orientation == 'up':
+        main_coupler = elements.CPWCoupler('TL-resonator coupler', [(coupler_start_x, coupler_start_y),
+                                                                    (coupler_start_x + coupler_length, coupler_start_y)],
+                                           [tl_core,resonator_ground, resonator_core, ],
+                                           [tl_gap, tl_gap,resonator_gap, resonator_gap],
+                                           tl_ground, sample.layer_configuration, r=100)
     sample.add(main_coupler)
-    total_length = total_length + coupler_length
+    total_length = [coupler_length]
 
-    # 3. Create fanout to create closed end of resonator
-    fanout_for_closed_end = sample.fanout(o=main_coupler, port='port1', name='closed end resonator fanout',
+    # 3. Create fanout to create closed and opened ends of resonator
+    if direction_orientation == 'down':
+        fanout1 = sample.fanout(o=main_coupler, port='port1', name='closed end resonator fanout',
                                           grouping=[1, 3])
-
-    # 4.
-    g1 = sample.ground(o=fanout_for_closed_end, port='center', name='cl1', grounding_width=grounding_width,
+        g1 = sample.ground(o=fanout1, port='center', name='cl1', grounding_width=grounding_width,
                        grounding_between=[(2, 3)])
+        fanout2 = sample.fanout(o=main_coupler, port='port2', name='open end resonator fanout',
+                                            grouping=[1, 3])
+        g2 = sample.ground(o=fanout2, port='center', name='cl2', grounding_width=10,
+                           grounding_between=[(0, 1)])
+        angle=0
+    if direction_orientation == 'up':
+        fanout1 = sample.fanout(o=main_coupler, port='port1', name='closed end resonator fanout',
+                                              grouping=[0,2])
+        g1 = sample.ground(o=fanout1, port='center', name='cl1', grounding_width=grounding_width,
+                           grounding_between=[(0, 1)])
+        fanout2 = sample.fanout(o=main_coupler, port='port2', name='open end resonator fanout',
+                                            grouping=[0, 2])
+        g2 = sample.ground(o=fanout2, port='center', name='cl2', grounding_width=10,
+                       grounding_between=[(2, 3)])
+        angle=np.pi
 
+    if port_orientation =='left':
+        fanout_for_open_end=fanout1
+        fanout_for_closed_end=fanout2
+        if direction_orientation=='down':
+            closed_end_direction='down'
+            opened_end_direction='up'
+        else:
+            closed_end_direction = 'up'
+            opened_end_direction='down'
+    else:
+        fanout_for_open_end = fanout2
+        fanout_for_closed_end = fanout1
+        if direction_orientation=='down':
+            closed_end_direction='up'
+            opened_end_direction='down'
+        else:
+            closed_end_direction = 'down'
+            opened_end_direction='up'
     # 6. Create closed meander of resonator
-    closed_end_meander = sample.connect_meander(name='closed end', o1=fanout_for_closed_end, port1='up',
+    closed_end_meander = sample.connect_meander(name='closed end', o1=fanout_for_closed_end, port1=closed_end_direction,
                                                 meander_length=closed_end_meander_length,
-                                                length_left=150,
-                                                length_right=300,
-                                                first_step_orientation='left',
-                                                meander_orientation=0, meander_type='round')
-    total_length = total_length + closed_end_meander.length
-    # 7. Create grounding of resonator
+                                                length_left=length_left,
+                                                length_right=length_right,
+                                                first_step_orientation=port_orientation,
+                                                meander_orientation=angle,
+                                                meander_type='round')
+    total_length.append(closed_end_meander.length)
+    # # 7. Create grounding of resonator
     resonator_ground_ = sample.ground(o=closed_end_meander, port='port2', name='resonator ground', grounding_width=30,
                                       grounding_between=[(0, 2)])
 
-    # 8. Create fanout to create open end of resonator
-    fanout_for_open_end = sample.fanout(o=main_coupler, port='port2', name='open end resonator fanout', grouping=[1, 3])
-
-    # 9.
-    g2 = sample.ground(o=fanout_for_open_end, port='center', name='cl2', grounding_width=10, grounding_between=[(0, 1)])
-
     # 10. Connect open end with the coupler part of the qubit
-    open_end = sample.connect_cpw(fanout_for_open_end, qubit, 'down', coupler_name, name='right open end', points=[])
-    total_length = total_length + open_end.length
+    open_end = elements.OpenEnd(name='open end',
+                                 position=(fanout_for_open_end.get_terminals()[opened_end_direction].position[0],
+                                           fanout_for_open_end.get_terminals()[opened_end_direction].position[1]
+                                           -np.cos(angle)*open_end_legth),
+                                 w=[resonator_core],
+                                 s=[resonator_gap, resonator_gap],
+                                 g=tl_ground,
+                                 orientation=fanout_for_open_end.get_terminals()[opened_end_direction].orientation+np.pi,
+                                 layer_configuration=sample.layer_configuration,
+                                 h1=20,
+                                 h2=10,
+                                 )
+    sample.add(open_end)
+    open_end= sample.connect_cpw(fanout_for_open_end, open_end, opened_end_direction, 'wide', name='right open end',
+                                             points=[])
+    total_length.append(open_end.length)
     res_params = total_length
 
     return g1, g2, res_params
 
+def draw_single_resonator_plus_qubit(sample, elements,
+                          coupler_start_x, coupler_start_y, coupler_length,
+                          resonator_core,resonator_gap, resonator_ground,
+                          tl_core, tl_gap, tl_ground, grounding_width,
+                          closed_end_meander_length, length_left, length_right,
+                          open_end_shift_length,qubit, coupler_name,
+                          port_orientation='left', direction_orientation='down'):
+    #left-> open end will be done for the left port
+    # 2. Create main copler:
+    if direction_orientation=='down':
+        main_coupler = elements.CPWCoupler('TL-resonator coupler', [(coupler_start_x, coupler_start_y),
+                                                                    (coupler_start_x + coupler_length, coupler_start_y)],
+                                           [resonator_core, resonator_ground, tl_core],
+                                           [resonator_gap, resonator_gap, tl_gap, tl_gap],
+                                           tl_ground, sample.layer_configuration, r=100)
+    if direction_orientation == 'up':
+        main_coupler = elements.CPWCoupler('TL-resonator coupler', [(coupler_start_x, coupler_start_y),
+                                                                    (coupler_start_x + coupler_length, coupler_start_y)],
+                                           [tl_core,resonator_ground, resonator_core, ],
+                                           [tl_gap, tl_gap,resonator_gap, resonator_gap],
+                                           tl_ground, sample.layer_configuration, r=100)
+    sample.add(main_coupler)
+    total_length = [coupler_length]
+
+    # 3. Create fanout to create closed and opened ends of resonator
+    if direction_orientation == 'down':
+        fanout1 = sample.fanout(o=main_coupler, port='port1', name='closed end resonator fanout',
+                                          grouping=[1, 3])
+        g1 = sample.ground(o=fanout1, port='center', name='cl1', grounding_width=grounding_width,
+                       grounding_between=[(2, 3)])
+        fanout2 = sample.fanout(o=main_coupler, port='port2', name='open end resonator fanout',
+                                            grouping=[1, 3])
+        g2 = sample.ground(o=fanout2, port='center', name='cl2', grounding_width=10,
+                           grounding_between=[(0, 1)])
+        angle=0
+    if direction_orientation == 'up':
+        fanout1 = sample.fanout(o=main_coupler, port='port1', name='closed end resonator fanout',
+                                              grouping=[0,2])
+        g1 = sample.ground(o=fanout1, port='center', name='cl1', grounding_width=grounding_width,
+                           grounding_between=[(0, 1)])
+        fanout2 = sample.fanout(o=main_coupler, port='port2', name='open end resonator fanout',
+                                            grouping=[0, 2])
+        g2 = sample.ground(o=fanout2, port='center', name='cl2', grounding_width=10,
+                       grounding_between=[(2, 3)])
+        angle=np.pi
+
+    if port_orientation =='left':
+        fanout_for_open_end=fanout1
+        fanout_for_closed_end=fanout2
+        if direction_orientation=='down':
+            closed_end_direction='down'
+            opened_end_direction='up'
+        else:
+            closed_end_direction = 'up'
+            opened_end_direction='down'
+    else:
+        fanout_for_open_end = fanout2
+        fanout_for_closed_end = fanout1
+        if direction_orientation=='down':
+            closed_end_direction='up'
+            opened_end_direction='down'
+        else:
+            closed_end_direction = 'down'
+            opened_end_direction='up'
+    # 6. Create closed meander of resonator
+    closed_end_meander = sample.connect_meander(name='closed end', o1=fanout_for_closed_end, port1=closed_end_direction,
+                                                meander_length=closed_end_meander_length,
+                                                length_left=length_left,
+                                                length_right=length_right,
+                                                first_step_orientation=port_orientation,
+                                                meander_orientation=angle,
+                                                meander_type='round')
+    total_length.append(closed_end_meander.length)
+    # # 7. Create grounding of resonator
+    resonator_ground_ = sample.ground(o=closed_end_meander, port='port2', name='resonator ground', grounding_width=30,
+                                      grounding_between=[(0, 2)])
+
+    # 10. Connect open end with the coupler part of the qubit
+    open_end_shift = sample.cpw_shift(fanout_for_open_end, opened_end_direction, open_end_shift_length)
+    open_end = sample.connect_cpw(fanout_for_open_end, qubit, opened_end_direction, coupler_name, name='right open end',
+                                  points=open_end_shift)
+
+    total_length.append(open_end.length)
+    res_params = total_length
+
+    return g1, g2, res_params
 
 ######################################################################################################################
 def draw_double_resonator(sample, elements,
