@@ -405,6 +405,21 @@ class Sample:
 
         return np.asarray(s)
 
+    def get_topology(self):
+        sys, connections_, elements_ = self.get_tls()
+        circuit_elements = sys.elements
+        number_of_elem = len(circuit_elements )
+        circuit_nodes = sys.terminal_node_mapping
+
+        topology = []
+        for elem in range(number_of_elem):
+            topology.append([circuit_elements[elem], circuit_nodes[elem]])
+
+        return topology
+
+
+
+
     def generate_bridge_over_cpw(self, name: str, o: elements.DesignElement, pads_geometry: Tuple[float, float],
                                  bridge_geometry: Tuple[float, float], distance_between_pads: float,
                                  min_spacing: float):

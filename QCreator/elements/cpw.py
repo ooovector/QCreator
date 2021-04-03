@@ -956,10 +956,12 @@ class RectFanout(DesignElement):
         cache = []
 
         begin_conductor = 0
-
-        for elem in list(structure_for_tls.keys()):
-            number_of_conductors = structure_for_tls[elem]['n']
-            mapping_ = []
+        print('structure', structure_for_tls.keys())
+        # for elem in list(structure_for_tls.keys()):
+        for elem in (list(self.get_terminals().keys()) + ['coupler']):
+            if elem in ['coupler', 'down', 'center', 'up']:
+                number_of_conductors = structure_for_tls[elem]['n']
+                mapping_ = []
 
             if elem == 'coupler':
                 coupled_line = tlsim.TLCoupler(n=number_of_conductors,
@@ -983,7 +985,7 @@ class RectFanout(DesignElement):
                 if track_changes:
                     self.tls_cache.append(coupled_line)
 
-            else:
+            elif elem in ['down', 'center', 'up']:
                 line = tlsim.TLCoupler(n=number_of_conductors,
                                        l=structure_for_tls[elem]['l'],
                                        cl=structure_for_tls[elem]['Cl'],
@@ -1024,6 +1026,9 @@ class RectFanout(DesignElement):
 
                 if track_changes:
                     self.tls_cache.append(line)
+
+            else:
+                continue
 
         return cache
 
