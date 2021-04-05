@@ -692,7 +692,7 @@ class RectFanout(DesignElement):
 
         self.terminals = {'wide': DesignTerminal(position=self.port.position, orientation=self.port.orientation + np.pi,
                                                  type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g,
-                                                 disconnected='short', order=(not self.port.order))}
+                                                 disconnected='short')}
 
         if not self.port.order:
             self.w = self.port.w[::-1]
@@ -770,8 +770,7 @@ class RectFanout(DesignElement):
         self.terminals['middle'] = DesignTerminal(position=(0, 0),
                                                   orientation=self.get_terminals()['wide'].orientation,
                                                   w=self.get_terminals()['wide'].w, s=self.get_terminals()['wide'].s,
-                                                  g=self.get_terminals()['wide'].g, type='mc-cpw',
-                                                  order=self.get_terminals()['wide'].order)
+                                                  g=self.get_terminals()['wide'].g, type='mc-cpw')
 
         for name, exists, points, orientation, w, s, global_offset in zip(
                 self.group_names, self.groups_exist, self.groups_points, self.group_orientations, self.groups_w,
@@ -955,13 +954,12 @@ class RectFanout(DesignElement):
 
         cache = []
 
-        begin_conductor = 0
         print('structure', structure_for_tls.keys())
         # for elem in list(structure_for_tls.keys()):
         for elem in (list(self.get_terminals().keys()) + ['coupler']):
+            mapping_ = []
             if elem in ['coupler', 'down', 'center', 'up']:
                 number_of_conductors = structure_for_tls[elem]['n']
-                mapping_ = []
 
             if elem == 'coupler':
                 coupled_line = tlsim.TLCoupler(n=number_of_conductors,
@@ -975,7 +973,6 @@ class RectFanout(DesignElement):
 
                 for conductor_id in range(number_of_conductors):
                     mapping_ += [terminal_mapping[('wide', conductor_id)]]
-
                 for conductor_id in range(number_of_conductors):
                     mapping_ += [terminal_mapping[('middle', conductor_id)]]
 
@@ -994,32 +991,31 @@ class RectFanout(DesignElement):
                                        gl=np.zeros_like(structure_for_tls[elem]['Cl']),
                                        name=self.name + '_line_' + str(len(cache)))
 
-                for conductor_id in range(begin_conductor, begin_conductor + number_of_conductors):
+                conductor_bounds = [0, self.grouping[0], self.grouping[1], len(self.w)]
+                if elem == 'down':
+                    begin_conductor = conductor_bounds[0]
+                    end_conductor = conductor_bounds[1]
+                elif elem == 'center':
+                    begin_conductor = conductor_bounds[1]
+                    end_conductor = conductor_bounds[2]
+                elif elem == 'up':
+                    begin_conductor = conductor_bounds[2]
+                    end_conductor = conductor_bounds[3]
+
+                for conductor_id in range(begin_conductor, end_conductor):
 
                     mapping_ += [terminal_mapping[('middle', conductor_id)]]
 
-                begin_conductor += number_of_conductors
+                if elem in terminal_mapping:
+                    mapping_ += [terminal_mapping[elem]]
 
-                if self.port.order:
-                    if elem in terminal_mapping:
-                        mapping_ += [terminal_mapping[elem]]
+                elif (elem, 0) in terminal_mapping:
 
-                    elif (elem, 0) in terminal_mapping:
-
-                        for conductor_id in range(number_of_conductors-1, -1, -1):
-                            mapping_ += [terminal_mapping[(elem, conductor_id)]]
+                    for conductor_id in range(number_of_conductors):
+                        mapping_ += [terminal_mapping[(elem, conductor_id)]]
 
                 else:
-                    if elem in terminal_mapping:
-                        mapping_ += [terminal_mapping[elem]]
-
-                    elif (elem, 0) in terminal_mapping:
-
-                        for conductor_id in range(number_of_conductors):
-                            mapping_ += [terminal_mapping[(elem, conductor_id)]]
-
-                    else:
-                        raise ValueError('Neither ({}, 0) or port2 found in terminal_mapping'.format(elem))
+                    raise ValueError('Neither ({}, 0) or port2 found in terminal_mapping'.format(elem))
 
                 tls_instance.add_element(line, mapping_)
                 cache.append(line)
