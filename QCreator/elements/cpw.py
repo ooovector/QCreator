@@ -954,7 +954,6 @@ class RectFanout(DesignElement):
 
         cache = []
 
-        print('structure', structure_for_tls.keys())
         # for elem in list(structure_for_tls.keys()):
         for elem in (list(self.get_terminals().keys()) + ['coupler']):
             mapping_ = []
