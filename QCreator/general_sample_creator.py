@@ -293,10 +293,10 @@ class Sample:
         qubit.C['qubit'] = caps[1][1]
         print(caps)
         i = 2
-        print(qubit.C)
+        # print(qubit.C)
         for key,value in qubit.terminals.items():
             if value is not None and key is not 'flux':
-                print(key, value)
+                # print(key, value)
                 qubit.C[key] = (caps[i][i], -caps[1][i])
                 i = i + 1
         return True

@@ -243,7 +243,7 @@ def draw_double_resonator(sample, elements,
                                                  meander_length=closed_end_meander_length2,
                                                  length_left=length_left2,
                                                  length_right=length_right2,
-                                                 first_step_orientation='left',
+                                                 first_step_orientation='right',
                                                  meander_orientation=angle1, meander_type='round')
 
     # 7. Create fanout to create closed enfd of resonator
@@ -361,6 +361,7 @@ def draw_double_resonator_plus_double_qubit(sample, elements,
 
     # 7. Create fanout to create closed enfd of resonator
     fanout_for_open_end = sample.fanout(o=main_coupler, port=port2, name='open end resonator fanout', grouping=[1, 4])
+    # sample.add(fanout_for_open_end)
 
     # 8.
     g2 = sample.ground(o=fanout_for_open_end, port='center', name='cl2', grounding_width=grounding_width,
@@ -369,7 +370,6 @@ def draw_double_resonator_plus_double_qubit(sample, elements,
     # 10. Create closed meander of resonator
     open_end_shift1 = sample.cpw_shift(fanout_for_open_end, direction1, open_end_shift_length1)
     open_end_shift2 = sample.cpw_shift(fanout_for_open_end, direction2, open_end_shift_length2)
-
     open_end = sample.connect_cpw(fanout_for_open_end, qubit1, direction1, coupler_name1, name='right open end 1',
                                   points=open_end_shift1)
     open_end = sample.connect_cpw(fanout_for_open_end, qubit2, direction2, coupler_name2, name='right open end 2',
