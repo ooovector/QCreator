@@ -211,11 +211,18 @@ class Coaxmon(DesignElement):
         if 'mirror' in self.transformations:
             flux_line_output_connection = mirror_point(flux_line_output_connection, self.transformations['mirror'][0],
                                                   self.transformations['mirror'][1])
-            orientation = np.arctan2(flux_line_output_connection[1] - self.center[1], flux_line_output_connection[0] - self.center[0])+np.pi
+            qubit_center = mirror_point(deepcopy(self.center), self.transformations['mirror'][0],
+                                        self.transformations['mirror'][1])
+
+            orientation = np.arctan2(flux_line_output_connection[1] - qubit_center[1],
+                                     flux_line_output_connection[0] - qubit_center[0])+np.pi
         if 'rotate' in self.transformations:
             flux_line_output_connection = rotate_point(flux_line_output_connection, self.transformations['rotate'][0],
                                                   self.transformations['rotate'][1])
-            orientation = np.arctan2(flux_line_output_connection[1] - self.center[1],flux_line_output_connection[0] - self.center[0])+np.pi
+            qubit_center = rotate_point(deepcopy(self.center), self.transformations['rotate'][0],
+                                        self.transformations['rotate'][1])
+            orientation = np.arctan2(flux_line_output_connection[1] - qubit_center[1],
+                                     flux_line_output_connection[0] - qubit_center[0])+np.pi
         if self.transformations == {}:
             orientation=orientation+np.pi
         self.terminals['flux'] = DesignTerminal(flux_line_output_connection, orientation, g=self.grounded.w, s=self.grounded.g,

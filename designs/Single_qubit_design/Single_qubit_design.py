@@ -107,6 +107,7 @@ Couplers_qubit_alone=[elements.coaxmon.CoaxmonCoupler(arc_start=-1/6-1/100+shift
           elements.coaxmon.CoaxmonCoupler(arc_start=-5/6+1/100+shift,arc_finish=-3/6-1/100+shift,phi=1,
                                           coupler_type='grounded',w=4,g=4)
 ]
+
 jj_coaxmon = {'a1':30,
                'b1':0.8,
                'a2':0.45,
@@ -117,6 +118,7 @@ jj_coaxmon = {'a1':30,
                'angle_JJ': 0,
                'length':10,
                'width':4}
+
 # add first coaxmon
 offset=200
 coaxmon1= elements.coaxmon.Coaxmon(name='Coaxmon1',center=(coupler_start+offset,central_line_y-900),
@@ -171,9 +173,9 @@ sample.add(coaxmon4)
 
 #############################################add xmons
 jj_geometry = {
-    'gwidth': 56,
+    'gwidth': 72,
     'gheight': 18,
-    'iwidth': 48,
+    'iwidth': 64,
     'iheight': 10,
     'ithick': 4,
     'fheight1': 20,
@@ -214,8 +216,8 @@ crab_terminals = {
 xmon1 = elements.xmon.Xmon(name = 'Xmon1',
                          center=(coupler_start+2000, central_line_y+1000),
                           length = 150,
-                          width_gap = 4,
-                          center_width = 10,
+                          width_gap = 15,
+                          center_width = 15,
                           crab_position = ('down',),
                           crab_shoulder = 30,
                           crab_thickness = 8,
@@ -229,8 +231,8 @@ xmon1 = elements.xmon.Xmon(name = 'Xmon1',
 xmon2 = elements.xmon.Xmon(name = 'Xmon2',
                          center=(coupler_start+2000, central_line_y-1000),
                           length = 150,
-                          width_gap = 4,
-                          center_width = 10,
+                          width_gap = 15,
+                          center_width = 15,
                           crab_position = ('up',),
                           crab_shoulder = 30,
                           crab_thickness = 8,
