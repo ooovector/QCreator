@@ -267,7 +267,7 @@ class TLCoupler(TLSystemElement):
             a[2 * n_eq_internal + self.n * 3 + k, -m:] = np.kron(c, mode_right)
         return a, b
 
-    def __init__(self, n=2, l=None, ll=None, cl=None, rl=None, gl=None, name='', num_modes=10):
+    def __init__(self, n=2, l=None, ll=None, cl=None, rl=None, gl=None, name='', num_modes=30):
         super().__init__('TL', name)
         self.n = n
         self.l = l
