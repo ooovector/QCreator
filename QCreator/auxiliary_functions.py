@@ -403,7 +403,7 @@ def search_for_resonators_qubits(f,delta,min_freq,max_freq):
     print('Quality factors are:',qs[res_modes])
     return (f[res_modes]/(2*np.pi)/1e9, delta[res_modes], qs[res_modes])
 
-def get_resonator_qubit_coupling_grounded(resonator,qubit,coupler_name,res_fr,qubit_fr):
+def get_grounded_qubit_resonator_coupling(resonator,qubit,coupler_name,res_fr,qubit_fr):
     cap_scal_factor=1e-15
     claw_cap_total = qubit.C[coupler_name][0]+qubit.C[coupler_name][1]
     #resonator's lenght should be in microns
@@ -414,10 +414,10 @@ def get_resonator_qubit_coupling_grounded(resonator,qubit,coupler_name,res_fr,qu
     return {'g':(coupling*1e3,'MHz/2pi')}
 
 # TODO: make it better?
-def get_qubit_resonator_parameters(resonator,qubit,coupler_name,res_fr,qubit_fr,kappa):
+def get_grounded_qubit_resonator_parameters(resonator,qubit,coupler_name,res_fr,qubit_fr,kappa):
     from scipy.constants import hbar,h,e,c
     cap_scal_factor=1e-15
-    coupling = get_resonator_qubit_coupling_grounded(resonator,qubit,coupler_name,res_fr,qubit_fr)['g'][0]
+    coupling = get_grounded_qubit_resonator_coupling(resonator,qubit,coupler_name,res_fr,qubit_fr)['g'][0]
     qubit_total_cap = (qubit.C[coupler_name][1] + qubit.C['qubit'])*cap_scal_factor
     alpha = -e**2/(2*qubit_total_cap)/h/1e9
     disp_shift=(coupling/1e3)**2/((qubit_fr-res_fr))/(1+(qubit_fr-res_fr)/(alpha))
@@ -428,4 +428,3 @@ def get_qubit_resonator_parameters(resonator,qubit,coupler_name,res_fr,qubit_fr,
             'chi':(disp_shift*1e3,'MHz/2pi'),
             'T':(T*1e6,'us'),
             'protection ratio':((qubit_fr-res_fr)/(coupling/1e3))**2}
-    # alpha*1e3,coupling*1e3,disp_shift*1e3,T # in MHz/2/np.pi
