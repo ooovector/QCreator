@@ -25,8 +25,9 @@ class Coaxmon(DesignElement):
                  center_radius: float, inner_couplers_radius: float,
                  outer_couplers_radius: float, inner_ground_radius: float, outer_ground_radius: float,
                  layer_configuration: LayerConfiguration, Couplers, jj_params: Dict, transformations: Dict,
-                 calculate_capacitance: False):
+                 calculate_capacitance: False, JJ_type=None):
         super().__init__(type='qubit', name=name)
+        self.JJ_type=JJ_type
         #qubit parameters
         self.transformations = transformations# to mirror the structure
         self.center = center
@@ -163,10 +164,16 @@ class Coaxmon(DesignElement):
         return self.terminals
 
     def generate_JJ(self):
-        self.JJ = squid3JJ.JJ_2(self.JJ_coordinates[0], self.JJ_coordinates[1],
-                                self.JJ_params['a1'], self.JJ_params['a2'],
-                                self.JJ_params['b1'], self.JJ_params['b2'],
-                                self.JJ_params['c1'], self.JJ_params['c2'])
+        if self.JJ_type == 'JJ_2':
+            self.JJ = squid3JJ.JJ_2(self.JJ_coordinates[0], self.JJ_coordinates[1],
+                                    self.JJ_params['a1'], self.JJ_params['a2'],
+                                    self.JJ_params['b1'], self.JJ_params['b2'],
+                                    self.JJ_params['c1'], self.JJ_params['c2'])
+        else:
+            self.JJ = squid3JJ.JJ_2(self.JJ_coordinates[0], self.JJ_coordinates[1],
+                                    self.JJ_params['a1'], self.JJ_params['a2'],
+                                    self.JJ_params['b1'], self.JJ_params['b2'],
+                                    self.JJ_params['c1'], self.JJ_params['c2'], add_JJ=True)
         result = self.JJ.generate_jj()
         result = gdspy.boolean(result, result, 'or', layer=self.layer_configuration.jj_layer)
         angle = self.JJ_params['angle_JJ']
@@ -206,11 +213,18 @@ class Coaxmon(DesignElement):
         if 'mirror' in self.transformations:
             flux_line_output_connection = mirror_point(flux_line_output_connection, self.transformations['mirror'][0],
                                                   self.transformations['mirror'][1])
-            orientation = np.arctan2(flux_line_output_connection[1] - self.center[1], flux_line_output_connection[0] - self.center[0])+np.pi
+            qubit_center = mirror_point(deepcopy(self.center), self.transformations['mirror'][0],
+                                        self.transformations['mirror'][1])
+
+            orientation = np.arctan2(flux_line_output_connection[1] - qubit_center[1],
+                                     flux_line_output_connection[0] - qubit_center[0])+np.pi
         if 'rotate' in self.transformations:
             flux_line_output_connection = rotate_point(flux_line_output_connection, self.transformations['rotate'][0],
                                                   self.transformations['rotate'][1])
-            orientation = np.arctan2(flux_line_output_connection[1] - self.center[1],flux_line_output_connection[0] - self.center[0])+np.pi
+            qubit_center = rotate_point(deepcopy(self.center), self.transformations['rotate'][0],
+                                        self.transformations['rotate'][1])
+            orientation = np.arctan2(flux_line_output_connection[1] - qubit_center[1],
+                                     flux_line_output_connection[0] - qubit_center[0])+np.pi
         if self.transformations == {}:
             orientation=orientation+np.pi
         self.terminals['flux'] = DesignTerminal(flux_line_output_connection, orientation, g=self.grounded.w, s=self.grounded.g,

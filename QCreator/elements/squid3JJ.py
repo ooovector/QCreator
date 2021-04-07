@@ -2,7 +2,7 @@ import gdspy
 
 
 class JJ_2:
-    def __init__(self, x0, y0, Hb, parametr2, parametr3, parametr4, parametr5, parametr6):
+    def __init__(self, x0, y0, Hb, parametr2, parametr3, parametr4, parametr5, parametr6, add_JJ=False):
         self._x0 = x0
         self._y0 = y0
 
@@ -12,6 +12,7 @@ class JJ_2:
         self._parametr4 = parametr4
         self._parametr5 = parametr5
         self._parametr6 = parametr6
+        self.add_JJ = add_JJ
 
     def generate_jj(self):
         contact_pad_a_outer = 10.5
@@ -52,11 +53,30 @@ class JJ_2:
         L_a = 10.7
         L_b = 0.75
 
-        points1 = [(x1 - H_a / 2, y1),
-                   (x1 + H_a / 2, y1),
-                   (x1 + H_a / 2, y1 - H_b),
-                   (x1 - H_a / 2, y1 - H_b)
-                   ]
+        h = 0.5
+
+        if self.add_JJ == False:
+            points1 = [(x1 - H_a / 2, y1),
+                       (x1 + H_a / 2, y1),
+                       (x1 + H_a / 2, y1 - H_b),
+                       (x1 - H_a / 2, y1 - H_b)
+                       ]
+        else:
+            points1 = [(x1 - 3 * H_a, y1 - H_b / 3),
+                       (x1 + H_a, y1 - H_b / 3),
+                       (x1 + H_a, y1 - H_b / 3 - self._parametr4),
+                       (x1 - 2 * H_a, y1 - H_b / 3 - self._parametr4),
+                       (x1 - 2 * H_a, y1 - H_b),
+                       (x1 - 3 * H_a, y1 - H_b)
+                       ]
+
+            points1_1 = [(x1 - H_a, y1),
+                         (x1, y1),
+                         (x1, y1 - H_b / 6),
+                         (x1 - H_a + self._parametr2, y1 - H_b / 6),
+                         (x1 - H_a + self._parametr2, y1 - H_b / 3 + h),
+                         (x1 - H_a, y1 - H_b / 3 + h)
+                         ]
 
         x2 = x1
         y2 = y1 - H_b
@@ -119,7 +139,7 @@ class JJ_2:
         contact_pad1_b_outer = 6.4
         contact_pad1_a_inner = 12
         contact_pad1_b_inner = 5.8
-        h = 0.5
+
         x7 = self._x0
         y7 = self._y0 - contact_pad_b_outer - H_b - L_b - H1_b - pad1_b - h - contact_pad1_b_outer
         x7_ = x7
@@ -249,7 +269,10 @@ class JJ_2:
 
                     (x13 - rec2_a_inner / 2, y13 - (rec2_b_outer - rec2_b_inner) / 2 - rec2_b_inner),
                     ]
-
-        squid = gdspy.PolygonSet([points0, points1, points2, points3, points4, points5_for_pad1, points6_for_pad2,
-                                  points7, points8_for_pad3, points9_for_pad4, points10, points11, points12, points13])
+        if self.add_JJ == False:
+            squid = gdspy.PolygonSet([points0, points1, points2, points3, points4, points5_for_pad1, points6_for_pad2,
+                                    points7, points8_for_pad3, points9_for_pad4, points10, points11, points12, points13])
+        else:
+            squid = gdspy.PolygonSet([points0, points1, points1_1, points2, points3, points4, points5_for_pad1, points6_for_pad2,
+                                      points7, points8_for_pad3, points9_for_pad4, points10, points11, points12, points13])
         return squid

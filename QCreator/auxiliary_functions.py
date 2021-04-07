@@ -243,7 +243,7 @@ def draw_double_resonator(sample, elements,
                                                  meander_length=closed_end_meander_length2,
                                                  length_left=length_left2,
                                                  length_right=length_right2,
-                                                 first_step_orientation='left',
+                                                 first_step_orientation='right',
                                                  meander_orientation=angle1, meander_type='round')
 
     # 7. Create fanout to create closed enfd of resonator
@@ -361,6 +361,7 @@ def draw_double_resonator_plus_double_qubit(sample, elements,
 
     # 7. Create fanout to create closed enfd of resonator
     fanout_for_open_end = sample.fanout(o=main_coupler, port=port2, name='open end resonator fanout', grouping=[1, 4])
+    # sample.add(fanout_for_open_end)
 
     # 8.
     g2 = sample.ground(o=fanout_for_open_end, port='center', name='cl2', grounding_width=grounding_width,
@@ -369,10 +370,9 @@ def draw_double_resonator_plus_double_qubit(sample, elements,
     # 10. Create closed meander of resonator
     open_end_shift1 = sample.cpw_shift(fanout_for_open_end, direction1, open_end_shift_length1)
     open_end_shift2 = sample.cpw_shift(fanout_for_open_end, direction2, open_end_shift_length2)
-
-    open_end = sample.connect_cpw(fanout_for_open_end, qubit1, direction1, coupler_name1, name='right open end 1',
+    open_end1 = sample.connect_cpw(fanout_for_open_end, qubit1, direction1, coupler_name1, name='right open end 1',
                                   points=open_end_shift1)
-    open_end = sample.connect_cpw(fanout_for_open_end, qubit2, direction2, coupler_name2, name='right open end 2',
+    open_end2 = sample.connect_cpw(fanout_for_open_end, qubit2, direction2, coupler_name2, name='right open end 2',
                                   points=open_end_shift2)
 
     # 11. Create grounding of resonator
@@ -381,4 +381,50 @@ def draw_double_resonator_plus_double_qubit(sample, elements,
     resonator_ground_2 = sample.ground(o=closed_end_meander2, port='port2', name='resonator ground 2',
                                        grounding_width=30, grounding_between=[(0, 2)])
 
-    return g1, g2
+    z01= np.sqrt(open_end1.ll[0]/open_end1.cl[0])[0]
+    z02 = np.sqrt(open_end2.ll[0] / open_end2.cl[0])[0]
+    # get some resonator parameters
+    res_params1 = (closed_end_meander_length1+open_end1.length+coupler_length, z01, open_end1.cl[0,0])
+    res_params2 = (closed_end_meander_length2+open_end2.length+coupler_length, z02, open_end2.cl[0,0])
+    return g1, g2, res_params1, res_params2
+
+def search_for_resonators_qubits(f,delta,min_freq,max_freq):
+    res_modes = []
+    qs=f/delta/2
+    min_freq=min_freq*1e9
+    max_freq=max_freq*1e9
+    min_Q=1e3
+    max_Q=1e9
+    for mode_id in range(len(qs)):
+        if min_Q<=qs[mode_id]<=max_Q and min_freq<=f[mode_id]/2/np.pi<=max_freq:
+            res_modes.append(mode_id)
+    print('Resonance frequencies are, GHz/2pi:',f[res_modes]/(2*np.pi)/1e9)
+    print('Kappas are, MHz/2pi:',delta[res_modes]/2/np.pi/1e6)
+    print('Quality factors are:',qs[res_modes])
+    return (f[res_modes]/(2*np.pi)/1e9, delta[res_modes], qs[res_modes])
+
+def get_grounded_qubit_resonator_coupling(resonator,qubit,coupler_name,res_fr,qubit_fr):
+    cap_scal_factor=1e-15
+    claw_cap_total = qubit.C[coupler_name][0]+qubit.C[coupler_name][1]
+    #resonator's lenght should be in microns
+    res_total_cap = resonator[0]*1/2*resonator[2]+claw_cap_total*cap_scal_factor # in case of lambda/4 resonators
+    qubit_total_cap = (qubit.C[coupler_name][1] + qubit.C['qubit'])*cap_scal_factor
+    coupling_cap= qubit.C[coupler_name][1]*cap_scal_factor
+    coupling = coupling_cap/np.sqrt(qubit_total_cap*res_total_cap)*np.sqrt(res_fr*qubit_fr)/2
+    return {'g':(coupling*1e3,'MHz/2pi')}
+
+# TODO: make it better?
+def get_grounded_qubit_resonator_parameters(resonator,qubit,coupler_name,res_fr,qubit_fr,kappa):
+    from scipy.constants import hbar,h,e,c
+    cap_scal_factor=1e-15
+    coupling = get_grounded_qubit_resonator_coupling(resonator,qubit,coupler_name,res_fr,qubit_fr)['g'][0]
+    qubit_total_cap = (qubit.C[coupler_name][1] + qubit.C['qubit'])*cap_scal_factor
+    alpha = -e**2/(2*qubit_total_cap)/h/1e9
+    disp_shift=(coupling/1e3)**2/((qubit_fr-res_fr))/(1+(qubit_fr-res_fr)/(alpha))
+    T=(1/kappa)*((qubit_fr-res_fr)/(coupling/1e3))**2
+    print("Qubit- resonator detuning:",qubit_fr-res_fr)
+    return {'g':(coupling,'MHz/2pi'),
+            'alpha':(alpha*1e3,'MHz/2pi'),
+            'chi':(disp_shift*1e3,'MHz/2pi'),
+            'T':(T*1e6,'us'),
+            'protection ratio':((qubit_fr-res_fr)/(coupling/1e3))**2}
