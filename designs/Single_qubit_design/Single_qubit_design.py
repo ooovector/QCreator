@@ -167,8 +167,8 @@ coaxmon4= elements.coaxmon.Coaxmon(name='Coaxmon4',center=(coupler_start+offset,
 
 sample.add(coaxmon1)
 sample.add(coaxmon2)
-# sample.add(coaxmon3)
-# sample.add(coaxmon4)
+sample.add(coaxmon3)
+sample.add(coaxmon4)
 
 
 #############################################add xmons
@@ -245,6 +245,6 @@ xmon2 = elements.xmon.Xmon(name = 'Xmon2',
                           layer_configuration = sample.layer_configuration)
 
 
-# sample.add(xmon1)
-# sample.add(xmon2)
+sample.add(xmon1)
+sample.add(xmon2)
 sample.draw_design()
