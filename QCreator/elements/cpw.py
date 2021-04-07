@@ -53,7 +53,7 @@ class CPWCoupler(DesignElement):
 
         self.segments = []
         self.finalize_points()
-        self.ll,self.cl = self.cm()
+        self.cl, self.ll = self.cm()
 
     def finalize_points(self):
         orientation1 = np.asarray([np.cos(self.terminals['port1'].orientation),
@@ -177,13 +177,12 @@ class CPWCoupler(DesignElement):
             cross_section.append(self.w[c])
             cross_section.append(self.s[c + 1])
 
-        ll, cl = cm.ConformalMapping(cross_section).cl_and_Ll()
-        self.z0 = np.sqrt(np.dot(ll, np.linalg.inv(cl)))
+        cl, ll = cm.ConformalMapping(cross_section).cl_and_Ll()
 
         if not self.terminals['port1'].order:
             ll, cl = ll[::-1, ::-1], cl[::-1, ::-1]
 
-        return ll, cl
+        return cl, ll
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem,
                    terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
