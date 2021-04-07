@@ -60,7 +60,9 @@ class Coaxmon(DesignElement):
         # model evaluation
         self.calculate_capacitance = calculate_capacitance
         self.tls_cache = []
-        self.L=15e-9#20nHr
+        self.L1 = 60e-9#20nHr
+        self.L2 = 20e-9
+        self.M = 12e-12
         self.C = {'coupler0': None,
                   'coupler1': None,
                   'coupler2': None,
@@ -220,9 +222,13 @@ class Coaxmon(DesignElement):
                    track_changes: bool = True) -> list:
         #scaling factor for C
         scal_C = 1e-15
-        JJ = tlsim.Inductor(self.L)
+        JJ1 = tlsim.Inductor(self.L1)
+        JJ2 = tlsim.Inductor(self.L2)
+        M = tlsim.Inductor(self.M)
         C = tlsim.Capacitor(c=self.C['qubit']*scal_C, name=self.name+' qubit-ground')
-        tls_instance.add_element(JJ, [0, terminal_mapping['qubit']])
+        tls_instance.add_element(JJ1, [0, terminal_mapping['qubit']])
+        tls_instance.add_element(JJ2, [terminal_mapping['flux'], terminal_mapping['qubit']])
+        tls_instance.add_element(M, [0, terminal_mapping['flux']])
         tls_instance.add_element(C, [0, terminal_mapping['qubit']])
         mut_cap = []
         cap_g = []
@@ -238,8 +244,8 @@ class Coaxmon(DesignElement):
             #     tls_instance.add_element(tlsim.Short(), [terminal_mapping['flux line'], 0])
 
         if track_changes:
-            self.tls_cache.append([JJ, C]+mut_cap+cap_g)
-        return [JJ, C]+mut_cap+cap_g
+            self.tls_cache.append([JJ1, JJ2, C]+mut_cap+cap_g)
+        return [JJ1, JJ2, C]+mut_cap+cap_g
 
 class CoaxmonCoupler:
     """
