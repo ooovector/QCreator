@@ -195,7 +195,9 @@ class Sample:
         return open_end
 
     def connect_cpw(self, o1: elements.DesignElement, o2: elements.DesignElement, port1: str, port2: str, name: str,
-                    points: list):
+                    points: list, bridges: bool = False, pads_geometry: Tuple[float, float] = None,
+                    bridge_geometry: Tuple[float, float] = None, distance_between_pads: float = None,
+                    min_spacing: float = None):
         """
         Create and return a CPW connecting two cpw-type ports, with point inbetween defined by point
         :param o1: first object
@@ -204,6 +206,11 @@ class Sample:
         :param port2: second object's port name
         :param name: CPW name
         :param points: coordinates of the CPW's edges
+        :param bridges:
+        :param pads_geometry:
+        :param bridge_geometry:
+        :param distance_between_pads:
+        :param min_spacing: spacing between two airbridges
         :return: TLCoupler object
         """
         if o1 not in self.objects:
@@ -237,10 +244,23 @@ class Sample:
         points = [tuple(t1.position)] + points + [tuple(t2.position)]
         cpw = elements.CPW(name, points, w, s, g, self.layer_configuration, r=self.default_cpw_radius(w, s, g),
                            corner_type='round', orientation1=orientation1, orientation2=orientation2)
-        self.add(cpw)
+        print('cpw segments', cpw.segments)
+        if bridges:
+            cpw_with_bridges = self.generate_bridge_over_cpw(name=name, o=cpw,
+                                                             pads_geometry=pads_geometry,
+                                                             bridge_geometry=bridge_geometry,
+                                                             distance_between_pads=distance_between_pads,
+                                                             min_spacing=min_spacing)
+            print(cpw_with_bridges)
+            self.connect(cpw_with_bridges[0], 'port1', o1, port1)
+            self.connect(cpw_with_bridges[-1], 'port2', o2, port2)
+        else:
+            self.add(cpw)
+            self.connect(cpw, 'port1', o1, port1)
+            self.connect(cpw, 'port2', o2, port2)
         # self.connections.extend([((cpw, 'port1', 0), (o1, port1, 0)), ((cpw, 'port2', 0), (o2, port2, 0))])
-        self.connect(cpw, 'port1', o1, port1)
-        self.connect(cpw, 'port2', o2, port2)
+        # self.connect(cpw, 'port1', o1, port1)
+        # self.connect(cpw, 'port2', o2, port2)
         return cpw
 
     def watch(self):
@@ -248,9 +268,9 @@ class Sample:
 
     def cpw_shift(self, element, port_name, length):
         return [(element.get_terminals()[port_name].position[0] + \
-                 length * np.cos(element.get_terminals()[port_name].orientation+np.pi),
+                 length * np.cos(element.get_terminals()[port_name].orientation + np.pi),
                  element.get_terminals()[port_name].position[1] + \
-                 length * np.sin(element.get_terminals()[port_name].orientation+np.pi)),]
+                 length * np.sin(element.get_terminals()[port_name].orientation + np.pi)), ]
 
     # functions to work and calculate capacitance
     def write_to_gds(self, name=None):
@@ -289,12 +309,13 @@ class Sample:
                 qubit.C['coupler' + str(id)] = (caps[i][i], -caps[1][i])
                 i = i + 1
         return True
+
     def fill_cap_matrix_grounded(self, qubit, caps):
         qubit.C['qubit'] = caps[1][1]
         print(caps)
         i = 2
         # print(qubit.C)
-        for key,value in qubit.terminals.items():
+        for key, value in qubit.terminals.items():
             if value is not None and key is not 'flux':
                 # print(key, value)
                 qubit.C[key] = (caps[i][i], -caps[1][i])
@@ -408,7 +429,7 @@ class Sample:
     def get_topology(self, cutoff=np.inf):
         sys, connections_, elements_ = self.get_tls(cutoff)
         circuit_elements = sys.elements
-        number_of_elem = len(circuit_elements )
+        number_of_elem = len(circuit_elements)
         circuit_nodes = sys.terminal_node_mapping
 
         topology = []
@@ -416,9 +437,6 @@ class Sample:
             topology.append([circuit_elements[elem], circuit_nodes[elem]])
 
         return topology
-
-
-
 
     def generate_bridge_over_cpw(self, name: str, o: elements.DesignElement, pads_geometry: Tuple[float, float],
                                  bridge_geometry: Tuple[float, float], distance_between_pads: float,
@@ -474,6 +492,7 @@ class Sample:
 
         total_cpw = []
         all_bridges = []
+        elements_ = []
 
         for elem in range(len(real_segments)):
             if real_segments[elem]['type'] == 'turn':
@@ -486,6 +505,7 @@ class Sample:
                                     orientation2=real_segments[elem]['orientation2'])
                 self.add(line)
                 total_cpw.append(line)
+                elements_.append(line)
                 if elem > 0:
                     self.connect(total_cpw[elem - 1], 'port2', total_cpw[elem], 'port1')
 
@@ -526,16 +546,17 @@ class Sample:
                     sub_cpw = []
 
                     for bridge_elem in range(number_of_bridges + 1):
-                        line = elements.CPW(name=name + str(len(total_cpw)),
+                        line = elements.CPW(name=name + '_between_bridges_' + str(len(total_cpw)),
                                             points=subsegments_points[2 * bridge_elem:2 * bridge_elem + 2], w=w, s=s,
                                             g=g,
                                             layer_configuration=self.layer_configuration, r=radius)
                         self.add(line)
                         sub_cpw.append(line)
                         total_cpw.append(line)
+                        elements_.append(line)
 
                     for bridge_elem in range(number_of_bridges):
-                        bridge_elem = elements.AirbridgeOverCPW(name=name + str(len(all_bridges)),
+                        bridge_elem = elements.AirbridgeOverCPW(name=name + 'bridge' + str(len(all_bridges)),
                                                                 position=bridges_points[bridge_elem],
                                                                 orientation=orientation_, w=w, s=s, g=g,
                                                                 pads_geometry=pads_geometry,
@@ -544,6 +565,7 @@ class Sample:
                                                                 distance_between_pads=distance_between_pads)
                         bridges.append(bridge_elem)
                         all_bridges.append(bridge_elem)
+                        elements_.append(bridge_elem)
                         self.add(bridge_elem)
 
                     if elem > 0:
@@ -560,12 +582,13 @@ class Sample:
                                         layer_configuration=self.layer_configuration, r=0)
                     self.add(line)
                     total_cpw.append(line)
+                    elements_.append(line)
 
                     if elem > 0:
                         self.connect(total_cpw[elem - 1], 'port2', total_cpw[elem], 'port1')
             else:
                 continue
-        return total_cpw, all_bridges
+        return total_cpw
 
     '''
     Deprecated stuff?
