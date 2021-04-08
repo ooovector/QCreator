@@ -62,7 +62,6 @@ class Coaxmon(DesignElement):
         # model evaluation
         self.calculate_capacitance = calculate_capacitance
         self.tls_cache = []
-        self.L=15e-9#20nHr
         self.C = {'coupler0': None,
                   'coupler1': None,
                   'coupler2': None,

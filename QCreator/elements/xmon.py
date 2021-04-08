@@ -41,7 +41,6 @@ class Xmon(DesignElement):
                           'qubit': None}
         self.couplers = {}
         self.tls_cache = []
-        self.M = 12e-12
         self.C = {'crab_left': None,
                   'crab_right': None,
                   'crab_up': None,
