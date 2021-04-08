@@ -61,9 +61,6 @@ class Coaxmon(DesignElement):
         # model evaluation
         self.calculate_capacitance = calculate_capacitance
         self.tls_cache = []
-        self.L1 = 60e-9#20nHr
-        self.L2 = 20e-9
-        self.M = 12e-12
         self.C = {'coupler0': None,
                   'coupler1': None,
                   'coupler2': None,
@@ -158,8 +155,11 @@ class Coaxmon(DesignElement):
             if coupler.connection is not None:
                 self.terminals['coupler'+str(id)] = DesignTerminal(tuple(coupler_connection),
                                                                    coupler_phi, g=coupler.g, s=coupler.s,
-                                                                w=coupler.w, type='cpw')
+                                                                   w=coupler.w, type='cpw')
+            if self.JJ_type != 'JJ_2':
+                self.terminals['squid_intermediate'] = None
         return True
+
     def get_terminals(self):
         return self.terminals
 
@@ -234,15 +234,25 @@ class Coaxmon(DesignElement):
                 }
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True, cutoff: float = np.inf) -> list:
         #scaling factor for C
+        from scipy.constants import hbar, e
         scal_C = 1e-15
-        JJ1 = tlsim.Inductor(self.L1)
-        JJ2 = tlsim.Inductor(self.L2)
-        M = tlsim.Inductor(self.M)
-        C = tlsim.Capacitor(c=self.C['qubit']*scal_C, name=self.name+' qubit-ground')
-        tls_instance.add_element(JJ1, [0, terminal_mapping['qubit']])
-        tls_instance.add_element(JJ2, [terminal_mapping['flux'], terminal_mapping['qubit']])
-        tls_instance.add_element(M, [0, terminal_mapping['flux']])
-        tls_instance.add_element(C, [0, terminal_mapping['qubit']])
+        jj1 = tlsim.JosephsonJunction(self.JJ_params['ic1']*hbar/(2*e), name=self.name + ' jj1')
+        jj2 = tlsim.JosephsonJunction(self.JJ_params['ic2']*hbar/(2*e), name=self.name + ' jj2')
+        m = tlsim.Inductor(self.JJ_params['lm'], name=self.name + ' flux-wire')
+        c = tlsim.Capacitor(c=self.C['qubit'] * scal_C, name=self.name + ' qubit-ground')
+        cache = [jj1, jj2, m, c]
+        if self.JJ_type == 'JJ_2':
+            squid_top = terminal_mapping['qubit']
+        else:
+            squid_top = terminal_mapping['squid_intermediate']
+            jj3 = tlsim.JosephsonJunction(self.JJ_params['ic3']*hbar/(2*e), name=self.name + ' jj3')
+            tls_instance.add_element(jj3, [squid_top, terminal_mapping['qubit']])
+            cache.append(jj3)
+
+        tls_instance.add_element(jj1, [0, squid_top])
+        tls_instance.add_element(jj2, [terminal_mapping['flux'], squid_top])
+        tls_instance.add_element(m, [0, terminal_mapping['flux']])
+        tls_instance.add_element(c, [0, terminal_mapping['qubit']])
         mut_cap = []
         cap_g = []
         for id, coupler in enumerate(self.couplers):
@@ -257,8 +267,8 @@ class Coaxmon(DesignElement):
             #     tls_instance.add_element(tlsim.Short(), [terminal_mapping['flux line'], 0])
 
         if track_changes:
-            self.tls_cache.append([JJ1, JJ2, C]+mut_cap+cap_g)
-        return [JJ1, JJ2, C]+mut_cap+cap_g
+            self.tls_cache.append(cache+mut_cap+cap_g)
+        return cache+mut_cap+cap_g
 
 class CoaxmonCoupler:
     """

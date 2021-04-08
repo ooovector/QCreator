@@ -41,8 +41,6 @@ class Xmon(DesignElement):
                           'qubit': None}
         self.couplers = {}
         self.tls_cache = []
-        self.L1 = 60e-9#20nHr
-        self.L2 = 20e-9
         self.M = 12e-12
         self.C = {'crab_left': None,
                   'crab_right': None,
@@ -497,14 +495,15 @@ class Xmon(DesignElement):
         from scipy.constants import hbar, e
         #scaling factor for C
         scal_C = 1e-15
-        JJ1 = tlsim.Inductor(self.L1)
-        JJ2 = tlsim.Inductor(self.L2)
-        M = tlsim.Inductor(self.M)
-        C = tlsim.Capacitor(c=self.C['qubit']*scal_C, name=self.name+' qubit-ground')
-        tls_instance.add_element(JJ1, [0, terminal_mapping['qubit']])
-        tls_instance.add_element(JJ2, [terminal_mapping['flux'], terminal_mapping['qubit']])
-        tls_instance.add_element(M, [0, terminal_mapping['flux']])
-        tls_instance.add_element(C, [0, terminal_mapping['qubit']])
+
+        jj1 = tlsim.JosephsonJunction(e_j=self.jj['ic_l']*hbar/(2*e), name=self.name + ' jj1')
+        jj2 = tlsim.JosephsonJunction(e_j=self.jj['ic_r']*hbar/(2*e), name=self.name + ' jj2')
+        m = tlsim.Inductor(self.jgeom['lm'], name=self.name + ' flux-wire')
+        c = tlsim.Capacitor(c=self.C['qubit']*scal_C, name=self.name+' qubit-ground')
+        tls_instance.add_element(jj1, [0, terminal_mapping['qubit']])
+        tls_instance.add_element(jj2, [terminal_mapping['flux'], terminal_mapping['qubit']])
+        tls_instance.add_element(m, [0, terminal_mapping['flux']])
+        tls_instance.add_element(c, [0, terminal_mapping['qubit']])
         mut_cap = []
         cap_g = []
         for coupler in self.pos:
@@ -516,8 +515,8 @@ class Xmon(DesignElement):
             mut_cap.append(c0)
             cap_g.append(c0g)
         if track_changes:
-            self.tls_cache.append([JJ, C]+mut_cap+cap_g)
-        return [JJ, C]+mut_cap+cap_g
+            self.tls_cache.append([jj1, jj2, m, c]+mut_cap+cap_g)
+        return [jj1, jj2, m, c]+mut_cap+cap_g
 
 def rotate_point(point, angle, origin):
     """
