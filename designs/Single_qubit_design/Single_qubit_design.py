@@ -28,6 +28,8 @@ coupler_delta = 500
 coupler_length = 320
 num_couplers = 1
 
+jc = 1e-6 # uA/um^2
+
 layers_configuration = {
     'total':0,
     'restricted area':10,
@@ -117,7 +119,12 @@ jj_coaxmon = {'a1':30,
                'angle_qubit':-np.pi/2-np.pi/3,
                'angle_JJ': 0,
                'length':10,
-               'width':4}
+               'width':4,
+               'ic1': 0.45*0.486*jc,
+               'ic2': 0.2*0.1*jc,
+               'ic3': 0.2*0.1*jc,
+               'lm': 12e-12
+                }
 
 # add first coaxmon
 offset=200
@@ -184,7 +191,8 @@ jj_geometry = {
     'fshoulder': 15,
     'fcore': 4,
     'fgap': 4,
-    'gter':4
+    'gter': 4,
+    'lm': 12e-12
         }
 jj = {
     'type': 2,
@@ -195,7 +203,9 @@ jj = {
     'side_l_thick': 0.44,
     'side_r_thick': 0.44,
     'up_l_thick': 0.44,
-    'up_r_thick': 0.44
+    'up_r_thick': 0.44,
+    'ic_l': 0.44*0.44*jc,
+    'ic_r': 0.44*0.44*jc
 }
 
 # this will be changed in the future
