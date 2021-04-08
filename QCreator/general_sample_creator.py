@@ -343,7 +343,7 @@ class Sample:
         self.restricted_area_cell.add(line[1])
         self.cell_to_remove.add(line[2])
 
-    def get_tls(self):
+    def get_tls(self, cutoff=np.inf):
         """
         Create a transmission line system of the design
         :return:
@@ -382,7 +382,7 @@ class Sample:
                         max_connection_id += 1
                         connections_flat[(object_, terminal_name, conductor_id)] = max_connection_id
                         terminal_node_assignments[terminal_identifier] = max_connection_id
-            element_assignments[object_.name] = object_.add_to_tls(tls, terminal_node_assignments)
+            element_assignments[object_.name] = object_.add_to_tls(tls, terminal_node_assignments, cutoff=cutoff)
         return tls, connections_flat, element_assignments
 
     def get_s21(self, p1: str, p2: str, frequencies: Iterable[float]):
@@ -405,8 +405,8 @@ class Sample:
 
         return np.asarray(s)
 
-    def get_topology(self):
-        sys, connections_, elements_ = self.get_tls()
+    def get_topology(self, cutoff=np.inf):
+        sys, connections_, elements_ = self.get_tls(cutoff)
         circuit_elements = sys.elements
         number_of_elem = len(circuit_elements )
         circuit_nodes = sys.terminal_node_mapping
