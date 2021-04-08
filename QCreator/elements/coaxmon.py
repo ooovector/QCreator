@@ -232,8 +232,7 @@ class Coaxmon(DesignElement):
         return {'positive': result,
                 'remove': remove,
                 }
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict,
-                   track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True, cutoff: float = np.inf) -> list:
         #scaling factor for C
         scal_C = 1e-15
         JJ1 = tlsim.Inductor(self.L1)

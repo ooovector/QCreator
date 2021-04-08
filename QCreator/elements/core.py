@@ -70,10 +70,11 @@ class DesignElement:
         pass
 
     @abstractmethod
-    def add_to_tls(self, tls_instance: tlsim.TLSystem,
-                   terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
+                   cutoff: float = np.inf) -> list:
         """
         Adds the circuit to a transmission line system model
+        :param cutoff:
         :param tls_instance: transmission_line_system class instance to add the model elements to
         :param terminal_mapping: dict that maps terminal names of this element to transmission line system node ids
         :param track_changes: add element to tracked so that its z0 gets automatically changed

@@ -184,8 +184,8 @@ class CPWCoupler(DesignElement):
 
         return cl, ll
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem,
-                   terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
+                   cutoff: float = np.inf) -> list:
         cl, ll = self.cm()
         line = tlsim.TLCoupler(n=len(self.w),
                                l=self.length,  # TODO: get length
@@ -193,7 +193,8 @@ class CPWCoupler(DesignElement):
                                ll=ll,
                                rl=np.zeros((len(self.w), len(self.w))),
                                gl=np.zeros((len(self.w), len(self.w))),
-                               name=self.name)
+                               name=self.name,
+                               cutoff=cutoff)
 
         if track_changes:
             self.tls_cache.append([line])
@@ -356,8 +357,8 @@ class Narrowing(DesignElement):
     def get_terminals(self):
         return self.terminals
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem,
-                   terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
+                   cutoff: float = np.inf) -> list:
 
         cl1, ll1 = cm.ConformalMapping([self.s1, self.w1, self.s1]).cl_and_Ll()
         cl2, ll2 = cm.ConformalMapping([self.s2, self.w2, self.s2]).cl_and_Ll()
@@ -550,8 +551,8 @@ class RectGrounding(DesignElement):
 
         return cm.ConformalMapping(cross_section_narrow).cl_and_Ll()
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int],
-                   track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
+                   cutoff: float = np.inf) -> list:
 
         cache = []
 
@@ -617,7 +618,8 @@ class RectGrounding(DesignElement):
                                              ll=ll,
                                              rl=np.zeros((len(self.narrow_port_w), len(self.narrow_port_w))),
                                              gl=np.zeros((len(self.narrow_port_w), len(self.narrow_port_w))),
-                                             name=self.name)
+                                             name=self.name,
+                                             cutoff=cutoff)
             tls_instance.add_element(continued_line, mapping_)
             cache.append(continued_line)
 
@@ -948,8 +950,8 @@ class RectFanout(DesignElement):
 
         return structure_for_tls
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int],
-                   track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
+                   cutoff: float = np.inf) -> list:
         structure_for_tls = self.cm()
 
         cache = []
@@ -967,8 +969,8 @@ class RectFanout(DesignElement):
                                                ll=structure_for_tls[elem]['Ll'],
                                                rl=np.zeros_like(structure_for_tls[elem]['Cl']),
                                                gl=np.zeros_like(structure_for_tls[elem]['Cl']),
-                                               name=self.name + '_coupled_line_' + str(len(cache))
-                                               )
+                                               name=self.name + '_coupled_line_' + str(len(cache)),
+                                               cutoff=cutoff)
 
                 for conductor_id in range(number_of_conductors):
                     mapping_ += [terminal_mapping[('wide', conductor_id)]]
@@ -988,7 +990,8 @@ class RectFanout(DesignElement):
                                        ll=structure_for_tls[elem]['Ll'],
                                        rl=np.zeros_like(structure_for_tls[elem]['Cl']),
                                        gl=np.zeros_like(structure_for_tls[elem]['Cl']),
-                                       name=self.name + '_line_' + str(len(cache)))
+                                       name=self.name + '_line_' + str(len(cache)),
+                                       cutoff=cutoff)
 
                 conductor_bounds = [0, self.grouping[0], self.grouping[1], len(self.w)]
                 if elem == 'down':
@@ -1215,8 +1218,8 @@ class OpenEnd(DesignElement):
     def get_terminals(self) -> Mapping[str, DesignTerminal]:
         return self.terminals
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem,
-                   terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
+                   cutoff: float = np.inf) -> list:
         if self.number_of_conductors == 1:
             cache = []
             capacitance_value = 1e-15*20*0

@@ -119,8 +119,8 @@ class AirbridgeOverCPW(DesignElement):
 
         return ll, cl
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int],
-                   track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
+                   cutoff: float = np.inf) -> list:
         # TODO: calculate bridge_capacitance???
         bridge_capacitance = 1e-15
 
@@ -133,14 +133,16 @@ class AirbridgeOverCPW(DesignElement):
                                 ll=ll,
                                 rl=np.zeros((1, 1)),
                                 gl=np.zeros((1, 1)),
-                                name=self.name + '_line1')
+                                name=self.name + '_line1',
+                                cutoff=cutoff)
         line2 = tlsim.TLCoupler(n=1,
                                 l=self.p,
                                 cl=cl,
                                 ll=ll,
                                 rl=np.zeros((1, 1)),
                                 gl=np.zeros((1, 1)),
-                                name=self.name + '_line2')
+                                name=self.name + '_line2',
+                                cutoff=cutoff)
 
         elements = [c1, line1, line2]
         if track_changes:
@@ -245,8 +247,8 @@ class CPWGroundAirBridge(DesignElement):
     def get_terminals(self) -> dict:
         return self.terminals
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int],
-                   track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
+                   cutoff: float = np.inf) -> list:
         l = tlsim.Inductor(l=self.l)
         c1 = tlsim.Capacitor(c=self.c / 2)
         c2 = tlsim.Capacitor(c=self.c / 2)
