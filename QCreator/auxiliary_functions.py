@@ -71,7 +71,11 @@ def draw_single_resonator(sample, elements,
                                                 length_right=length_right,
                                                 first_step_orientation=port_orientation,
                                                 meander_orientation=angle,
-                                                meander_type='round')
+                                                meander_type='round', bridges=True,
+                                                pads_geometry=[4, 5],
+                                                bridge_geometry=[33,4],
+                                                distance_between_pads=32, min_spacing=60
+    )
     total_length.append(closed_end_meander.length)
     # # 7. Create grounding of resonator
     resonator_ground_ = sample.ground(o=closed_end_meander, port='port2', name='resonator ground', grounding_width=30,
@@ -91,12 +95,12 @@ def draw_single_resonator(sample, elements,
                                  h2=10,
                                  )
     sample.add(open_end)
-    open_end= sample.connect_cpw(fanout_for_open_end, open_end, opened_end_direction, 'wide', name='right open end',
+    open_end = sample.connect_cpw(fanout_for_open_end, open_end, opened_end_direction, 'wide', name='right open end',
                                              points=[])
     total_length.append(open_end.length)
     res_params = total_length
 
-    return g1, g2, res_params
+    return g1, g2, res_params, closed_end_meander
 
 def draw_single_resonator_plus_qubit(sample, elements,
                           coupler_start_x, coupler_start_y, coupler_length,
@@ -177,6 +181,7 @@ def draw_single_resonator_plus_qubit(sample, elements,
 
     # 10. Connect open end with the coupler part of the qubit
     open_end_shift = sample.cpw_shift(fanout_for_open_end, opened_end_direction, open_end_shift_length)
+
     open_end = sample.connect_cpw(fanout_for_open_end, qubit, opened_end_direction, coupler_name, name='right open end',
                                   points=open_end_shift)
 
