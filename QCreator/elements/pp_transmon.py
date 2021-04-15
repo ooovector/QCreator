@@ -397,7 +397,7 @@ class PP_Transmon_Coupler:
         self.height_right = heightr
         self.connection = None
         #for defining the terminals
-        self.w = 10 #standard for now
+        self.w = 8  #standard for now
         self.g = 10 #also temporary fix
         self.s = gap
 
