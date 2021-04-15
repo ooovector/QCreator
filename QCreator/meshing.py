@@ -23,8 +23,8 @@ class Meshing:
         self.fastcap_filename = None
         self.cap_filename = None
         # TODO: find a correct way to do it
-        # self.path_to_fastcap = r"C:\Program Files (x86)\LayoutEditor\bin\fastcap.exe"
-        self.path_to_fastcap = r"C:\Program Files (x86)\layout\fastcap.exe"
+        self.path_to_fastcap = r"C:\Program Files (x86)\LayoutEditor\bin\fastcap.exe"
+        #self.path_to_fastcap = r"C:\Program Files (x86)\layout\fastcap.exe"
 
     def read_data_from_gds_file(self):
         new_cells = [gdspy.GdsLibrary()] * len(self.layers)

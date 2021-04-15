@@ -75,6 +75,8 @@ class Sample:
                 self.total_cell.add(result['airbridges_pads'])
             if 'airbridges' in result:
                 self.total_cell.add(result['airbridges'])
+            if 'inverted' in result:
+                self.total_cell.add(result['inverted'])
 
         self.fill_object_arrays()
 
@@ -222,7 +224,8 @@ class Sample:
         w = t1.w
         s = t1.s
         g = t1.g
-
+        print(w,s,g)
+        print(t2.w,t2.s,t2.g)
         assert w == t2.w
         assert s == t2.s
         assert g == t2.g
