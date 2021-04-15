@@ -23,7 +23,7 @@ class PP_Squid_C(DesignElement):
     8) arms - the parameters for the squid arms for coupling left and right qubits
     """
     def __init__(self, name: str, center: Tuple[float, float],width: float, height: float,gap: float,bridge_gap:float,bridge_w:float, g_w: float, g_h: float,g_t: float,layer_configuration: LayerConfiguration,
-                 jj_params: Dict,fluxline_params: Dict,Couplers,transformations:Dict,arms:Dict,remove_ground = {},secret_shift = 0):
+                 jj_params: Dict,fluxline_params: Dict,Couplers,transformations:Dict,arms:Dict,remove_ground = {},secret_shift = 0,calculate_capacitance = False):
         super().__init__(type='qubit', name=name)
         #qubit parameters
         self.transformations = transformations# to mirror the structure
@@ -304,8 +304,7 @@ class PP_Squid_C(DesignElement):
 
         return result
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict,
-                   track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True, cutoff: float = np.inf) -> list:
         #scaling factor for C
         scal_C = 1e-15
         JJ = tlsim.Inductor(self.L)

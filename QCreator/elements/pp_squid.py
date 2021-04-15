@@ -340,8 +340,7 @@ class PP_Squid(DesignElement):
 
 
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict,
-                   track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True, cutoff: float = np.inf) -> list:
         #scaling factor for C
         scal_C = 1e-15
         JJ = tlsim.Inductor(self.L)
