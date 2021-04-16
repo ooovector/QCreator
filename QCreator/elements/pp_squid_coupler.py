@@ -357,7 +357,9 @@ class PP_Squid_Coupler:
             if self.height_left == 1:
                 upper  = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap,center[1]+g_h/2+self.gap),(center[0]-g_w/2+self.l1-self.gap-self.t,center[1]+g_h/2+self.t+self.gap))
                 lower  = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap,center[1]-g_h/2-self.gap-self.t),(center[0]-g_w/2+self.l2-self.gap-self.t,center[1]-g_h/2-self.gap))
-            line   = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap-self.gap-self.ground_t,center[1]-5),(center[0]-g_w/2-self.t-self.gap,center[1]+5))#modified here ;), remove ground_t
+            #line   = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap-self.gap-self.ground_t,center[1]-5),(center[0]-g_w/2-self.t-self.gap,center[1]+5))#modified here ;), remove ground_t
+            line = gdspy.Rectangle((center[0] - g_w / 2 - self.t - self.gap - self.gap , center[1] - 5),
+                                   (center[0] - g_w / 2 - self.t - self.gap, center[1] + 5))
             if self.height_left ==1:
                 result = gdspy.boolean(result, upper, 'or')
                 result = gdspy.boolean(result, lower, 'or')
