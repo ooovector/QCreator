@@ -267,7 +267,7 @@ class TLCoupler(TLSystemElement):
             a[2 * n_eq_internal + self.n * 3 + k, -m:] = np.kron(c, mode_right)
         return a, b
 
-    def __init__(self, n=2, l=None, ll=None, cl=None, rl=None, gl=None, name='', num_modes=10):
+    def __init__(self, n=2, l=None, ll=None, cl=None, rl=None, gl=None, name='', num_modes=10, cutoff=None):
         super().__init__('TL', name)
         self.n = n
         self.l = l
@@ -275,8 +275,15 @@ class TLCoupler(TLSystemElement):
         self.Cl = cl
         self.Rl = rl
         self.Gl = gl
-        self.num_modes = num_modes
-        pass
+        if cutoff is not None and np.isfinite(cutoff):
+            cl_min = 1/np.sqrt(np.linalg.norm(ll@cl, ord=2)) # minimum speed of light in TL
+            df = cl_min/(2*l)
+            num_modes = int(cutoff // df)
+            if num_modes < 2:
+                num_modes = 2
+            self.num_modes = num_modes
+        else:
+            self.num_modes = num_modes
 
     def __repr__(self):
         return "TL {} (n={})".format(self.name, self.n)
@@ -298,7 +305,7 @@ class JosephsonJunction(TLSystemElement):
         return np.asarray([[1, -1, 1j * omega * self.L_lin, 0], [0, 0, 1, 1]], dtype=complex)
 
     def dynamic_equations(self):
-        b = np.asarray([[0, 0, self.L_lin, 0], [0, 0, 0, 0]])  # derivatives
+        b = np.asarray([[0, 0, -self.L_lin, 0], [0, 0, 0, 0]])  # derivatives
         a = np.asarray([[1, -1, 0, 0], [0, 0, 1, 1]])  # current values
         return a, b
 

@@ -1,6 +1,7 @@
 from .core import DesignElement, DesignTerminal, LayerConfiguration, ChipGeometry
 from .. import transmission_line_simulator as tlsim
 import gdspy
+import numpy as np
 from typing import Tuple, Mapping
 from .cpw_primitives import Stub, Trapezoid
 from .drawing import combine
@@ -80,8 +81,7 @@ class Pad(DesignElement):
     def get_terminals(self) -> Mapping[str, DesignTerminal]:
         return {'port': self.terminal}
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict,
-                   track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True, cutoff: float = np.inf) -> list:
         p = tlsim.Port(z0=self.z0, name=self.name)
         if track_changes:
             self.tls_cache.append(p)

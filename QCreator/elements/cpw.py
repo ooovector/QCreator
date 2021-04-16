@@ -35,7 +35,6 @@ class CPWCoupler(DesignElement):
         self.corner_type = corner_type
         self.length = None
         self.tls_cache = []
-
         self.first_segment_orientation = np.arctan2(self.points[1][1] - self.points[0][1],
                                                     self.points[1][0] - self.points[0][0])
         self.last_segment_orientation = np.arctan2(self.points[-2][1] - self.points[-1][1],
@@ -54,6 +53,7 @@ class CPWCoupler(DesignElement):
 
         self.segments = []
         self.finalize_points()
+        self.cl, self.ll = self.cm()
 
     def finalize_points(self):
         orientation1 = np.asarray([np.cos(self.terminals['port1'].orientation),
@@ -177,15 +177,15 @@ class CPWCoupler(DesignElement):
             cross_section.append(self.w[c])
             cross_section.append(self.s[c + 1])
 
-        ll, cl = cm.ConformalMapping(cross_section).cl_and_Ll()
+        cl, ll = cm.ConformalMapping(cross_section).cl_and_Ll()
 
         if not self.terminals['port1'].order:
             ll, cl = ll[::-1, ::-1], cl[::-1, ::-1]
 
-        return ll, cl
+        return cl, ll
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem,
-                   terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
+                   cutoff: float = np.inf) -> list:
         cl, ll = self.cm()
         line = tlsim.TLCoupler(n=len(self.w),
                                l=self.length,  # TODO: get length
@@ -193,7 +193,8 @@ class CPWCoupler(DesignElement):
                                ll=ll,
                                rl=np.zeros((len(self.w), len(self.w))),
                                gl=np.zeros((len(self.w), len(self.w))),
-                               name=self.name)
+                               name=self.name,
+                               cutoff=cutoff)
 
         if track_changes:
             self.tls_cache.append([line])
@@ -356,8 +357,8 @@ class Narrowing(DesignElement):
     def get_terminals(self):
         return self.terminals
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem,
-                   terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
+                   cutoff: float = np.inf) -> list:
 
         cl1, ll1 = cm.ConformalMapping([self.s1, self.w1, self.s1]).cl_and_Ll()
         cl2, ll2 = cm.ConformalMapping([self.s2, self.w2, self.s2]).cl_and_Ll()
@@ -550,8 +551,8 @@ class RectGrounding(DesignElement):
 
         return cm.ConformalMapping(cross_section_narrow).cl_and_Ll()
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int],
-                   track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
+                   cutoff: float = np.inf) -> list:
 
         cache = []
 
@@ -617,7 +618,8 @@ class RectGrounding(DesignElement):
                                              ll=ll,
                                              rl=np.zeros((len(self.narrow_port_w), len(self.narrow_port_w))),
                                              gl=np.zeros((len(self.narrow_port_w), len(self.narrow_port_w))),
-                                             name=self.name)
+                                             name=self.name,
+                                             cutoff=cutoff)
             tls_instance.add_element(continued_line, mapping_)
             cache.append(continued_line)
 
@@ -692,7 +694,7 @@ class RectFanout(DesignElement):
 
         self.terminals = {'wide': DesignTerminal(position=self.port.position, orientation=self.port.orientation + np.pi,
                                                  type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g,
-                                                 disconnected='short', order=(not self.port.order))}
+                                                 disconnected='short')}
 
         if not self.port.order:
             self.w = self.port.w[::-1]
@@ -770,8 +772,7 @@ class RectFanout(DesignElement):
         self.terminals['middle'] = DesignTerminal(position=(0, 0),
                                                   orientation=self.get_terminals()['wide'].orientation,
                                                   w=self.get_terminals()['wide'].w, s=self.get_terminals()['wide'].s,
-                                                  g=self.get_terminals()['wide'].g, type='mc-cpw',
-                                                  order=self.get_terminals()['wide'].order)
+                                                  g=self.get_terminals()['wide'].g, type='mc-cpw')
 
         for name, exists, points, orientation, w, s, global_offset in zip(
                 self.group_names, self.groups_exist, self.groups_points, self.group_orientations, self.groups_w,
@@ -949,17 +950,17 @@ class RectFanout(DesignElement):
 
         return structure_for_tls
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int],
-                   track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
+                   cutoff: float = np.inf) -> list:
         structure_for_tls = self.cm()
 
         cache = []
 
-        begin_conductor = 0
-
-        for elem in list(structure_for_tls.keys()):
-            number_of_conductors = structure_for_tls[elem]['n']
+        # for elem in list(structure_for_tls.keys()):
+        for elem in (list(self.get_terminals().keys()) + ['coupler']):
             mapping_ = []
+            if elem in ['coupler', 'down', 'center', 'up']:
+                number_of_conductors = structure_for_tls[elem]['n']
 
             if elem == 'coupler':
                 coupled_line = tlsim.TLCoupler(n=number_of_conductors,
@@ -968,12 +969,11 @@ class RectFanout(DesignElement):
                                                ll=structure_for_tls[elem]['Ll'],
                                                rl=np.zeros_like(structure_for_tls[elem]['Cl']),
                                                gl=np.zeros_like(structure_for_tls[elem]['Cl']),
-                                               name=self.name + '_coupled_line_' + str(len(cache))
-                                               )
+                                               name=self.name + '_coupled_line_' + str(len(cache)),
+                                               cutoff=cutoff)
 
                 for conductor_id in range(number_of_conductors):
                     mapping_ += [terminal_mapping[('wide', conductor_id)]]
-
                 for conductor_id in range(number_of_conductors):
                     mapping_ += [terminal_mapping[('middle', conductor_id)]]
 
@@ -983,47 +983,50 @@ class RectFanout(DesignElement):
                 if track_changes:
                     self.tls_cache.append(coupled_line)
 
-            else:
+            elif elem in ['down', 'center', 'up']:
                 line = tlsim.TLCoupler(n=number_of_conductors,
                                        l=structure_for_tls[elem]['l'],
                                        cl=structure_for_tls[elem]['Cl'],
                                        ll=structure_for_tls[elem]['Ll'],
                                        rl=np.zeros_like(structure_for_tls[elem]['Cl']),
                                        gl=np.zeros_like(structure_for_tls[elem]['Cl']),
-                                       name=self.name + '_line_' + str(len(cache)))
+                                       name=self.name + '_line_' + str(len(cache)),
+                                       cutoff=cutoff)
 
-                for conductor_id in range(begin_conductor, begin_conductor + number_of_conductors):
+                conductor_bounds = [0, self.grouping[0], self.grouping[1], len(self.w)]
+                if elem == 'down':
+                    begin_conductor = conductor_bounds[0]
+                    end_conductor = conductor_bounds[1]
+                elif elem == 'center':
+                    begin_conductor = conductor_bounds[1]
+                    end_conductor = conductor_bounds[2]
+                elif elem == 'up':
+                    begin_conductor = conductor_bounds[2]
+                    end_conductor = conductor_bounds[3]
+
+                for conductor_id in range(begin_conductor, end_conductor):
 
                     mapping_ += [terminal_mapping[('middle', conductor_id)]]
 
-                begin_conductor += number_of_conductors
+                if elem in terminal_mapping:
+                    mapping_ += [terminal_mapping[elem]]
 
-                if self.port.order:
-                    if elem in terminal_mapping:
-                        mapping_ += [terminal_mapping[elem]]
+                elif (elem, 0) in terminal_mapping:
 
-                    elif (elem, 0) in terminal_mapping:
-
-                        for conductor_id in range(number_of_conductors-1, -1, -1):
-                            mapping_ += [terminal_mapping[(elem, conductor_id)]]
+                    for conductor_id in range(number_of_conductors):
+                        mapping_ += [terminal_mapping[(elem, conductor_id)]]
 
                 else:
-                    if elem in terminal_mapping:
-                        mapping_ += [terminal_mapping[elem]]
-
-                    elif (elem, 0) in terminal_mapping:
-
-                        for conductor_id in range(number_of_conductors):
-                            mapping_ += [terminal_mapping[(elem, conductor_id)]]
-
-                    else:
-                        raise ValueError('Neither ({}, 0) or port2 found in terminal_mapping'.format(elem))
+                    raise ValueError('Neither ({}, 0) or port2 found in terminal_mapping'.format(elem))
 
                 tls_instance.add_element(line, mapping_)
                 cache.append(line)
 
                 if track_changes:
                     self.tls_cache.append(line)
+
+            else:
+                continue
 
         return cache
 
@@ -1215,8 +1218,8 @@ class OpenEnd(DesignElement):
     def get_terminals(self) -> Mapping[str, DesignTerminal]:
         return self.terminals
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem,
-                   terminal_mapping: Mapping[str, int], track_changes: bool = True) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
+                   cutoff: float = np.inf) -> list:
         if self.number_of_conductors == 1:
             cache = []
             capacitance_value = 1e-15*20*0
