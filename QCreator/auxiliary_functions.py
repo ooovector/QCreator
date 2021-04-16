@@ -366,6 +366,7 @@ def draw_double_resonator_plus_double_qubit(sample, elements,
 
     # 7. Create fanout to create closed enfd of resonator
     fanout_for_open_end = sample.fanout(o=main_coupler, port=port2, name='open end resonator fanout', grouping=[1, 4])
+    # sample.add(fanout_for_open_end)
 
     # 8.
     g2 = sample.ground(o=fanout_for_open_end, port='center', name='cl2', grounding_width=grounding_width,
