@@ -254,7 +254,7 @@ class PP_Transmon(DesignElement):
         ground2 = gdspy.Rectangle((z[0] - x / 2 + t, z[1] - y / 2 + t), (z[0] + x / 2 - t, z[1] + y / 2 - t))
         ground = gdspy.fast_boolean(ground1, ground2, 'not')
         for key in self.remove_ground:
-            factor = 1.0
+            factor = 1
             if key == 'left':
                 if self.remove_ground[key] != None:
                     factor = self.remove_ground[key]
@@ -351,7 +351,8 @@ class PP_Transmon(DesignElement):
 
 
     #for the capacity
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True, cutoff: float = np.inf) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict,
+                   track_changes: bool = True) -> list:
         #scaling factor for C
         scal_C = 1e-15
         JJ = tlsim.Inductor(self.L)
@@ -397,7 +398,7 @@ class PP_Transmon_Coupler:
         self.height_right = heightr
         self.connection = None
         #for defining the terminals
-        self.w = 10 #standard for now
+        self.w = 8  #standard for now
         self.g = 10 #also temporary fix
         self.s = gap
 

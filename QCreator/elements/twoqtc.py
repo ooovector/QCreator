@@ -8,6 +8,7 @@ from . import squid3JJ #TODO make this qubit class suitable for any squid types
 from . import JJ4q
 from copy import deepcopy
 from . import pp_squid
+from . import pp_squid_coupler
 from . import pp_transmon
 
 
@@ -57,7 +58,9 @@ class TWOQTC(DesignElement):
                           layer_configuration = self.layers_configuration,
                           Couplers = Q1['Couplers'],
                           transformations = Q1['transformations'],
-                          remove_ground = {'right':''})
+                          remove_ground = {'right':Q1['empty_ground']},
+                                         calculate_capacitance=True
+                                         )
         #Qubit 2
         Q2 = self.Q2
         Qubit2 = pp_transmon.PP_Transmon(name=Q2['name'],center=(self.center[0]+self.d1+self.d2+Q1['g_w']/2+Q2['g_w']/2+self.TC['g_w'],self.center[1]),
@@ -73,15 +76,16 @@ class TWOQTC(DesignElement):
                           layer_configuration = self.layers_configuration,
                           Couplers = Q2['Couplers'],
                           transformations = Q2['transformations'],
-                          remove_ground = {'left':''},
-                          secret_shift = 3
+                          remove_ground = {'left':Q2['empty_ground']},
+                          secret_shift = 3,
+                                         calculate_capacitance=True
                                          )
 
 
 
         #TC
         TC = self.TC
-        TunC = pp_squid.PP_Squid(name=TC['name'],center=(self.center[0]+self.d1+Q1['g_w']/2+TC['g_w']/2,self.center[1]),
+        TunC = pp_squid_coupler.PP_Squid_C(name=TC['name'],center=(self.center[0]+self.d1+Q1['g_w']/2+TC['g_w']/2,self.center[1]),
                           width = TC['width'],
                           height = TC['height'],
                           bridge_gap = TC['b_g'],
@@ -95,8 +99,10 @@ class TWOQTC(DesignElement):
                           Couplers = TC['Couplers'],
                           transformations = TC['transformations'],
                           fluxline_params=TC['fluxline'],
-                          remove_ground = {'left':'','right':''},
-                          secret_shift=3+3
+                          remove_ground = {'left':1,'right':1},
+                          secret_shift=3+3,
+                          calculate_capacitance=True,
+                          arms = TC['arms']
                                  )
 
 
@@ -136,7 +142,8 @@ class TWOQTC(DesignElement):
 
 
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True, cutoff: float = np.inf) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict,
+                   track_changes: bool = True) -> list:
         #scaling factor for C
         scal_C = 1e-15
         JJ = tlsim.Inductor(self.L)

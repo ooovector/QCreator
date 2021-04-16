@@ -1,7 +1,6 @@
 from .core import DesignElement, ChipGeometry, LayerConfiguration
 from .pad import Pad
 import gdspy
-import numpy as np
 from .. import transmission_line_simulator as tlsim
 
 
@@ -24,7 +23,8 @@ class Pads(DesignElement):
     def get_terminals(self) -> dict:
         return {}
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True, cutoff: float = np.inf) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem,
+                   terminal_mapping: dict, track_changes: bool = True) -> list:
         return []
 
 
@@ -63,5 +63,6 @@ class ChipEdgeGround(DesignElement):
     def get_terminals(self) -> dict:
         return {}
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True, cutoff: float = np.inf) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem,
+                   terminal_mapping: dict, track_changes: bool = True) -> list:
         return []

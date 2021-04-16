@@ -6,7 +6,6 @@ from typing import Tuple, Mapping, Any
 from .drawing import combine
 from .cpw_primitives import Trapezoid
 from .. import conformal_mapping as cm
-from scipy.constants import epsilon_0
 
 
 class AirbridgeOverCPW(DesignElement):
@@ -45,13 +44,6 @@ class AirbridgeOverCPW(DesignElement):
         self.pads_geometry = pads_geometry
         self.bridge_geometry = bridge_geometry
 
-        h = 2 * 1e-6  # bridge height 2 mu m
-        s = (self.bridge_geometry[0] * 1e-6) * (self.bridge_geometry[1] * 1e-6)
-
-        epsilon = 1
-
-        self.bridge_capacitance = epsilon_0 * epsilon * s / h
-
         self.layer_configuration = layer_configuration
         self.tls_cache = []
 
@@ -61,7 +53,7 @@ class AirbridgeOverCPW(DesignElement):
 
         if self.distance_between_pads > cpw_width:
             raise ValueError('Distance between pads is larger that CPW width!')
-        if self.distance_between_pads < 2 * self.s + self.w:
+        if self.distance_between_pads < 2 * (self.w / 2 + self.s):
             raise ValueError('Distance between pads is too small!')
 
         if self.bridge_geometry[1] > self.pads_geometry[1]:
@@ -120,26 +112,17 @@ class AirbridgeOverCPW(DesignElement):
     def cm(self):
         cross_section = [self.s, self.w, self.s]
 
-        cl, ll = cm.ConformalMapping(cross_section).cl_and_Ll()
+        ll, cl = cm.ConformalMapping(cross_section).cl_and_Ll()
 
         if not self.terminals['port1'].order:
             ll, cl = ll[::-1, ::-1], cl[::-1, ::-1]
 
-        return cl, ll
+        return ll, cl
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int],
-                   track_changes: bool = True, cutoff: float = np.inf) -> list:
-        """
-        In this model an airbridge is a capacitor with C = epsilon_0 * epsilon * (S / h),
-        where S - area of the airbridge, h - height of the airbridge upon the surface of a chip
-        """
-
-        h = 2*1e-6   # bridge height 2 mu m
-        s = (self.bridge_geometry[0]*1e-6) * (self.bridge_geometry[1]*1e-6)
-
-        epsilon = 1
-
-        bridge_capacitance = epsilon_0 * epsilon * s / h
+                   track_changes: bool = True) -> list:
+        # TODO: calculate bridge_capacitance???
+        bridge_capacitance = 1e-15
 
         c1 = tlsim.Capacitor(c=bridge_capacitance)
         cl, ll = self.cm()
@@ -150,16 +133,14 @@ class AirbridgeOverCPW(DesignElement):
                                 ll=ll,
                                 rl=np.zeros((1, 1)),
                                 gl=np.zeros((1, 1)),
-                                name=self.name + '_line1',
-                                cutoff=cutoff)
+                                name=self.name + '_line1')
         line2 = tlsim.TLCoupler(n=1,
-                                l=line1_length,
+                                l=self.p,
                                 cl=cl,
                                 ll=ll,
                                 rl=np.zeros((1, 1)),
                                 gl=np.zeros((1, 1)),
-                                name=self.name + '_line2',
-                                cutoff=cutoff)
+                                name=self.name + '_line2')
 
         elements = [c1, line1, line2]
         if track_changes:
@@ -173,7 +154,7 @@ class AirbridgeOverCPW(DesignElement):
         return elements
 
     def __repr__(self):
-        return "AirbridgeOverCPW {} C = {}".format(self.name, self.bridge_capacitance)
+        return "AirbridgeOverCPW {}".format(self.name)
 
 
 class AirBridge:
@@ -264,8 +245,8 @@ class CPWGroundAirBridge(DesignElement):
     def get_terminals(self) -> dict:
         return self.terminals
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
-                   cutoff: float = np.inf) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int],
+                   track_changes: bool = True) -> list:
         l = tlsim.Inductor(l=self.l)
         c1 = tlsim.Capacitor(c=self.c / 2)
         c2 = tlsim.Capacitor(c=self.c / 2)

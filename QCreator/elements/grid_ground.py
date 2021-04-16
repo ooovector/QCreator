@@ -1,6 +1,5 @@
 from .core import DesignElement, ChipGeometry, LayerConfiguration
 import gdspy
-import numpy as np
 from typing import List
 
 
@@ -61,5 +60,5 @@ class GridGround(DesignElement):
     def get_terminals(self) -> dict:
         return {}
 
-    def add_to_tls(self, tls_instance, terminal_mapping: dict, track_changes: bool = True, cutoff: float = np.inf) -> list:
+    def add_to_tls(self, tls_instance, terminal_mapping: dict, track_changes: bool = True) -> list:
         return []

@@ -11,11 +11,6 @@ import time
 # module for detecting inner points
 from shapely.geometry.polygon import Polygon
 
-fastcap_paths = [r'C:\Program Files (x86)\layout\fastcap.exe',
-                 r'C:\Program Files (x86)\LayoutEditor\bin\fastcap.exe',
-                 r'C:\layout\bin\fastcap.exe',
-                 r'fastcap.exe']
-
 class Meshing:
     def __init__(self, path, cell_name, layers):
         self.path = path
@@ -27,7 +22,9 @@ class Meshing:
         self.conductors = None
         self.fastcap_filename = None
         self.cap_filename = None
-
+        # TODO: find a correct way to do it
+        self.path_to_fastcap = r"C:\Program Files (x86)\LayoutEditor\bin\fastcap.exe"
+        #self.path_to_fastcap = r"C:\Program Files (x86)\layout\fastcap.exe"
 
     def read_data_from_gds_file(self):
         new_cells = [gdspy.GdsLibrary()] * len(self.layers)
@@ -114,15 +111,10 @@ class Meshing:
     def run_fastcap(self, output_file_name):
         start = time.time()
         output_file = open(output_file_name, 'w')
-        for fastcap_path in fastcap_paths:
-            try:
-                args = [fastcap_path, self.fastcap_filename]
-                self.cap_filename = output_file_name
-                # ret=subprocess.call(args,stdout=output_file, shell=False,stderr=subprocess.DEVNULL)
-                ret = subprocess.call(args, stdout=output_file, shell=False)
-                break
-            except FileNotFoundError:
-                pass
+        args = [self.path_to_fastcap, self.fastcap_filename]
+        self.cap_filename = output_file_name
+        # ret=subprocess.call(args,stdout=output_file, shell=False,stderr=subprocess.DEVNULL)
+        ret = subprocess.call(args, stdout=output_file, shell=False)
         output_file.close()
         print('Time for fastcap job is: ', time.time() - start)
 
