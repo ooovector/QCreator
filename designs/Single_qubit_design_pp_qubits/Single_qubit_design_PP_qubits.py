@@ -92,28 +92,30 @@ p1 = pads_left[0]
 p2 = pads_right[0]
 
 
-Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,16,7,'left',coupler_type = 'coupler',heightl = 0.3)
+Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.3,
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground)
          ]
 
 
 
 
-width = 290
-height= 550
+width = 200
+height= 200
 gap   = 50
-g_w   = 900
-g_h   = 900
-g_t   = 10
-b_g   = 19 # from JJ Design for JJ4q
-b_g   = 10 # for JJ_manhatten
-b_w   = 16 # JJ design
+ground_w = 600
+ground_h   = 400
+ground_t   = 10
+# b_g   = 19 # from JJ Design for JJ4q
+JJ_pad_offset_x = 16 # for JJ_manhatten #TODO: what is it?
+JJ_pad_offset_y = 16 # JJ design
 
 a1    = 0.15 #Junction height in um
 a2    = 0.30 # Junction width in um
 
 #jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':np.pi/2}
-jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8 }
+jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8 }# TODO: and this one?
 
+<<<<<<< Updated upstream
 # transmon1 = elements.pp_transmon.PP_Transmon(name='PP_Transmon1',center=(2000,1750),
 #                           width = width,
 #                           height = height,
@@ -130,6 +132,24 @@ jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8 }
 #                           transformations = {}
 #                           )
 #
+=======
+transmon1 = elements.pp_transmon.PP_Transmon(name='PP_Transmon1',center=(2000,1750),
+                          width = width,
+                          height = height,
+                          bridge_gap = JJ_pad_offset_x,
+                          bridge_w   = JJ_pad_offset_y ,
+                          gap = gap,
+                          ground_w = ground_w,
+                          ground_h = ground_h,
+                          ground_t = ground_t,
+                          jj_params= jj_pp,
+                          layer_configuration = sample.layer_configuration,
+                          Couplers = Couplers,
+                          calculate_capacitance = False,
+                          transformations = {}
+                          )
+
+>>>>>>> Stashed changes
 # transmon2 = elements.pp_transmon.PP_Transmon(name='PP_Transmon2',center=(2000,2750),
 #                           width = width,
 #                           height = height,

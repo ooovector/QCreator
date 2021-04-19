@@ -15,23 +15,34 @@ class PP_Transmon(DesignElement):
     1) Central part - central circuit
     params: center = center of the qubit, w,h,gap = width,height,gap of the Parallel Plate Transmon in the ground cavity
     2) Couplers - claw like couplers for the left and right, rectangular pad couplers on top and bottom
-    3) Ground = Ground rectangle around qubit, g_w,g_h,g_t = width,height and thickness of ground frame
+    3) Ground = Ground rectangle around qubit, ground_w,ground_h,ground_t = width,height and thickness of ground frame
     4)layer_configuration
     5)Couplers - coupler classes
     6) jj_params - parameters of the SQUID which here is 3JJ SQUID.#TODO add more information
     """
-    def __init__(self, name: str, center: Tuple[float, float],width: float, height: float,gap: float,bridge_gap:float,bridge_w:float, g_w: float, g_h: float,g_t: float,layer_configuration: LayerConfiguration,
-                 jj_params: Dict,Couplers,transformations: Dict,calculate_capacitance: False,remove_ground = {},secret_shift = 0):
+    def __init__(self, name: str, center: Tuple[float, float],
+                 width: float, height: float,gap: float,
+                 bridge_gap:float,bridge_w:float,
+                 ground_w: float, ground_h: float,ground_t: float,
+                 layer_configuration: LayerConfiguration,
+                 jj_params: Dict,Couplers,
+                 transformations: Dict,
+                 calculate_capacitance: False,
+                 remove_ground = {},
+                 secret_shift = 0):
         super().__init__(type='qubit', name=name)
         #qubit parameters
         self.transformations = transformations# to mirror the structure
         self.center = center
-        self.w = width
-        self.h = height
-        self.gap = gap
-        self.g_w = g_w
-        self.g_h = g_h
-        self.g_t = g_t
+        self.w = width # defines the width of the qubit's plate
+        self.h = height # defines the height of the qubit's plate
+        self.gap = gap # distance between qubit's plates
+        #the ground rectangular with the hole inside and with the thickness==ground_t
+        self.g_w = ground_w
+        self.g_h = ground_h
+        self.g_t = ground_t
+
+        # the position of the JJ for manhatan style
         self.b_g = bridge_gap
         self.b_w = bridge_w
         #layers
@@ -44,7 +55,6 @@ class PP_Transmon(DesignElement):
         self.JJ_params = jj_params
         self.JJ = None
         self.layers = []
-
 
         #terminals
         self.terminals = {  # 'coupler0': None,
@@ -385,21 +395,21 @@ class PP_Transmon_Coupler:
     5) side - which side the coupler is on
     6) heightl / heightr - height as a fraction of total length
     """
-    def __init__(self, l1,l2,t,gap,side = 'left',coupler_type = 'none',heightl = 1,heightr=1):
+    def __init__(self, l1,l2,t,side = 'left',coupler_type = 'none',heightl = 1,heightr=1,w= None, g=None, s=None):
         self.l1 = l1
         self.l2 = l2
         self.t = t
-        self.gap = gap
+        self.gap = s
         self.side = side
         self.coupler_type = coupler_type
-        self.ground_t = 10 #<-- temporary fix for the gds creation
+        self.ground_t = 10 # the lenght of the coupler connection part to the resonator
         self.height_left = heightl
         self.height_right = heightr
         self.connection = None
         #for defining the terminals
-        self.w = 8  #standard for now
-        self.g = 10 #also temporary fix
-        self.s = gap
+        self.w = w
+        self.g = g
+        self.s = s
 
 
 
