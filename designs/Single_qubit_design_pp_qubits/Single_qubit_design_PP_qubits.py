@@ -12,11 +12,11 @@ reload(gdspy)
 ### to have 50 Oms impedance with eps=11.75
 tl_core = 20.
 tl_gap = 12.
-tl_ground = 10.
+tl_ground = 5.#<-- changed from 10. to 5.
 
 resonator_core = 8
 resonator_gap = 7
-resonator_ground = 5
+resonator_ground = 5 #5
 
 pad_offset = 800
 
@@ -148,3 +148,7 @@ transmon2 = elements.pp_transmon.PP_Transmon(name='PP_Transmon2',center=(2000,27
                           calculate_capacitance = False,
                           transformations = {}
                           )
+sample.add(transmon1)
+sample.add(transmon2)
+sample.draw_design()
+sample.watch()
