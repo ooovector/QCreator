@@ -336,8 +336,6 @@ class PP_Transmon(DesignElement):
 
 
 
-
-
     def generate_JJ(self):
         #change here to allow Manhatten style junctions
         if self.JJ_params['manhatten']:
@@ -402,7 +400,7 @@ class PP_Transmon_Coupler:
         self.gap = s
         self.side = side
         self.coupler_type = coupler_type
-        self.ground_t = 10 # the lenght of the coupler connection part to the resonator
+        self.ground_t = 0 # the lenght of the coupler connection part to the resonator
         self.height_left = heightl
         self.height_right = heightr
         self.connection = None
@@ -420,7 +418,7 @@ class PP_Transmon_Coupler:
             if self.height_left == 1:
                 upper  = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap,center[1]+g_h/2+self.gap),(center[0]-g_w/2+self.l1-self.gap-self.t,center[1]+g_h/2+self.t+self.gap))
                 lower  = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap,center[1]-g_h/2-self.gap-self.t),(center[0]-g_w/2+self.l2-self.gap-self.t,center[1]-g_h/2-self.gap))
-            line   = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap-self.gap-self.ground_t,center[1]-5),(center[0]-g_w/2-self.t-self.gap,center[1]+5))#modified here ;), remove ground_t
+            line   = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap-self.gap-self.ground_t,center[1]-self.w/2),(center[0]-g_w/2-self.t-self.gap,center[1]+self.w/2))#modified here ;), remove ground_t
             if self.height_left ==1:
                 result = gdspy.boolean(result, upper, 'or')
                 result = gdspy.boolean(result, lower, 'or')
@@ -435,7 +433,7 @@ class PP_Transmon_Coupler:
                 upper  = gdspy.Rectangle((center[0]+g_w/2+self.t+self.gap,center[1]+g_h/2+self.gap),(center[0]+g_w/2-self.l1+self.gap+self.t,center[1]+g_h/2+self.t+self.gap))
                 lower  = gdspy.Rectangle((center[0]+g_w/2+self.t+self.gap,center[1]-g_h/2-self.gap-self.t),(center[0]+g_w/2-self.l2+self.gap+self.t,center[1]-g_h/2-self.gap))
 
-            line = gdspy.Rectangle((center[0]+g_w/2+self.t+self.gap+self.gap,center[1]-5),(center[0]+g_w/2+self.t+self.gap,center[1]+5))
+            line = gdspy.Rectangle((center[0]+g_w/2+self.t+self.gap+self.gap,center[1]-self.w/2),(center[0]+g_w/2+self.t+self.gap,center[1]+self.w/2))
             if self.height_right == 1:
                 result = gdspy.boolean(result, upper, 'or')
                 result = gdspy.boolean(result, lower, 'or')
@@ -445,13 +443,13 @@ class PP_Transmon_Coupler:
 
         if self.side == "top":
             result = gdspy.Rectangle((center[0]-g_w/2+self.l1,center[1]+g_h/2+self.gap),(center[0]-g_w/2+self.l1+self.l2,center[1]+g_h/2+self.gap+self.t))
-            line   = gdspy.Rectangle((center[0]-g_w/2+self.l1+self.l2/2-5,center[1]+g_h/2+self.gap+self.t),(center[0]-g_w/2+self.l1+self.l2/2+5,center[1]+g_h/2+self.gap+self.t+self.gap))
+            line   = gdspy.Rectangle((center[0]-g_w/2+self.l1+self.l2/2-self.w/2,center[1]+g_h/2+self.gap+self.t),(center[0]-g_w/2+self.l1+self.l2/2+self.w/2,center[1]+g_h/2+self.gap+self.t+self.gap))
             result = gdspy.boolean(result, line, 'or')
             self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]+g_h/2+self.gap+self.t+self.gap)
 
         if self.side == "bottom":
             result = gdspy.Rectangle((center[0]-g_w/2+self.l1,center[1]-g_h/2-self.gap),(center[0]-g_w/2+self.l1+self.l2,center[1]-g_h/2-self.gap-self.t))
-            line   = gdspy.Rectangle((center[0]-g_w/2+self.l1+self.l2/2-5,center[1]-g_h/2-self.gap-self.t),(center[0]-g_w/2+self.l1+self.l2/2+5,center[1]-g_h/2-self.gap-self.t-self.gap))
+            line   = gdspy.Rectangle((center[0]-g_w/2+self.l1+self.l2/2-self.w/2,center[1]-g_h/2-self.gap-self.t),(center[0]-g_w/2+self.l1+self.l2/2+self.w/2,center[1]-g_h/2-self.gap-self.t-self.gap))
             result = gdspy.boolean(result, line, 'or')
             self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]-g_h/2-self.gap-self.t-self.gap)
 
