@@ -106,34 +106,17 @@ ground_w = 600
 ground_h   = 400
 ground_t   = 10
 # b_g   = 19 # from JJ Design for JJ4q
-JJ_pad_offset_x = 16 # for JJ_manhatten #TODO: what is it?
+JJ_pad_offset_x = 16 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design
 
 a1    = 0.15 #Junction height in um
 a2    = 0.30 # Junction width in um
 
 #jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':np.pi/2}
-jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8 }# TODO: and this one?
+jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8 }# hole sizes for the JJs
 
-<<<<<<< Updated upstream
-# transmon1 = elements.pp_transmon.PP_Transmon(name='PP_Transmon1',center=(2000,1750),
-#                           width = width,
-#                           height = height,
-#                           bridge_gap = b_g,
-#                           bridge_w   = b_w ,
-#                           gap = gap,
-#                           g_w = g_w,
-#                           g_h = g_h,
-#                           g_t = g_t,
-#                           jj_params= jj_pp,
-#                           layer_configuration = sample.layer_configuration,
-#                           Couplers = Couplers,
-#                           calculate_capacitance = False,
-#                           transformations = {}
-#                           )
-#
-=======
-transmon1 = elements.pp_transmon.PP_Transmon(name='PP_Transmon1',center=(2000,1750),
+
+transmon1 = elements.pp_transmon.PP_Transmon(name='PP_Transmon1',center=(2000,1550),
                           width = width,
                           height = height,
                           bridge_gap = JJ_pad_offset_x,
@@ -149,20 +132,19 @@ transmon1 = elements.pp_transmon.PP_Transmon(name='PP_Transmon1',center=(2000,17
                           transformations = {}
                           )
 
->>>>>>> Stashed changes
-# transmon2 = elements.pp_transmon.PP_Transmon(name='PP_Transmon2',center=(2000,2750),
-#                           width = width,
-#                           height = height,
-#                           bridge_gap = b_g,
-#                           bridge_w   = b_w ,
-#                           gap = gap,
-#                           g_w = g_w,
-#                           g_h = g_h,
-#                           g_t = g_t,
-#                           jj_params= jj_pp,
-#                           layer_configuration = sample.layer_configuration,
-#                           Couplers = Couplers,
-#                           calculate_capacitance = False,
-#                           transformations = {}
-#                           )
 
+transmon2 = elements.pp_transmon.PP_Transmon(name='PP_Transmon2',center=(2000,2750),
+                          width = width,
+                          height = height,
+                          bridge_gap = JJ_pad_offset_x,
+                          bridge_w   = JJ_pad_offset_y ,
+                          gap = gap,
+                          ground_w = ground_w,
+                          ground_h = ground_h,
+                          ground_t = ground_t,
+                          jj_params= jj_pp,
+                          layer_configuration = sample.layer_configuration,
+                          Couplers = Couplers,
+                          calculate_capacitance = False,
+                          transformations = {}
+                          )
