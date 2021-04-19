@@ -8,7 +8,7 @@ from .drawing import combine
 
 
 def default_pad_geometry():
-    return {'pad_w': 250, 'pad_s': 146, 'pad_g': 8, 'pad_length': 600, 'narrowing_length': 160, 'stub_length': 100,
+    return {'pad_w': 250, 'pad_s': 146, 'pad_g': 8, 'pad_length': 400, 'narrowing_length': 160, 'stub_length': 100,
             'z0': 50}
 
 
