@@ -62,37 +62,53 @@ class CPWCoupler(DesignElement):
         orientation2 = np.asarray([np.cos(self.terminals['port2'].orientation),
                                    np.sin(self.terminals['port2'].orientation)])
 
+        adapter_length = self.width_total + self.r
+        adapted_points = [p for p in self.points]
         orientation1_delta = np.abs(self.terminals['port1'].orientation - self.first_segment_orientation)
         if orientation1_delta > np.pi:
             orientation1_delta -= 2 * np.pi
             orientation1_delta = np.abs(orientation1_delta)
+            if orientation1_delta > 0.001:
+                second_point = adapted_points[0] + adapter_length * orientation1 * np.tan(orientation1_delta / 2)
+                adapted_points = [adapted_points[0], second_point] + adapted_points[1:]
+
         orientation2_delta = np.abs(self.terminals['port2'].orientation - self.last_segment_orientation)
         if orientation2_delta > np.pi:
             orientation2_delta -= 2 * np.pi
             orientation2_delta = np.abs(orientation2_delta)
+            if orientation2_delta > 0.001:
+                blast_point = self.points[-1] + adapter_length * orientation2 * np.tan(orientation2_delta / 2 + 0.001)
+                adapted_points = adapted_points[:-1] + [blast_point, adapted_points[-1]]
 
-        adapter_length = self.width_total + self.r
-        first_point = self.points[0]
-        second_point = self.points[0] + adapter_length * orientation1 * np.tan(orientation1_delta / 2 + 0.001)
-        last_point = self.points[-1]
-        blast_point = self.points[-1] + adapter_length * orientation2 * np.tan(orientation2_delta / 2 + 0.001)
-
-        adapted_points = [first_point, second_point] + self.points[1:-1] + [blast_point, last_point]
+        # remove duplicates
+        adapted_points2 = [adapted_points[0]]
+        eps = 1e-7
+        for p in adapted_points[1:]:
+            if np.sqrt(np.sum((p - adapted_points2[-1]) ** 2)) > eps:
+                adapted_points2.append(p)
+        adapted_points = adapted_points2
 
         self.segments = []
         self.length = 0
+        last_point = None
 
         # if we are not in the endpoints, morph points
         for point_id, point in enumerate(adapted_points):
             if point_id == 0 or point_id == len(adapted_points) - 1:
-                self.segments.append({'type': 'endpoint', 'endpoint': point})
+                segment = {'type': 'endpoint', 'endpoint': point, 'length': 0}
+                if last_point is not None:
+                    self.length += np.sqrt(np.sum((point - last_point) ** 2))
+                    segment['length'] = np.sqrt(np.sum((point - last_point) ** 2))
+                    segment['startpoint'] = last_point
                 # first_point = self.segments[0]['endpoint']
+                self.segments.append(segment)
+                last_point = point
                 continue
             current_corner_type = 'pointy'
             if self.corner_type == 'round':
                 current_corner_type = 'round'
                 next_point = adapted_points[point_id + 1]
-                last_point = adapted_points[point_id - 1]
+                #last_point = adapted_points[point_id - 1]
 
                 length1 = np.sqrt(np.sum((point - last_point) ** 2))
                 length2 = np.sqrt(np.sum((point - next_point) ** 2))
@@ -115,39 +131,28 @@ class CPWCoupler(DesignElement):
                 replaced_point1 = point - direction1 * replaced_length
                 replaced_point2 = point - direction2 * replaced_length
 
+                assert np.all(np.isfinite(replaced_point2)) and np.all(np.isfinite(replaced_point1))
+
                 if replaced_length > length1 or replaced_length > length2:
                     raise ValueError('Too short segment in line to round corner with given radius')
 
-                self.segments.append({'type': 'segment', 'endpoint': replaced_point1})
-                self.segments.append({'type': 'turn', 'turn': turn})
+                self.segments.append({'type': 'segment', 'startpoint': last_point, 'endpoint': replaced_point1,
+                                      'length': np.sqrt(np.sum((last_point - replaced_point1) ** 2))})
+                self.segments.append({'type': 'turn', 'turn': turn, 'startpoint': replaced_point1,
+                                      'endpoint': replaced_point2, 'length': turn*self.r,
+                                      'instead_point': point})
 
-                # self.length += (np.sqrt(np.sum((replaced_point1 - last_point) ** 2)) + np.abs(turn) * self.r)
-                # print(self.length, self.segments[-2:])
-
+                self.length += (np.sqrt(np.sum((replaced_point1 - last_point) ** 2)) + np.abs(turn) * self.r)
+                last_point = replaced_point2
             else:
-                self.segments.append({'type': 'segment', 'endpoint': point})
-                # self.length += np.sqrt(np.sum((point - last_point) ** 2))
-                # print(self.length, self.segments[-1:])
-        self.calculate_length()
+                self.segments.append({'type': 'segment', 'startpoint': last_point, 'endpoint': point,
+                                      'length': np.sqrt(np.sum((point - last_point) ** 2))})
+                self.length += np.sqrt(np.sum((point - last_point) ** 2))
+                last_point = point
 
-    def calculate_length(self):
-        first_point = self.segments[0]['endpoint']
-        for segment_num, segment in enumerate(self.segments[1:]):
-            if segment['type'] == 'turn':
-                self.length += np.abs(segment['turn']) * self.r
-                orientation = np.arctan2(first_point[1] - first_point_before[1], first_point[0] - first_point_before[0])
-                first_point_for_rotation=deepcopy(first_point)
-                first_point = (first_point[0]+np.sin(-segment['turn']) * self.r,
-                               first_point[1]-(1-np.cos(-segment['turn']))*self.r)
-                if segment['turn'] > 0:
-                    orientation=np.pi+orientation
-                first_point=np.floor(rotate_point(first_point,orientation,first_point_for_rotation))
-            else:
-                final_point = segment['endpoint']
-                self.segments[segment_num+1]['startpoint'] = first_point
-                self.length += np.sqrt(np.sum((final_point - first_point) ** 2))
-                first_point_before = first_point
-                first_point = final_point
+        self.segments = [s for s in self.segments if s['type'] != 'segment' or s['length'] != 0]
+
+        assert (np.isfinite(self.length))
 
     def render(self):
         bend_radius = self.g
@@ -224,17 +229,7 @@ class CPWCoupler(DesignElement):
     def __repr__(self):
         return 'CPWCoupler "{}", n={}, l={:4.3f}'.format(self.name, len(self.w), np.round(self.length, 3))
 
-def rotate_point(point, angle, origin):
-    """
-    Rotate a point counterclockwise by a given angle around a given origin.
 
-    The angle should be given in radians.
-    """
-    ox, oy = origin
-    px, py = point
-    qx = ox + np.cos(angle) * (px - ox) - np.sin(angle) * (py - oy)
-    qy = oy + np.sin(angle) * (px - ox) + np.cos(angle) * (py - oy)
-    return qx, qy
 class CPW(CPWCoupler):
     def __init__(self, name: str, points: List[Tuple[float, float]], w: float, s: float, g: float,
                  layer_configuration: LayerConfiguration, r: float, corner_type: str = 'round',

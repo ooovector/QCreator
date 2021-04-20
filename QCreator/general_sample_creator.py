@@ -257,14 +257,16 @@ class Sample:
             print(cpw_with_bridges)
             self.connect(cpw_with_bridges[0], 'port1', o1, port1)
             self.connect(cpw_with_bridges[-1], 'port2', o2, port2)
+            return cpw_with_bridges
         else:
             self.add(cpw)
             self.connect(cpw, 'port1', o1, port1)
             self.connect(cpw, 'port2', o2, port2)
+            return cpw
         # self.connections.extend([((cpw, 'port1', 0), (o1, port1, 0)), ((cpw, 'port2', 0), (o2, port2, 0))])
         # self.connect(cpw, 'port1', o1, port1)
         # self.connect(cpw, 'port2', o2, port2)
-        return cpw
+
 
     def watch(self):
         gdspy.LayoutViewer(depth=0, pattern={'default': 8}, background='#FFFFFF')  # this opens a viewer
@@ -462,293 +464,65 @@ class Sample:
         g = t.g
         radius = o.r
 
-        segments_ = deepcopy(o.segments[1:])
-        number_of_segments = len(segments_)
-
-        # firstly we should sort all segments to understand which of them can be render with bridges
-        for elem in range(number_of_segments):
-
-            if segments_[elem]['type'] == 'segment':
-                distance_between_points = np.sqrt(
-                    (segments_[elem]['startpoint'][0] - segments_[elem]['endpoint'][0]) ** 2 + (
-                            segments_[elem]['startpoint'][1] - segments_[elem]['endpoint'][1]) ** 2)
-
-                segments_[elem]['orientation1'] = np.arctan2(
-                    -segments_[elem]['startpoint'][1] + segments_[elem]['endpoint'][1],
-                    -segments_[elem]['startpoint'][0] + segments_[elem]['endpoint'][0])
-
-                segments_[elem]['orientation2'] = np.arctan2(
-                    segments_[elem]['startpoint'][1] - segments_[elem]['endpoint'][1],
-                    segments_[elem]['startpoint'][0] - segments_[elem]['endpoint'][0])
-
-                if distance_between_points > pads_geometry[1] + 2 * min_spacing:
-                    segments_[elem]['bridge'] = 'yes'
-                else:
-                    segments_[elem]['bridge'] = 'no'
-
-            elif segments_[elem]['type'] == 'turn':
-                segments_[elem]['startpoint'] = segments_[elem - 1]['endpoint']
-                segments_[elem]['endpoint'] = segments_[elem + 1]['startpoint']
-
-                segments_[elem]['orientation1'] = np.arctan2(
-                    -segments_[elem - 1]['startpoint'][1] + segments_[elem - 1]['endpoint'][1],
-                    -segments_[elem - 1]['startpoint'][0] + segments_[elem - 1]['endpoint'][0])
-                segments_[elem]['orientation2'] = np.arctan2(
-                    segments_[elem + 1]['startpoint'][1] - segments_[elem + 1]['endpoint'][1],
-                    segments_[elem + 1]['startpoint'][0] - segments_[elem + 1]['endpoint'][0])
-
-                segments_[elem]['bridge'] = 'no'
-
-            else:
-                segments_[elem]['orientation1'] = np.arctan2(
-                    -segments_[elem]['startpoint'][1] + segments_[elem]['endpoint'][1],
-                    -segments_[elem]['startpoint'][0] + segments_[elem]['endpoint'][0])
-
-                segments_[elem]['orientation2'] = np.arctan2(
-                    segments_[elem]['startpoint'][1] - segments_[elem]['endpoint'][1],
-                    segments_[elem]['startpoint'][0] - segments_[elem]['endpoint'][0])
-
-                segments_[elem]['bridge'] = 'no'
-
-        real_segments = deepcopy(segments_)  # the first and the last segments do not give any information
-
-        total_cpw = []
-        all_bridges = []
-        elements_ = []
-
-        # create segments groups
-        sub_group = []
-        groups = []
-
-        def from_list_of_segments_to_segment(group):
-            points = []
-            orientation1 = group[0]['orientation1']
-            orientation2 = group[-1]['orientation2']
-
-            for gr in group:
-                x0_gr, y0_gr, x1_gr, y1_gr = segment_points(gr)
-                points_gr = [(x0_gr, y0_gr), (x1_gr, y1_gr)]
-                points.extend(points_gr)
-
-            return {'type': 'long_segment', 'points': points, 'orientation1': orientation1, 'orientation2':
-                    orientation2, 'bridge': 'no'}
-
-        for elem in range(len(real_segments)):
-            if real_segments[elem]['bridge'] == 'yes':
-                if sub_group:
-                    groups.append(from_list_of_segments_to_segment(sub_group))
-                    sub_group = []
-                groups.append(real_segments[elem])
-
-            else:
-                sub_group.append(real_segments[elem])
-
-        groups.append(from_list_of_segments_to_segment(sub_group))
-        print(groups)
-
-        for elem in range(len(groups)):
-            if groups[elem]['bridge'] == 'yes':
-                x0, y0, x1, y1 = segment_points(groups[elem])
-                orientation_ = np.arctan2(y1 - y0, x1 - x0)
-
-                segment_length = np.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2)
-                number_of_bridges = int((segment_length - min_spacing) // (pads_geometry[1] + min_spacing))
-
-                t_list = []  # list of parameters for lines
-                bridges_t_list = []  # list of parameters for bridges
-
-                for i in range(number_of_bridges):
-                    bridges_t_list.append(((i + 1) * (pads_geometry[1] / 2 + min_spacing) + i * pads_geometry[
-                        1] / 2) / segment_length)
-                    delta1 = ((i + 1) * min_spacing + i * pads_geometry[1]) / segment_length
-                    delta2 = ((min_spacing + pads_geometry[1]) * (i + 1)) / segment_length
-                    t_list.append(delta1)
-                    t_list.append(delta2)
-
-                subsegments_points = [(x0, y0)]
-                bridges_points = []
-
-                for t in t_list:
-                    x, y = parametric_equation_of_line(x0, y0, x1, y1, t)
-                    subsegments_points.append((x, y))
-
-                for t in bridges_t_list:
-                    x, y = parametric_equation_of_line(x0, y0, x1, y1, t)
-                    bridges_points.append((x, y))
-
-                subsegments_points.append((x1, y1))
-
-                bridges = []
-                sub_cpw = []
-
-                for bridge_elem in range(number_of_bridges + 1):
-                    line = elements.CPW(name=name + '_between_bridges_' + str(len(total_cpw)),
-                                        points=subsegments_points[2 * bridge_elem:2 * bridge_elem + 2], w=w, s=s,
-                                        g=g,
-                                        layer_configuration=self.layer_configuration, r=radius)
-                    self.add(line)
-                    sub_cpw.append(line)
-                    total_cpw.append(line)
-                    elements_.append(line)
-
-                for bridge_elem in range(number_of_bridges):
-                    bridge_elem = elements.AirbridgeOverCPW(name=name + 'bridge' + str(len(all_bridges)),
-                                                            position=bridges_points[bridge_elem],
-                                                            orientation=orientation_, w=w, s=s, g=g,
-                                                            pads_geometry=pads_geometry,
-                                                            bridge_geometry=bridge_geometry,
-                                                            layer_configuration=self.layer_configuration,
-                                                            distance_between_pads=distance_between_pads)
-                    bridges.append(bridge_elem)
-                    all_bridges.append(bridge_elem)
-                    elements_.append(bridge_elem)
-                    self.add(bridge_elem)
-
-                if elem > 0:
-                    self.connect(total_cpw[elem - 1], 'port2', sub_cpw[0], 'port1')
-
-                for i in range(number_of_bridges):
-                    self.connect(sub_cpw[i], 'port2', bridges[i], 'port1')
-                    self.connect(bridges[i], 'port2', sub_cpw[i + 1], 'port1')
-
-            elif groups[elem]['bridge'] == 'no':
-                if groups[elem]['type'] == 'long_segment':
-                    points_ = groups[elem]['points']
-                    print(points_)
-                    line = elements.CPW(name=name + str(len(total_cpw)),
-                                        points=points_, w=w, s=s, g=g,
-                                        layer_configuration=self.layer_configuration, r=0,
-                                        orientation1=groups[elem]['orientation1'],
-                                        orientation2=groups[elem]['orientation2'])
-
-                    self.add(line)
-                    total_cpw.append(line)
-                    elements_.append(line)
-                    if elem > 0:
-                        self.connect(total_cpw[elem - 1], 'port2', total_cpw[elem], 'port1')
-
-                else:
-                    x0, y0, x1, y1 = segment_points(real_segments[elem])
-                    points_ = [(x0, y0), (x1, y1)]
-                    line = elements.CPW(name=name + str(len(total_cpw)), points=points_, w=w, s=s, g=g,
-                                        layer_configuration=self.layer_configuration, r=0)
-                    self.add(line)
-                    total_cpw.append(line)
-                    elements_.append(line)
-
-                    if elem > 0:
-                        self.connect(total_cpw[elem - 1], 'port2', total_cpw[elem], 'port1')
-            else:
+        cpws = []
+        airbridges = []
+        last_port = None
+        current_cpw_points = []
+        for segment in o.segments:
+            if segment['type'] == 'turn':
+                current_cpw_points.append(segment['instead_point'])
+                continue
+            if len(current_cpw_points) == 0 and segment['type'] == 'endpoint':
+                current_cpw_points.append(segment['endpoint'])
                 continue
 
+            num_bridges = int(np.floor((segment['length'] - min_spacing) / (pads_geometry[1] + min_spacing)))
+            if num_bridges < 1:
+                current_cpw_points.append(segment['endpoint'])
+                continue
 
-        # for elem in range(len(real_segments)):
-        #     if real_segments[elem]['type'] == 'turn':
-        #         x0, y0, x1, y1 = segment_points(real_segments[elem])
-        #         points_ = [(x0, y0), (x1, y1)]
-        #         line = elements.CPW(name=name + str(len(total_cpw)),
-        #                             points=points_, w=w, s=s, g=g,
-        #                             layer_configuration=self.layer_configuration, r=0.0001,
-        #                             orientation1=real_segments[elem]['orientation1'],
-        #                             orientation2=real_segments[elem]['orientation2'])
-        #         # self.default_cpw_radius(w, s, g)
-        #         self.add(line)
-        #         total_cpw.append(line)
-        #         elements_.append(line)
-        #         if elem > 0:
-        #             self.connect(total_cpw[elem - 1], 'port2', total_cpw[elem], 'port1')
-        #
-        #     elif real_segments[elem]['type'] == 'segment':
-        #         if real_segments[elem]['bridge'] == 'yes':
-        #             x0, y0, x1, y1 = segment_points(real_segments[elem])
-        #
-        #             orientation_ = np.arctan2(y1 - y0, x1 - x0)
-        #
-        #             segment_length = np.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2)
-        #             number_of_bridges = int((segment_length - min_spacing) // (pads_geometry[1] + min_spacing))
-        #
-        #             t_list = []  # list of parameters for lines
-        #             bridges_t_list = []  # list of parameters for bridges
-        #
-        #             for i in range(number_of_bridges):
-        #                 bridges_t_list.append(((i + 1) * (pads_geometry[1] / 2 + min_spacing) + i * pads_geometry[
-        #                     1] / 2) / segment_length)
-        #                 delta1 = ((i + 1) * min_spacing + i * pads_geometry[1]) / segment_length
-        #                 delta2 = ((min_spacing + pads_geometry[1]) * (i + 1)) / segment_length
-        #                 t_list.append(delta1)
-        #                 t_list.append(delta2)
-        #
-        #             subsegments_points = [(x0, y0)]
-        #             bridges_points = []
-        #
-        #             for t in t_list:
-        #                 x, y = parametric_equation_of_line(x0, y0, x1, y1, t)
-        #                 subsegments_points.append((x, y))
-        #
-        #             for t in bridges_t_list:
-        #                 x, y = parametric_equation_of_line(x0, y0, x1, y1, t)
-        #                 bridges_points.append((x, y))
-        #
-        #             subsegments_points.append((x1, y1))
-        #
-        #             bridges = []
-        #             sub_cpw = []
-        #
-        #             for bridge_elem in range(number_of_bridges + 1):
-        #                 line = elements.CPW(name=name + '_between_bridges_' + str(len(total_cpw)),
-        #                                     points=subsegments_points[2 * bridge_elem:2 * bridge_elem + 2], w=w, s=s,
-        #                                     g=g,
-        #                                     layer_configuration=self.layer_configuration, r=radius)
-        #                 self.add(line)
-        #                 sub_cpw.append(line)
-        #                 total_cpw.append(line)
-        #                 elements_.append(line)
-        #
-        #             for bridge_elem in range(number_of_bridges):
-        #                 bridge_elem = elements.AirbridgeOverCPW(name=name + 'bridge' + str(len(all_bridges)),
-        #                                                         position=bridges_points[bridge_elem],
-        #                                                         orientation=orientation_, w=w, s=s, g=g,
-        #                                                         pads_geometry=pads_geometry,
-        #                                                         bridge_geometry=bridge_geometry,
-        #                                                         layer_configuration=self.layer_configuration,
-        #                                                         distance_between_pads=distance_between_pads)
-        #                 bridges.append(bridge_elem)
-        #                 all_bridges.append(bridge_elem)
-        #                 elements_.append(bridge_elem)
-        #                 self.add(bridge_elem)
-        #
-        #             if elem > 0:
-        #                 self.connect(total_cpw[elem - 1], 'port2', sub_cpw[0], 'port1')
-        #
-        #             for i in range(number_of_bridges):
-        #                 self.connect(sub_cpw[i], 'port2', bridges[i], 'port1')
-        #                 self.connect(bridges[i], 'port2', sub_cpw[i + 1], 'port1')
-        #
-        #         else:
-        #             x0, y0, x1, y1 = segment_points(real_segments[elem])
-        #             points_ = ([x0, y0], [x1, y1])
-        #             line = elements.CPW(name=name + str(len(total_cpw)), points=points_, w=w, s=s, g=g,
-        #                                 layer_configuration=self.layer_configuration, r=0)
-        #             self.add(line)
-        #             total_cpw.append(line)
-        #             elements_.append(line)
-        #
-        #             if elem > 0:
-        #                 self.connect(total_cpw[elem - 1], 'port2', total_cpw[elem], 'port1')
-        #     else:
-        #         continue
-        return total_cpw
+            spacing = (segment['length'] - num_bridges*pads_geometry[1])/(num_bridges+1)
+            direction = segment['endpoint'] - segment['startpoint']
+            direction = direction/np.sqrt(np.sum(direction**2))
+            orientation = np.arctan2(direction[1], direction[0])
 
-    '''
-    Deprecated stuff?
-    # General methods for all qubit classes
-    def numerate(self, name, number, coordinate):
-        size = 70
-        layer = 51
-        vtext = gdspy.Text(name + str(number), size, coordinate, horizontal=True, layer=layer)
-        # label = gdspy.Label(name + str(number), coordinate, texttype=25)
-        self.label_cell.add(vtext)
-    '''
+            begin = segment['startpoint']
+            for bridge_id in range(num_bridges):
+                midpoint = begin + direction * (spacing * (bridge_id + 1) + pads_geometry[1] * bridge_id)
+                current_cpw_points.append(midpoint)
+
+                cpw = elements.CPW(name=name + 's{}'.format(len(cpws)),
+                                    points=current_cpw_points, w=w, s=s, g=g,
+                                    layer_configuration=self.layer_configuration, r=radius)
+                airbridge = elements.AirbridgeOverCPW(name=name + 'b{}'.format(len(cpws)),
+                                                        position=midpoint+direction * pads_geometry[1]/2,
+                                                        orientation=orientation, w=w, s=s, g=g,
+                                                        pads_geometry=pads_geometry,
+                                                        bridge_geometry=bridge_geometry,
+                                                        layer_configuration=self.layer_configuration,
+                                                        distance_between_pads=distance_between_pads)
+                self.add(cpw)
+                self.add(airbridge)
+                if last_port is not None:
+                    self.connect(last_port, 'port2', cpw, 'port1')
+                self.connect(cpw, 'port2', airbridge, 'port1')
+                last_port = airbridge
+
+                cpws.append(cpw)
+                airbridges.append(airbridge)
+                current_cpw_points = [midpoint + direction * pads_geometry[1]]
+
+        current_cpw_points.append(o.segments[-1]['endpoint'])
+        cpw = elements.CPW(name=name + 's{}'.format(len(cpws)),
+                            points=current_cpw_points, w=w, s=s, g=g,
+                            layer_configuration=self.layer_configuration, r=radius)
+        if last_port is not None:
+            self.connect(last_port, 'port2', cpw, 'port1')
+        self.add(cpw)
+
+        cpws.append(cpw)
+        return cpws
+
 
     # TODO: the reason of the existence of this function is to connect two cpws with different w,s,g.
     # we don't really need it.
@@ -840,13 +614,13 @@ class Sample:
 
             self.connect(meander_with_bridges[0], 'port1', o1, port1)
 
-            return meander_with_bridges[-1]
+            return meander_with_bridges
 
         else:
             self.add(meander)
             self.connect(meander, 'port1', o1, port1)
 
-            return meander
+            return [meander]
 
     # def connect_meander(self, name: str, o1: elements.DesignElement, port1: str, meander_length: float,
     #                     length_left: float, length_right: float, first_step_orientation: float,

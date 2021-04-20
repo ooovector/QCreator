@@ -76,9 +76,9 @@ def draw_single_resonator(sample, elements,
                                                 bridge_geometry=[33,4],
                                                 distance_between_pads=32, min_spacing=60
     )
-    total_length.append(closed_end_meander.length)
+    total_length.append(sum([line.length for line in closed_end_meander]))
     # # 7. Create grounding of resonator
-    resonator_ground_ = sample.ground(o=closed_end_meander, port='port2', name='resonator ground', grounding_width=30,
+    resonator_ground_ = sample.ground(o=closed_end_meander[-1], port='port2', name='resonator ground', grounding_width=30,
                                       grounding_between=[(0, 2)])
 
     # 10. Connect open end with the coupler part of the qubit
