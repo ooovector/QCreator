@@ -5,7 +5,7 @@ def draw_single_resonator(sample, elements,
                           resonator_core,resonator_gap, resonator_ground,
                           tl_core, tl_gap, tl_ground, grounding_width,
                           closed_end_meander_length, length_left, length_right,
-                          open_end_legth,
+                          open_end_legth, min_bridge_spacing = None,
                           port_orientation='left', direction_orientation='down'):
     #left-> open end will be done for the left port
     # 2. Create main copler:
@@ -65,16 +65,20 @@ def draw_single_resonator(sample, elements,
             closed_end_direction = 'down'
             opened_end_direction='up'
     # 6. Create closed meander of resonator
+    if min_bridge_spacing is not None:
+        bridges = True
+    else:
+        bridges = False
     closed_end_meander = sample.connect_meander(name='closed end', o1=fanout_for_closed_end, port1=closed_end_direction,
                                                 meander_length=closed_end_meander_length,
                                                 length_left=length_left,
                                                 length_right=length_right,
                                                 first_step_orientation=port_orientation,
                                                 meander_orientation=angle,
-                                                meander_type='round', bridges=True,
+                                                meander_type='round', bridges=bridges,
                                                 pads_geometry=[4, 5],
                                                 bridge_geometry=[33,4],
-                                                distance_between_pads=32, min_spacing=60
+                                                distance_between_pads=32, min_spacing=min_bridge_spacing
     )
     total_length.append(sum([line.length for line in closed_end_meander]))
     # # 7. Create grounding of resonator
