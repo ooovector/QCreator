@@ -16,4 +16,5 @@ from .pp_transmon import PP_Transmon_Coupler
 from .xmon import Xmon
 
 from .pp_squid import PP_Squid
+from .pp_squid_coupler import PP_Squid_C
 from .twoqtc import TWOQTC

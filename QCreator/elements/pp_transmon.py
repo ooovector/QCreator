@@ -250,7 +250,6 @@ class PP_Transmon(DesignElement):
                     'inverted': inverted.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1])
                     }
         if 'rotate' in self.transformations:
-            print('hey')
             return {'positive': result.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
                     'restrict': result_restricted,
                     'qubit': qubit.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]) if qubit is not None else None,
@@ -339,7 +338,7 @@ class PP_Transmon(DesignElement):
                 self.terminals['coupler'+str(id)] = DesignTerminal(tuple(coupler_connection),
                                                                    coupler_phi, g=coupler.g, s=coupler.s,
                                                                 w=coupler.w, type='cpw')
-                print(self.terminals)
+                #print(self.terminals)
         return True
 
 
