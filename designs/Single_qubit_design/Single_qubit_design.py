@@ -10,8 +10,8 @@ from QCreator import meshing
 reload(gdspy)
 
 ### to have 50 Oms impedance with eps=11.75
-tl_core = 20.
-tl_gap = 12.
+tl_core = 10.
+tl_gap = 6.
 tl_ground = 10.
 
 resonator_core = 8

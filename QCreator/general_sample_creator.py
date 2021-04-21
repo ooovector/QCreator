@@ -199,7 +199,7 @@ class Sample:
         :param port2: second object's port name
         :param name: CPW name
         :param points: coordinates of the CPW's edges
-        :param airbridges:
+        :param airbridge:
         :param min_spacing: spacing between two airbridges
         :return: TLCoupler object
         """
@@ -239,7 +239,7 @@ class Sample:
             cpw_with_bridges = self.generate_bridge_over_cpw(name=name, o=cpw,
                                                              geometry=airbridge,
                                                              min_spacing=min_spacing)
-            print(cpw_with_bridges)
+
             self.connect(cpw_with_bridges[0], 'port1', o1, port1)
             self.connect(cpw_with_bridges[-1], 'port2', o2, port2)
             return cpw_with_bridges
@@ -247,7 +247,7 @@ class Sample:
             self.add(cpw)
             self.connect(cpw, 'port1', o1, port1)
             self.connect(cpw, 'port2', o2, port2)
-            return cpw
+            return [cpw]
 
     def watch(self,dark = False):
         #Gerhards color scheme here :D, dark and smooth colours
