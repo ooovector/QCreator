@@ -31,6 +31,7 @@ class TLSystemElement:
     def __repr__(self):
         return "{} {}".format(self.type_, self.name)
 
+
 class Resistor(TLSystemElement):
     def num_terminals(self):
         return 2
@@ -42,8 +43,8 @@ class Resistor(TLSystemElement):
         return np.asarray([[1, -1, self.R, 0], [0, 0, 1, 1]], dtype=complex)
 
     def dynamic_equations(self):
-        b = np.asarray([[0,  0, 0, 0], [0, 0, 0, 0]]) # derivatives
-        a = np.asarray([[1, -1, self.R, 0], [0, 0, 1, 1]]) # current values
+        b = np.asarray([[0, 0, 0, 0], [0, 0, 0, 0]])  # derivatives
+        a = np.asarray([[1, -1, self.R, 0], [0, 0, 1, 1]])  # current values
         return a, b
 
     def energy(self, mode):
@@ -63,11 +64,11 @@ class Capacitor(TLSystemElement):
         return 0
 
     def boundary_condition(self, omega):
-        return np.asarray([[1j*omega*self.C, -1j*omega*self.C, 1, 0], [0,0,1,1]], dtype=complex)
+        return np.asarray([[1j * omega * self.C, -1j * omega * self.C, 1, 0], [0, 0, 1, 1]], dtype=complex)
 
     def dynamic_equations(self):
-        b = np.asarray([[self.C, -self.C, 0, 0], [0, 0, 0, 0]]) # derivatives
-        a = np.asarray([[0, 0, -1, 0], [0, 0, 1, 1]]) # current values
+        b = np.asarray([[self.C, -self.C, 0, 0], [0, 0, 0, 0]])  # derivatives
+        a = np.asarray([[0, 0, -1, 0], [0, 0, 1, 1]])  # current values
         return a, b
 
     def energy(self, mode):
@@ -75,11 +76,22 @@ class Capacitor(TLSystemElement):
         emat = np.asarray([
             [self.C, -self.C, 0, 0],
             [-self.C, self.C, 0, 0],
-            [0,       0,      0, 0],
-            [0,       0,      0, 0]
-        ])/2
-        return np.conj(mode)@emat@np.reshape(mode, (-1,1))
-        #return self.C/2 * (mode[0]-mode[1])**2
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+        ]) / 2
+        # return np.conj(mode)@emat@np.reshape(mode, (-1,1))
+        return self.C / 2 * (mode[0] - mode[1]) ** 2
+
+    def energy_matrix(self):
+        # energy matrix
+        emat = np.asarray([
+            [self.C, -self.C, 0, 0],
+            [-self.C, self.C, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+        ]) / 2
+
+        return emat
 
     def __init__(self, c=None, name=''):
         super().__init__('C', name)
@@ -95,11 +107,11 @@ class Inductor(TLSystemElement):
         return 0
 
     def boundary_condition(self, omega):
-        return np.asarray([[1, -1, 1j*omega*self.L, 0], [0,0,1,1]], dtype=complex)
+        return np.asarray([[1, -1, 1j * omega * self.L, 0], [0, 0, 1, 1]], dtype=complex)
 
     def dynamic_equations(self):
-        b = np.asarray([[0, 0, -self.L, 0], [0, 0, 0, 0]]) # derivatives
-        a = np.asarray([[1,-1, 0, 0], [0, 0, 1, 1]]) # current values
+        b = np.asarray([[0, 0, -self.L, 0], [0, 0, 0, 0]])  # derivatives
+        a = np.asarray([[1, -1, 0, 0], [0, 0, 1, 1]])  # current values
         return a, b
 
     def energy(self, mode):
@@ -108,8 +120,17 @@ class Inductor(TLSystemElement):
             [0, 0, 0, 0],
             [0, 0, self.L, 0],
             [0, 0, 0, 0]
-        ])/2
-        return np.conj(mode)@emat@mode
+        ]) / 2
+        return np.conj(mode) @ emat @ mode
+
+    def energy_matrix(self):
+        emat = np.asarray([
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, self.L, 0],
+            [0, 0, 0, 0]
+        ]) / 2
+        return emat
 
     def __init__(self, l=None, name=''):
         super().__init__('L', name)
@@ -128,8 +149,8 @@ class Short(TLSystemElement):
         return np.asarray([[1, 0]], dtype=complex)
 
     def dynamic_equations(self):
-        b = np.asarray([[0, 0]]) # derivatives
-        a = np.asarray([[1, 0]]) # current values
+        b = np.asarray([[0, 0]])  # derivatives
+        a = np.asarray([[1, 0]])  # current values
         return a, b
 
     def energy(self, mode):
@@ -151,8 +172,8 @@ class Port(TLSystemElement):
         return np.asarray([[1, self.Z0, 0], [1, -self.Z0, 1]], dtype=complex)
 
     def dynamic_equations(self):
-        b = np.asarray([[0, 0, 0], [0, 0, 0]]) # derivatives
-        a = np.asarray([[1, self.Z0, 0], [1, -self.Z0, 1]]) # current values
+        b = np.asarray([[0, 0, 0], [0, 0, 0]])  # derivatives
+        a = np.asarray([[1, self.Z0, 0], [1, -self.Z0, 1]])  # current values
         return a, b
 
     def energy(self, mode):
@@ -167,14 +188,15 @@ class TLCoupler(TLSystemElement):
     '''
     Here n is a number of conductors in  TL CPW coupler
     '''
+
     def num_terminals(self):
-        return self.n*2
+        return self.n * 2
 
     def num_degrees_of_freedom(self):
-        return self.n*2
+        return self.n * 2
 
     def num_degrees_of_freedom_dynamic(self):
-        return self.n*2*self.num_modes
+        return self.n * 2 * self.num_modes
 
     def propagating_modes(self):
         '''
@@ -193,43 +215,47 @@ class TLCoupler(TLSystemElement):
         return modes
 
     def boundary_condition(self, omega):
-        boundary_condition_matrix = np.zeros((self.num_terminals()*2, self.num_terminals()*2+self.num_degrees_of_freedom()), dtype=complex)
-        boundary_condition_matrix[:, :self.num_terminals()*2] = np.identity(self.num_terminals()*2)
+        boundary_condition_matrix = np.zeros(
+            (self.num_terminals() * 2, self.num_terminals() * 2 + self.num_degrees_of_freedom()), dtype=complex)
+        boundary_condition_matrix[:, :self.num_terminals() * 2] = np.identity(self.num_terminals() * 2)
 
         for mode_pair_id, mode_pair in enumerate(self.propagating_modes()):
-            boundary_condition_matrix[       0:self.n,  self.n*4+mode_pair_id] = -np.asarray(mode_pair[1][:self.n])
-            boundary_condition_matrix[  self.n:self.n*2,self.n*4+mode_pair_id] = -np.asarray(mode_pair[1][:self.n])*np.exp(1j*mode_pair[0]*self.l*omega)
-            boundary_condition_matrix[self.n*2:self.n*3,self.n*4+mode_pair_id] = np.asarray(mode_pair[1][self.n:])
-            boundary_condition_matrix[self.n*3:        ,self.n*4+mode_pair_id] = -np.asarray(mode_pair[1][self.n:])*np.exp(1j*mode_pair[0]*self.l*omega)
-        #print(mode_pair)
+            boundary_condition_matrix[0:self.n, self.n * 4 + mode_pair_id] = -np.asarray(mode_pair[1][:self.n])
+            boundary_condition_matrix[self.n:self.n * 2, self.n * 4 + mode_pair_id] = -np.asarray(
+                mode_pair[1][:self.n]) * np.exp(1j * mode_pair[0] * self.l * omega)
+            boundary_condition_matrix[self.n * 2:self.n * 3, self.n * 4 + mode_pair_id] = np.asarray(
+                mode_pair[1][self.n:])
+            boundary_condition_matrix[self.n * 3:, self.n * 4 + mode_pair_id] = -np.asarray(
+                mode_pair[1][self.n:]) * np.exp(1j * mode_pair[0] * self.l * omega)
+        # print(mode_pair)
         return boundary_condition_matrix
 
     def energy(self, state):
         m = self.n * self.num_modes
-        v = state[-2*m:-m]
+        v = state[-2 * m:-m]
         i = state[-m:]
-        s = (-0.5)**np.arange(self.num_modes)
-        e = 0.5*s*s.reshape((-1, 1))*self.l
+        s = (-0.5) ** np.arange(self.num_modes)
+        e = 0.5 * s * s.reshape((-1, 1)) * self.l
         e += np.abs(e)
 
         ll = np.kron(self.Ll, e)
         cl = np.kron(self.Cl, e)
 
-        #emat = np.vstack([np.hstack([ll, np.zeros_like(ll)]), np.hstack([np.zeros_like(cl), cl])])
+        # emat = np.vstack([np.hstack([ll, np.zeros_like(ll)]), np.hstack([np.zeros_like(cl), cl])])
 
-        return 0.5*np.conj(v)@cl@v+0.5*np.conj(i)@ll@i # TODO: energy stored in transmission line system
+        return 0.5 * np.conj(v) @ cl @ v + 0.5 * np.conj(i) @ ll @ i  # TODO: energy stored in transmission line system
 
     def dynamic_equations(self):
         m = self.n * self.num_modes
         n_eq_internal = self.n * (self.num_modes - 1)
 
-        b = np.zeros((self.num_terminals()*2+n_eq_internal*2, self.num_terminals()*2+m*2))
-        a = np.zeros((self.num_terminals()*2+n_eq_internal*2, self.num_terminals()*2+m*2))
+        b = np.zeros((self.num_terminals() * 2 + n_eq_internal * 2, self.num_terminals() * 2 + m * 2))
+        a = np.zeros((self.num_terminals() * 2 + n_eq_internal * 2, self.num_terminals() * 2 + m * 2))
 
         # filling out telegrapher's equations
         E = np.zeros((self.num_modes - 1, self.num_modes))
-        for i in range(self.num_modes-1):
-            #E[i, i] = 1#/cl_av
+        for i in range(self.num_modes - 1):
+            # E[i, i] = 1#/cl_av
             E[i, i] = self.l
 
         Ll = np.kron(self.Ll, E)
@@ -237,19 +263,19 @@ class TLCoupler(TLSystemElement):
         Rl = np.kron(self.Rl, E)
         Gl = np.kron(self.Gl, E)
 
-        b[ :n_eq_internal, -m:] = Ll
+        b[:n_eq_internal, -m:] = Ll
         b[n_eq_internal:2 * n_eq_internal, -2 * m:-m] = Cl
 
         # Taylor-series expansion of I(x) = sum_i a_i x^i
-        d = np.zeros((self.num_modes-1, self.num_modes))
+        d = np.zeros((self.num_modes - 1, self.num_modes))
         for i in range(1, self.num_modes):
-            d[i-1, i] = i
+            d[i - 1, i] = i
         dmat = np.kron(np.eye(self.n), d)
 
-        a[:n_eq_internal,    -2*m:-m] = -dmat
-        a[n_eq_internal:2*n_eq_internal, -m:] = -dmat
-        a[:n_eq_internal,    -m:] = -Rl
-        a[n_eq_internal:2*n_eq_internal, -2*m:-m] = -Gl
+        a[:n_eq_internal, -2 * m:-m] = -dmat
+        a[n_eq_internal:2 * n_eq_internal, -m:] = -dmat
+        a[:n_eq_internal, -m:] = -Rl
+        a[n_eq_internal:2 * n_eq_internal, -2 * m:-m] = -Gl
 
         # filling out boundary conditions (voltage)
         a[-self.n * 4:, :self.n * 4] = np.eye(self.n * 4)
@@ -276,8 +302,8 @@ class TLCoupler(TLSystemElement):
         self.Rl = rl
         self.Gl = gl
         if cutoff is not None and np.isfinite(cutoff):
-            cl_min = 1/np.sqrt(np.linalg.norm(ll@cl, ord=2)) # minimum speed of light in TL
-            df = cl_min/(2*l)
+            cl_min = 1 / np.sqrt(np.linalg.norm(ll @ cl, ord=2))  # minimum speed of light in TL
+            df = cl_min / (2 * l)
             num_modes = int(cutoff // df)
             if num_modes < 2:
                 num_modes = 2
@@ -287,6 +313,7 @@ class TLCoupler(TLSystemElement):
 
     def __repr__(self):
         return "TL {} (n={})".format(self.name, self.n)
+
 
 class JosephsonJunction(TLSystemElement):
     """
@@ -337,16 +364,26 @@ class JosephsonJunction(TLSystemElement):
         phi_0 = hbar / (2 * e)  # reduced flux quantum
         self.L_lin = phi_0 ** 2 / self.E_J  # linear part of JJ
 
+
 class TLSystem:
     def __init__(self):
-        self.nodes = []   #list of all nodes [0,1,2...]
-        self.elements = []   #list of all elements [<transmission_line_simulator_new.name_of_element>, ...]
-        self.node_multiplicity = {}   #dictionary of node's multiplicity {node1: node1's multiplicity, node2: node2's multiplicity, ...}
-        self.terminal_node_mapping = []   #list of terminals's nodes [terminal1's nodes=[], node2's multiplicity=[], ...]
-        self.dof_mapping = []   #???
+        self.nodes = []  # list of all nodes [0,1,2...]
+        self.elements = []  # list of all elements [<transmission_line_simulator_new.name_of_element>, ...]
+        self.node_multiplicity = {}  # dictionary of node's multiplicity {node1: node1's multiplicity, node2: node2's multiplicity, ...}
+        self.terminal_node_mapping = []  # list of terminals's nodes [terminal1's nodes=[], node2's multiplicity=[], ...]
+        self.dof_mapping = []  # ???
+
+        self.energy_stored_elements = []  # all elements with stored energy
+        self.JJs = []  # all nonlinear elements
 
     def add_element(self, element, nodes):
         self.elements.append(element)
+
+        if element.type_ == 'JJ':
+            self.JJs.append(element)
+        if element.type_ in ['C', 'L', 'JJ']:
+            self.energy_stored_elements.append(element)
+
         for node in nodes:
             if node not in self.nodes:
                 self.node_multiplicity[node] = 0
@@ -357,11 +394,13 @@ class TLSystem:
 
     def map_dofs(self):
         # count nodes
-        self.dof_mapping = [n for n in self.nodes] # nodal voltages
-        self.dof_mapping.extend([(e_id, p_id) for e_id, e in enumerate(self.elements) for p_id in range(e.num_terminals())])
-                                                     # currents incident into each terminal
-        self.dof_mapping.extend([(e_id, int_dof_id) for e_id, e in enumerate(self.elements) for int_dof_id in range(e.num_degrees_of_freedom())])
-                                                     # number of element-internal degrees of freedom
+        self.dof_mapping = [n for n in self.nodes]  # nodal voltages
+        self.dof_mapping.extend(
+            [(e_id, p_id) for e_id, e in enumerate(self.elements) for p_id in range(e.num_terminals())])
+        # currents incident into each terminal
+        self.dof_mapping.extend([(e_id, int_dof_id) for e_id, e in enumerate(self.elements) for int_dof_id in
+                                 range(e.num_degrees_of_freedom())])
+        # number of element-internal degrees of freedom
 
     def get_modes(self):
         """
@@ -382,7 +421,7 @@ class TLSystem:
             gamma = -np.real(w[state_id])
             if e <= 0 or not np.isfinite(e):
                 continue
-            #modes.append((e, gamma, v[:, state_id]))
+            # modes.append((e, gamma, v[:, state_id]))
             frequencies.append(e)
             gammas.append(gamma)
             modes.append(v[:, state_id])
@@ -416,9 +455,10 @@ class TLSystem:
             for terminal_id, terminal_node in enumerate(self.terminal_node_mapping[e_id]):
                 node_id = self.nodes.index(terminal_node)
                 element_state[terminal_id] = state[node_id]
-                element_state[terminal_id+e.num_terminals()] = state[node_no+current_offset+terminal_id]
+                element_state[terminal_id + e.num_terminals()] = state[node_no + current_offset + terminal_id]
             for internal_dof_id in range(e.num_degrees_of_freedom_dynamic()):
-                element_state[2*e.num_terminals() + internal_dof_id] = state[node_no+terminal_no+internal_dof_offset+internal_dof_id]
+                element_state[2 * e.num_terminals() + internal_dof_id] = state[
+                    node_no + terminal_no + internal_dof_offset + internal_dof_id]
             internal_dof_offset += e.num_degrees_of_freedom_dynamic()
             current_offset += e.num_terminals()
             energies.append(e.energy(element_state))
@@ -454,13 +494,19 @@ class TLSystem:
                 equation_a = equations_a[element_equation_id, :]
                 for terminal_id, terminal_node in enumerate(self.terminal_node_mapping[e_id]):
                     node_id = self.nodes.index(terminal_node)
-                    dynamic_equation_matrix_a[equation_id, node_id] = equation_a[terminal_id] #nodal voltages
-                    dynamic_equation_matrix_a[equation_id, node_no+current_offset+terminal_id] = equation_a[terminal_id+e.num_terminals()] #nodal current
-                    dynamic_equation_matrix_b[equation_id, node_id] = equation_b[terminal_id] #nodal voltages
-                    dynamic_equation_matrix_b[equation_id, node_no+current_offset+terminal_id] = equation_b[terminal_id+e.num_terminals()] #nodal current
+                    dynamic_equation_matrix_a[equation_id, node_id] = equation_a[terminal_id]  # nodal voltages
+                    dynamic_equation_matrix_a[equation_id, node_no + current_offset + terminal_id] = equation_a[
+                        terminal_id + e.num_terminals()]  # nodal current
+                    dynamic_equation_matrix_b[equation_id, node_id] = equation_b[terminal_id]  # nodal voltages
+                    dynamic_equation_matrix_b[equation_id, node_no + current_offset + terminal_id] = equation_b[
+                        terminal_id + e.num_terminals()]  # nodal current
                 for internal_dof_id in range(e.num_degrees_of_freedom_dynamic()):
-                    dynamic_equation_matrix_a[equation_id, node_no+terminal_no+internal_dof_offset+internal_dof_id] = equation_a[2*e.num_terminals() + internal_dof_id]
-                    dynamic_equation_matrix_b[equation_id, node_no + terminal_no + internal_dof_offset + internal_dof_id] = equation_b[2 * e.num_terminals() + internal_dof_id]
+                    dynamic_equation_matrix_a[
+                        equation_id, node_no + terminal_no + internal_dof_offset + internal_dof_id] = equation_a[
+                        2 * e.num_terminals() + internal_dof_id]
+                    dynamic_equation_matrix_b[
+                        equation_id, node_no + terminal_no + internal_dof_offset + internal_dof_id] = equation_b[
+                        2 * e.num_terminals() + internal_dof_id]
                 equation_id += 1
             internal_dof_offset += e.num_degrees_of_freedom_dynamic()
             current_offset += e.num_terminals()
@@ -469,7 +515,7 @@ class TLSystem:
         # filling kinetic equations
         for e_id, e in enumerate(self.elements):
             for terminal_id, node in enumerate(self.terminal_node_mapping[e_id]):
-                dynamic_equation_matrix_a[dynamic_equation_no+self.nodes.index(node), node_no+full_terminal_id] = 1
+                dynamic_equation_matrix_a[dynamic_equation_no + self.nodes.index(node), node_no + full_terminal_id] = 1
                 full_terminal_id += 1
         return dynamic_equation_matrix_a, dynamic_equation_matrix_b
 
@@ -504,10 +550,13 @@ class TLSystem:
                 equation = equations[element_equation_id, :]
                 for terminal_id, terminal_node in enumerate(self.terminal_node_mapping[e_id]):
                     node_id = self.nodes.index(terminal_node)
-                    boundary_condition_matrix[equation_id, node_id] = equation[terminal_id] #nodal voltages
-                    boundary_condition_matrix[equation_id, node_no+current_offset+terminal_id] = equation[terminal_id+e.num_terminals()] #nodal current
+                    boundary_condition_matrix[equation_id, node_id] = equation[terminal_id]  # nodal voltages
+                    boundary_condition_matrix[equation_id, node_no + current_offset + terminal_id] = equation[
+                        terminal_id + e.num_terminals()]  # nodal current
                 for internal_dof_id in range(e.num_degrees_of_freedom()):
-                    boundary_condition_matrix[equation_id, node_no+terminal_no+internal_dof_offset+internal_dof_id] = equation[2*e.num_terminals() + internal_dof_id]
+                    boundary_condition_matrix[
+                        equation_id, node_no + terminal_no + internal_dof_offset + internal_dof_id] = equation[
+                        2 * e.num_terminals() + internal_dof_id]
                 equation_id += 1
             internal_dof_offset += e.num_degrees_of_freedom()
             current_offset += e.num_terminals()
@@ -516,7 +565,7 @@ class TLSystem:
         # filling kinetic equations
         for e_id, e in enumerate(self.elements):
             for terminal_id, node in enumerate(self.terminal_node_mapping[e_id]):
-                boundary_condition_matrix[dynamic_equation_no+self.nodes.index(node), node_no+full_terminal_id] = 1
+                boundary_condition_matrix[dynamic_equation_no + self.nodes.index(node), node_no + full_terminal_id] = 1
                 full_terminal_id += 1
         return boundary_condition_matrix
 
@@ -538,9 +587,55 @@ class TLSystem:
 
     def get_element_dynamic_equations(self, element: TLSystemElement):
         e_id = self.elements.index(element)
-        offset = np.sum(e.num_terminals()+e.num_degrees_of_freedom() for e in self.elements[:e_id])
+        offset = np.sum(e.num_terminals() + e.num_degrees_of_freedom() for e in self.elements[:e_id])
 
-        return np.arange(offset, offset+element.num_terminals()+element.num_degrees_of_freedom())
+        return np.arange(offset, offset + element.num_terminals() + element.num_degrees_of_freedom())
+
+    def get_element_submode(self, element: TLSystemElement, mode):
+        voltages, currents, degrees_of_freedom = self.get_element_dofs(element)
+
+        submode = []
+        for i in voltages + currents + degrees_of_freedom:
+            submode.append(mode[i])
+
+        return np.asarray(submode)
+
+    def element_energy(self, element: TLSystemElement, mode):
+        submode_element = self.get_element_submode(element, mode)
+
+        submode_energy = np.dot(np.conj(submode_element.transpose()), np.dot(element.energy_matrix(), submode_element))
+
+        return submode_energy
+
+    def get_total_energy(self):
+        omega, kappa, modes = self.get_modes()
+        number_of_modes = len(modes)
+
+        modes_energies = []
+        for mode_ in modes:
+            total_circuit_energy = 0
+            for elem in self.energy_stored_elements:
+                total_circuit_energy += self.element_energy(elem, mode_)
+
+            modes_energies.append(total_circuit_energy)
+
+        if self.JJs:
+            JJs_perturbation = []
+            for JJ_ in self.JJs:
+                perturbation_matrix = np.zeros((number_of_modes, number_of_modes), dtype=complex)
+                for i in range(number_of_modes):
+                    for j in range(number_of_modes):
+                        mode_i = self.get_element_submode(JJ_, modes[i])
+                        mode_j = self.get_element_submode(JJ_, modes[j])
+
+                        submode_ij = np.kron(mode_i, mode_j)
+
+                        perturbation_matrix[i][j] = np.dot(np.conj(submode_ij.transpose()), np.dot(JJ_.nonlinear_perturbation(), submode_ij))
+
+                JJs_perturbation.append(perturbation_matrix)
+
+        return modes_energies, JJs_perturbation
+
 
 """
     def boundary_condition_matrix_det(self, omega):
