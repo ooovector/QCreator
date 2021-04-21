@@ -471,17 +471,17 @@ class JJ_2_small:
 
         delta = contact_pad1_b_outer
 
-        x10 = x7 - contact_pad1_a_outer / 2
-        y10 = y7 + delta
-
-        x11 = x7 + contact_pad1_a_outer / 2
-        y11 = y7 + delta
-
         L1_a = 2.1
         L1_b = 0.5#1
 
         L2_a = 2.1
         L2_b = 0.5#1
+
+        x10 = x7 - contact_pad1_a_outer / 2
+        y10 = y7 + L1_b
+
+        x11 = x7 + contact_pad1_a_outer / 2
+        y11 = y7 + L2_b
 
         rec1_a_outer = 4.8
         rec1_b_outer = 2.8
@@ -551,5 +551,5 @@ class JJ_2_small:
                                     points7, points8_for_pad3, points9_for_pad4, points10, points11, points12, points13])
         else:
             squid = gdspy.PolygonSet([points0, points1, points1_1, points2, points3, points4, points5_for_pad1, points6_for_pad2,
-                                      points7, points8_for_pad3, points9_for_pad4, points10, points11, points12, points13])
+                                      points7, points8_for_pad3, points9_for_pad4,points10, points11, points12, points13])
         return squid

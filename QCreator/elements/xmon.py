@@ -41,6 +41,7 @@ class Xmon(DesignElement):
                           'qubit': None}
         self.couplers = {}
         self.tls_cache = []
+        self.M = 12e-12
         self.C = {'crab_left': None,
                   'crab_right': None,
                   'crab_up': None,
@@ -263,7 +264,10 @@ class Xmon(DesignElement):
 
         # create a pad for jj
         jpad, cross_gnd, jrestrict = self.create_jpad(cross_gnd)
-        jj = self.generate_jj()
+        if self.jj['type'] == 2:
+            jj = self.generate_jj()
+        else:
+            jj = self.generate_3jj()
         cross_gnd = gdspy.boolean(cross_gnd, jpad, "or", layer=self.layer_configuration.total_layer)
 
         # create a fluxline near jj pad
@@ -291,6 +295,9 @@ class Xmon(DesignElement):
 
         gnd_cap = gdspy.boolean(gnd_cap, cross_core, 'not', layer=self.layer_configuration.total_layer)
         qubit_cap_parts.append(gdspy.boolean(gnd_cap, gnd_cap, 'or'))
+
+        if self.jj['type'] == 3:
+            self.terminals['squid_intermediate'] = None
 
         return {'positive': result,
                 'qubit': result,
@@ -436,6 +443,277 @@ class Xmon(DesignElement):
 
         return fgnd, frestrict
 
+    def generate_3jj(self):
+        contact_pad_a_outer = 10.5
+        contact_pad_b_outer = 3
+        self.contact_pad_b_outer = contact_pad_b_outer
+        self.contact_pad_a_outer = contact_pad_a_outer
+        contact_pad_a_inner = 7.5
+        contact_pad_b_inner = 1
+
+        self._x0 = self.center[0]
+        self._y0 = self.center[1]-self.length-self.s/2+ self.contact_pad_b_outer
+
+        self._parametr1 = 10#Hb
+        self._parametr2 = self.jj['side_r_thick']
+        self._parametr3 = self.jj['up_l_thick']
+        self._parametr4 = self.jj['side_l_thick']
+        self._parametr5 = self.jj['side_r_thick']
+
+        # Add contact pad1
+        points0 = [(self._x0 - contact_pad_a_outer / 2, self._y0 - contact_pad_b_outer),
+                   (self._x0 - contact_pad_a_outer / 2, self._y0),
+                   (self._x0 + contact_pad_a_outer / 2, self._y0),
+                   (self._x0 + contact_pad_a_outer / 2, self._y0 - contact_pad_b_outer),
+
+                   (self._x0 - contact_pad_a_outer / 2, self._y0 - contact_pad_b_outer),
+
+                   (self._x0 - contact_pad_a_inner / 2,
+                    self._y0 - (contact_pad_b_outer - contact_pad_b_inner) / 2 - contact_pad_b_inner),
+                   (self._x0 + contact_pad_a_inner / 2,
+                    self._y0 - (contact_pad_b_outer - contact_pad_b_inner) / 2 - contact_pad_b_inner),
+
+                   (self._x0 + contact_pad_a_inner / 2, self._y0 - (contact_pad_b_outer - contact_pad_b_inner) / 2),
+                   (self._x0 - contact_pad_a_inner / 2, self._y0 - (contact_pad_b_outer - contact_pad_b_inner) / 2),
+
+                   (self._x0 - contact_pad_a_inner / 2,
+                    self._y0 - (contact_pad_b_outer - contact_pad_b_inner) / 2 - contact_pad_b_inner),
+                   ]
+
+        x1 = self._x0
+        y1 = self._y0 - contact_pad_b_outer
+
+        # parametr1=H_b
+
+        H_a = 0.5  # 1
+        H_b = self._parametr1
+
+        L_a = 6  # 10.7
+        L_b = 0.75
+
+        h = 0.16  # 0.5
+
+        points1 = [(x1 - 3 * H_a, y1 - H_b / 2),
+                   (x1 + H_a, y1 - H_b / 2),
+                   (x1 + H_a, y1 - H_b / 2 - self._parametr4),
+                   (x1 - 2 * H_a, y1 - H_b / 2 - self._parametr4),
+                   (x1 - 2 * H_a, y1 - H_b),
+                   (x1 - 3 * H_a, y1 - H_b)
+                   ]
+
+        points1_1 = [(x1 - H_a, y1),
+                     (x1 - H_a / 4, y1),
+                     (x1 - H_a / 4, y1 - H_b / 3),
+                     (x1 - H_a + self._parametr3, y1 - H_b / 3),
+                     (x1 - H_a + self._parametr3, y1 - H_b / 2 + h),
+                     (x1 - H_a, y1 - H_b / 2 + h)
+                     ]
+
+        x2 = x1
+        y2 = y1 - H_b
+
+        points2 = [(x2 - L_a / 2, y2),
+                   (x2 + L_a / 2, y2),
+                   (x2 + L_a / 2, y2 - L_b),
+                   (x2 - L_a / 2, y2 - L_b)
+                   ]
+
+        H1_a = 0.8
+        H1_b = 2
+        H2_a = 0.8
+        H2_b = 2
+
+        x3 = x2 - L_a / 2 + H1_a / 2
+        y3 = y2 - L_b
+
+        x4 = x2 + L_a / 2 - H1_a / 2
+        y4 = y2 - L_b
+
+        points3 = [(x3 - H1_a / 2, y3),
+                   (x3 + H1_a / 2, y3),
+                   (x3 + H1_a / 2, y3 - 2 * H1_b),
+                   (x3 - H1_a / 2, y3 - 2 * H1_b)
+                   ]
+
+        points4 = [(x4 - H2_a / 2, y4),
+                   (x4 + H2_a / 2, y4),
+                   (x4 + H2_a / 2, y4 - H2_b),
+                   (x4 - H2_a / 2, y4 - H2_b)
+                   ]
+
+        x5 = x3 + H1_a / 2
+        y5 = y3 - H1_b
+        x6 = x4 - H2_a / 2
+        y6 = y4 - H2_b
+
+        # parametr2=pad1_a
+        # parametr3=pad2_a
+
+        pad1_a = self._parametr3
+        pad1_b = 3
+        pad2_a = self._parametr2
+        pad2_b = 3
+
+        points5_for_pad1 = [(x5, y5),
+                            (x5, y5 - pad1_b),
+                            (x5 - pad1_a, y5 - pad1_b),
+                            (x5 - pad1_a, y5)
+                            ]
+
+        points6_for_pad2 = [(x6, y6),
+                            (x6 + pad2_a, y6),
+                            (x6 + pad2_a, y6 - pad2_b),
+                            (x6, y6 - pad2_b)
+                            ]
+
+        contact_pad1_a_outer = 13
+        contact_pad1_b_outer = 6.4
+        contact_pad1_a_inner = 12
+        contact_pad1_b_inner = 5.8
+
+        x7 = self._x0
+        y7 = self._y0 - contact_pad_b_outer - H_b - L_b - H1_b - pad1_b - h - contact_pad1_b_outer
+        x7_ = x7
+        y7_ = y7 + (contact_pad1_b_outer - contact_pad1_b_inner)
+
+        points7 = [(x7 - contact_pad1_a_outer / 2, y7 + contact_pad1_b_outer),
+
+                   (x7 - contact_pad1_a_outer / 2, y7),
+
+                   (x7 + contact_pad1_a_outer / 2, y7),
+
+                   (x7 + contact_pad1_a_outer / 2, y7 + contact_pad1_b_outer),
+
+                   (x7_ + contact_pad1_a_inner / 2, y7_ + contact_pad1_b_inner),
+
+                   (x7_ + contact_pad1_a_inner / 2, y7_),
+
+                   (x7_ - contact_pad1_a_inner / 2, y7_),
+
+                   (x7_ - contact_pad1_a_inner / 2, y7_ + contact_pad1_b_inner)]
+
+        x8 = x7_ - contact_pad1_a_inner / 2
+        y8 = y7_ + contact_pad1_b_inner
+
+        x9 = x7_ + contact_pad1_a_inner / 2
+        y9 = y7_ + contact_pad1_b_inner
+
+        # parametr4=pad3_b
+        # parametr5=pad4_b
+
+        pad3_a = 4.5  # 2.5
+        pad3_b = self._parametr4
+
+        pad4_a = 4.5  # 2.5
+        pad4_b = self._parametr5
+
+        points8_for_pad3 = [(x8, y8),
+
+                            (x8 + pad3_a, y8),
+
+                            (x8 + pad3_a, y8 - pad3_b),
+
+                            (x8, y8 - pad3_b)]
+
+        points9_for_pad4 = [(x9 - pad4_a, y9),
+
+                            (x9, y9),
+
+                            (x9, y9 - pad4_b),
+
+                            (x9 - pad4_a, y9 - pad4_b)]
+
+        delta = 6
+
+        x10 = x7 - contact_pad1_a_outer / 2
+        y10 = y7 + delta
+
+        x11 = x7 + contact_pad1_a_outer / 2
+        y11 = y7 + delta
+
+        L1_a = 2.1
+        L1_b = 1
+
+        L2_a = 2.1
+        L2_b = 1
+
+        rec1_a_outer = 4.8
+        rec1_b_outer = 2.8
+
+        rec1_a_inner = 2
+        rec1_b_inner = 1
+
+        rec2_a_outer = rec1_a_outer
+        rec2_b_outer = rec1_b_outer
+
+        rec2_a_inner = rec1_a_inner
+        rec2_b_inner = rec1_b_inner
+
+        self.rect_size_a = rec1_a_outer
+        self.rect_size_b = rec1_b_outer
+
+        points10 = [(x10 - L1_a, y10),
+                    (x10, y10),
+                    (x10, y10 - L1_b),
+                    (x10 - L1_a, y10 - L1_b)]
+
+        points11 = [(x11, y11),
+                    (x11 + L2_a, y11),
+                    (x11 + L2_a, y11 - L2_b),
+                    (x11, y11 - L2_b)]
+
+        x12 = x10 - L1_a - (rec1_a_outer / 2)
+        y12 = y10 - L1_b / 2 + (rec1_b_outer / 2)
+
+        x13 = x11 + L2_a + (rec2_a_outer / 2)
+        y13 = y11 - L2_b / 2 + (rec2_b_outer / 2)
+        self.rect1 = (x12, y12)
+        self.rect2 = (x13, y13)
+        points12 = [(x12 - rec1_a_outer / 2, y12 - rec1_b_outer),
+                    (x12 - rec1_a_outer / 2, y12),
+                    (x12 + rec1_a_outer / 2, y12),
+                    (x12 + rec1_a_outer / 2, y12 - rec1_b_outer),
+
+                    (x12 - rec1_a_outer / 2, y12 - rec1_b_outer),
+
+                    (x12 - rec1_a_inner / 2, y12 - (rec1_b_outer - rec1_b_inner) / 2 - rec1_b_inner),
+                    (x12 + rec1_a_inner / 2, y12 - (rec1_b_outer - rec1_b_inner) / 2 - rec1_b_inner),
+
+                    (x12 + rec1_a_inner / 2, y12 - (rec1_b_outer - rec1_b_inner) / 2),
+                    (x12 - rec1_a_inner / 2, y12 - (rec1_b_outer - rec1_b_inner) / 2),
+
+                    (x12 - rec1_a_inner / 2, y12 - (rec1_b_outer - rec1_b_inner) / 2 - rec1_b_inner),
+                    ]
+
+        points13 = [(x13 - rec2_a_outer / 2, y13 - rec2_b_outer),
+                    (x13 - rec2_a_outer / 2, y13),
+                    (x13 + rec2_a_outer / 2, y13),
+                    (x13 + rec2_a_outer / 2, y13 - rec2_b_outer),
+
+                    (x13 - rec2_a_outer / 2, y13 - rec2_b_outer),
+
+                    (x13 - rec2_a_inner / 2, y13 - (rec2_b_outer - rec2_b_inner) / 2 - rec2_b_inner),
+                    (x13 + rec2_a_inner / 2, y13 - (rec2_b_outer - rec2_b_inner) / 2 - rec2_b_inner),
+
+                    (x13 + rec2_a_inner / 2, y13 - (rec2_b_outer - rec2_b_inner) / 2),
+                    (x13 - rec2_a_inner / 2, y13 - (rec2_b_outer - rec2_b_inner) / 2),
+
+                    (x13 - rec2_a_inner / 2, y13 - (rec2_b_outer - rec2_b_inner) / 2 - rec2_b_inner),
+                    ]
+
+        squid = gdspy.PolygonSet(
+            [points0, points1, points1_1, points2, points3, points4, points5_for_pad1, points6_for_pad2,
+             points7, points8_for_pad3, points9_for_pad4, points10, points11, points12, points13])
+        jj = gdspy.boolean(squid, squid, "or", layer=self.layer_configuration.jj_layer)
+        if self.jjpos == 'up':
+            jj = jj.rotate(np.pi, self.center)
+        elif self.jjpos == 'left':
+            jj = jj.rotate(-np.pi / 2, self.center)
+        elif self.jjpos == 'right':
+            jj = jj.rotate(np.pi / 2, self.center)
+        return jj
+
+
     def generate_jj(self):
         uh = self.jj['up_rect_h']
         uw = self.jj['up_rect_w']
@@ -514,10 +792,19 @@ class Xmon(DesignElement):
         jj2 = tlsim.JosephsonJunction(e_j=self.jj['ic_r']*hbar/(2*e), name=self.name + ' jj2')
         m = tlsim.Inductor(self.jgeom['lm'], name=self.name + ' flux-wire')
         c = tlsim.Capacitor(c=self.C['qubit']*scal_C, name=self.name+' qubit-ground')
-        tls_instance.add_element(jj1, [0, terminal_mapping['qubit']])
-        tls_instance.add_element(jj2, [terminal_mapping['flux'], terminal_mapping['qubit']])
+        cache = [jj1, jj2, m, c]
+        if self.jj['type'] == 2:
+            squid_top = terminal_mapping['qubit']
+        else:
+            squid_top = terminal_mapping['squid_intermediate']
+            jj3 = tlsim.JosephsonJunction(self.jj['ic3'] * hbar / (2 * e), name=self.name + ' jj3')
+            tls_instance.add_element(jj3, [squid_top, terminal_mapping['qubit']])
+            cache.append(jj3)
+        tls_instance.add_element(jj1, [0, squid_top])
+        tls_instance.add_element(jj2, [terminal_mapping['flux'], squid_top])
         tls_instance.add_element(m, [0, terminal_mapping['flux']])
         tls_instance.add_element(c, [0, terminal_mapping['qubit']])
+
         mut_cap = []
         cap_g = []
         for coupler in self.pos:
@@ -530,7 +817,7 @@ class Xmon(DesignElement):
             cap_g.append(c0g)
         if track_changes:
             self.tls_cache.append([jj1, jj2, m, c]+mut_cap+cap_g)
-        return [jj1, jj2, m, c]+mut_cap+cap_g
+        return cache+mut_cap+cap_g
 
 def rotate_point(point, angle, origin):
     """
