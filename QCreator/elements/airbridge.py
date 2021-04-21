@@ -9,11 +9,29 @@ from .. import conformal_mapping as cm
 from scipy.constants import epsilon_0
 
 
+class AirBridgeGeometry:
+    def __init__(self, pad_width: float, pad_length: float,
+                 bridge_width: float, bridge_length: float, pad_distance: float,
+                 layer_configuration: LayerConfiguration):
+        """
+        Airbridge crossover element geometry settings, defined by technology
+        :param width: crossover width
+        :param length: crossover length
+        :param padsize: crossover contact pad size
+        :param min_spacing: minimal distance between neighboring crossovers
+        :param layer_configuration: LayerConfiguration object
+        """
+        self.pad_width = pad_width
+        self.pad_length = pad_length
+        self.bridge_width = bridge_width
+        self.bridge_length = bridge_length
+        self.pad_distance = pad_distance
+        self.layer_configuration = layer_configuration
+
+
 class AirbridgeOverCPW(DesignElement):
     def __init__(self, name: str, position: Tuple[float, float], orientation: float,
-                 w: float, s: float, g: float, pads_geometry: Tuple[float, float],
-                 bridge_geometry: Tuple[float, float], layer_configuration: LayerConfiguration,
-                 distance_between_pads: float = None):
+                 w: float, s: float, g: float, geometry: AirBridgeGeometry):
         """
         Airbridge crossover element over CPW. Some parameters of this element depend on CPW structure.
         Here y axe is parallel to CPW.
@@ -31,43 +49,36 @@ class AirbridgeOverCPW(DesignElement):
         """
         super().__init__('airbridge', name)
 
-        self.position = position
+        self.position = np.asarray(position)
         self.orientation = orientation
         self.w = w
         self.s = s
         self.g = g
 
-        if not distance_between_pads:
-            self.distance_between_pads = self.w + 2 * self.s + self.g / 2
-        else:
-            self.distance_between_pads = distance_between_pads
+        self.geometry = geometry
 
-        self.pads_geometry = pads_geometry
-        self.bridge_geometry = bridge_geometry
+        h = 2 * 1e-6  # bridge height 2 mu m # TODO: CONSTANTS IN CODE OMG REMOVE THIS
+        s = (self.geometry.bridge_width * 1e-6) * (self.geometry.bridge_length * 1e-6) # TODO: CONSTANTS IN CODE OMG REMOVE THIS
 
-        h = 2 * 1e-6  # bridge height 2 mu m
-        s = (self.bridge_geometry[0] * 1e-6) * (self.bridge_geometry[1] * 1e-6)
-
-        epsilon = 1
+        epsilon = 1 # TODO: CONSTANTS IN CODE OMG REMOVE THIS
 
         self.bridge_capacitance = epsilon_0 * epsilon * s / h
 
-        self.layer_configuration = layer_configuration
         self.tls_cache = []
 
         cpw_width = 2 * self.s + self.w + 2 * self.g
 
-        self.p = self.pads_geometry[1] / 2 * np.asarray([np.cos(self.orientation), np.sin(self.orientation)])
+        self.p = self.geometry.pad_width / 2 * np.asarray([np.cos(self.orientation), np.sin(self.orientation)])
 
-        if self.distance_between_pads > cpw_width:
+        if self.geometry.pad_distance > cpw_width:
             raise ValueError('Distance between pads is larger that CPW width!')
-        if self.distance_between_pads < 2 * self.s + self.w:
+        if self.geometry.pad_distance < 2 * self.s + self.w:
             raise ValueError('Distance between pads is too small!')
 
-        if self.bridge_geometry[1] > self.pads_geometry[1]:
-            raise ValueError('Airbridge length is larger than length of airbridge pad!')
-        if self.bridge_geometry[0] < self.distance_between_pads:
-            raise ValueError('Airbridge width is less than distance between pads!')
+        if self.geometry.bridge_width > self.geometry.pad_width:
+            raise ValueError('Airbridge width is larger than width of airbridge pad!')
+        if self.geometry.bridge_length < self.geometry.pad_distance:
+            raise ValueError('Airbridge length is less than distance between pads!')
 
         self.terminals = {'port1': DesignTerminal(position=self.position - self.p, orientation=self.orientation,
                                                   type='cpw', w=self.w, s=self.s, g=self.g, disconnected='short'),
@@ -86,29 +97,29 @@ class AirbridgeOverCPW(DesignElement):
                                   offset=[- self.w / 2 - self.s - self.g / 2, 0, self.w / 2 + self.s + self.g / 2],
                                   ends='flush',
                                   corners='natural', bend_radius=bend_radius, precision=precision,
-                                  layer=self.layer_configuration.total_layer)
+                                  layer=self.geometry.layer_configuration.total_layer)
         # create pads of bridge
         pad1 = gdspy.Rectangle(
-            (self.position[0] + self.pads_geometry[1] / 2, self.position[1] + self.distance_between_pads / 2),
-            (self.position[0] - self.pads_geometry[1] / 2,
-             self.position[1] + self.distance_between_pads / 2 + self.pads_geometry[0]),
-            layer=self.layer_configuration.airbridges_pad_layer)
+            (self.position[0] + self.geometry.pad_width / 2, self.position[1] + self.geometry.pad_distance / 2),
+            (self.position[0] - self.geometry.pad_width / 2,
+             self.position[1] + self.geometry.pad_distance / 2 + self.geometry.pad_length),
+            layer=self.geometry.layer_configuration.airbridges_pad_layer)
 
         pad2 = gdspy.Rectangle(
-            (self.position[0] - self.pads_geometry[1] / 2, self.position[1] - self.distance_between_pads / 2),
-            (self.position[0] + self.pads_geometry[1] / 2,
-             self.position[1] - self.distance_between_pads / 2 - self.pads_geometry[0]),
-            layer=self.layer_configuration.airbridges_pad_layer)
+            (self.position[0] - self.geometry.pad_width / 2, self.position[1] - self.geometry.pad_distance / 2),
+            (self.position[0] + self.geometry.pad_width / 2,
+             self.position[1] - self.geometry.pad_distance / 2 - self.geometry.pad_length),
+            layer=self.geometry.layer_configuration.airbridges_pad_layer)
 
-        contacts = gdspy.boolean(pad1, pad2, 'or', layer=self.layer_configuration.airbridges_pad_layer)
+        contacts = gdspy.boolean(pad1, pad2, 'or', layer=self.geometry.layer_configuration.airbridges_pad_layer)
 
         contacts.rotate(self.orientation, self.position)
 
         # create bridge
         bridge = gdspy.Rectangle(
-            (self.position[0] - self.bridge_geometry[1] / 2, self.position[1] + self.bridge_geometry[0] / 2),
-            (self.position[0] + self.bridge_geometry[1] / 2, self.position[1] - self.bridge_geometry[0] / 2),
-            layer=self.layer_configuration.airbridges_layer)
+            (self.position[0] - self.geometry.bridge_width / 2, self.position[1] + self.geometry.bridge_length / 2),
+            (self.position[0] + self.geometry.bridge_width / 2, self.position[1] - self.geometry.bridge_length / 2),
+            layer=self.geometry.layer_configuration.airbridges_layer)
 
         bridge.rotate(self.orientation, self.position)
 
@@ -134,16 +145,16 @@ class AirbridgeOverCPW(DesignElement):
         where S - area of the airbridge, h - height of the airbridge upon the surface of a chip
         """
 
-        h = 2*1e-6   # bridge height 2 mu m
-        s = (self.bridge_geometry[0]*1e-6) * (self.bridge_geometry[1]*1e-6)
+        h = 2*1e-6   # bridge height 2 mu m # TODO: OMG CONSTANTS IN CODE
+        s = (self.geometry.bridge_length*1e-6) * (self.geometry.bridge_width*1e-6)
 
-        epsilon = 1
+        epsilon = 1 # TODO: OMG CONSTANTS IN CODE
 
         bridge_capacitance = epsilon_0 * epsilon * s / h
 
         c1 = tlsim.Capacitor(c=bridge_capacitance)
         cl, ll = self.cm()
-        line1_length = self.pads_geometry[1] / 2
+        line1_length = self.geometry.pad_width / 2
         line1 = tlsim.TLCoupler(n=1,
                                 l=line1_length,
                                 cl=cl,
@@ -175,107 +186,3 @@ class AirbridgeOverCPW(DesignElement):
     def __repr__(self):
         return "AirbridgeOverCPW {} C = {}".format(self.name, self.bridge_capacitance)
 
-
-class AirBridge:
-    def __init__(self, width: float, length: float, padsize: float, min_spacing: float,
-                 layer_configuration: LayerConfiguration):
-        """
-        Airbridge crossover element geometry settings, defined by technology
-        :param width: crossover width
-        :param length: crossover length
-        :param padsize: crossover contact pad size
-        :param min_spacing: minimal distance between neighboring crossovers
-        :param layer_configuration: LayerConfiguration object
-        """
-        self.padsize = padsize
-        self.width = width
-        self.length = length
-        self.layer_configuration = layer_configuration
-
-    def render(self):
-        # first the two contacts
-        contact_1 = gdspy.Rectangle((- self.padsize / 2, self.length / 2 - self.padsize / 2),
-                                    (self.padsize / 2, self.length / 2 + self.padsize / 2))
-        contact_2 = gdspy.Rectangle((- self.padsize / 2, - self.length / 2 - self.padsize / 2),
-                                    (self.padsize / 2, - self.length / 2 + self.padsize / 2))
-        contacts = gdspy.boolean(contact_1, contact_2, 'or', layer=self.layer_configuration.airbridges_pad_layer)
-        # add restricted area for holes
-        restricted_area = gdspy.Rectangle((-self.padsize / 2, - self.length / 2 - self.padsize / 2),
-                                          (self.padsize / 2, self.length / 2 + self.padsize / 2))
-        # now the bridge itself
-        bridge = gdspy.Rectangle((-self.width / 2, -self.length / 2),
-                                 (self.width / 2, self.length / 2),
-                                 layer=self.layer_configuration.airbridges_layer)
-
-        # return {'airbridges_pad_layer': [contacts], 'airbridges_layer': [bridge], 'restrict': (restricted_area,)}
-        return {'airbridges_pad_layer': contacts, 'airbridges_layer': bridge, 'restrict': restricted_area}
-
-
-class CPWGroundAirBridge(DesignElement):
-    def __init__(self, name: str, position: Tuple[float, float], orientation: float, geometry: AirBridge,
-                 w: float, s: float, g: float, layer_configuration: LayerConfiguration,
-                 l: float = 0, c: float = 0):
-        """
-        Airbridge crossover element
-        :param name: Design element name
-        :param position: position on chip
-        :param orientation: contact pad orientation
-        :param geometry: AirBridge object containing the geometry of the air bridge
-        :param w: signal line width of CPW beneath air bridge
-        :param s: s width of CPW beneath air bridge
-        :param g: finite g of CPW beneath air bridge (unused)
-        :param layer_configuration: LayerConfiguration object
-        :param l: inductance of CPW line beneath
-        :param c: capacitance of CPW line beneath
-        """
-        super().__init__('airbridge', name)
-
-        self.position = np.asarray(position)
-        self.orientation = orientation
-        self.geometry = geometry
-        self.w = w
-        self.s = s
-        self.g = g
-        self.layer_configuration = layer_configuration
-        self.l = l
-        self.c = c
-        self.tls_cache = []
-        p = self.geometry.padsize / 2 * np.asarray([np.cos(self.orientation), np.sin(self.orientation)])
-
-        self.terminals = {'port1': DesignTerminal(position=self.position - p, orientation=self.orientation,
-                                                  type='cpw', w=self.w, s=self.s, g=self.g, disconnected='short'),
-                          'port2': DesignTerminal(position=self.position + p, orientation=self.orientation + np.pi,
-                                                  type='cpw', w=self.w, s=self.s, g=self.g, disconnected='short')}
-
-    def render(self):
-        airbridge = self.geometry.render()
-        under_cpw = Trapezoid(w1=self.w, s1=self.s, g1=self.g, w2=self.w, s2=self.s, g2=self.g,
-                              length=self.geometry.padsize, layer_configuration=self.layer_configuration).render()
-
-        result = combine([(airbridge, (0, 0)), (under_cpw, (0, 0))])
-        # result = {}
-
-        for layer_name, polygons in result.items():
-            result[layer_name].rotate(self.orientation, (0, 0))
-            result[layer_name].translate(*self.position)
-
-        return result
-
-    def get_terminals(self) -> dict:
-        return self.terminals
-
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
-                   cutoff: float = np.inf) -> list:
-        l = tlsim.Inductor(l=self.l)
-        c1 = tlsim.Capacitor(c=self.c / 2)
-        c2 = tlsim.Capacitor(c=self.c / 2)
-
-        elements = [l, c1, c2]
-        if track_changes:
-            self.tls_cache.append(elements)
-
-        tls_instance.add_element(l, [terminal_mapping['port1'], terminal_mapping['port2']])
-        tls_instance.add_element(c1, [terminal_mapping['port1'], 0])
-        tls_instance.add_element(c2, [terminal_mapping['port2'], 0])
-
-        return elements
