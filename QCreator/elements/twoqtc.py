@@ -35,7 +35,6 @@ class TWOQTC(DesignElement):
         self.tls_cache = []
         self.L = 15e-9  # 20nHr
 
-
         # Filling the dictionary with dummy values for the calculation of the Capacity matrix
         self.C = {'qubit': None}
         for i in range(0,25):
@@ -51,9 +50,9 @@ class TWOQTC(DesignElement):
                           bridge_gap = Q1['b_g'],
                           bridge_w   = Q1['b_w'] ,
                           gap = Q1['gap'],
-                          ground_w = Q1['g_w'],
-                          ground_h = Q1['g_h'],
-                          ground_t = Q1['g_t'],
+                          ground_w = Q1['ground_w'],
+                          ground_h = Q1['ground_h'],
+                          ground_t = Q1['ground_t'],
                           jj_params= Q1['jj_pp'],
                           layer_configuration = self.layers_configuration,
                           Couplers = Q1['Couplers'],
@@ -63,15 +62,15 @@ class TWOQTC(DesignElement):
                                          )
         #Qubit 2
         Q2 = self.Q2
-        Qubit2 = pp_transmon.PP_Transmon(name=Q2['name'],center=(self.center[0]+self.d1+self.d2+Q1['g_w']/2+Q2['g_w']/2+self.TC['g_w'],self.center[1]),
+        Qubit2 = pp_transmon.PP_Transmon(name=Q2['name'],center=(self.center[0]+self.d1+self.d2+Q1['ground_w']/2+Q2['ground_w']/2+self.TC['ground_w'],self.center[1]),
                           width = Q2['width'],
                           height = Q2['height'],
                           bridge_gap = Q2['b_g'],
                           bridge_w   = Q2['b_w'] ,
                           gap = Q2['gap'],
-                          ground_w = Q2['g_w'],
-                          ground_h = Q2['g_h'],
-                          ground_t = Q2['g_t'],
+                          ground_w = Q2['ground_w'],
+                          ground_h = Q2['ground_h'],
+                          ground_t = Q2['ground_t'],
                           jj_params= Q2['jj_pp'],
                           layer_configuration = self.layers_configuration,
                           Couplers = Q2['Couplers'],
@@ -85,15 +84,15 @@ class TWOQTC(DesignElement):
 
         #TC
         TC = self.TC
-        TunC = pp_squid_coupler.PP_Squid_C(name=TC['name'],center=(self.center[0]+self.d1+Q1['g_w']/2+TC['g_w']/2,self.center[1]),
+        TunC = pp_squid_coupler.PP_Squid_C(name=TC['name'],center=(self.center[0]+self.d1+Q1['ground_w']/2+TC['ground_w']/2,self.center[1]),
                           width = TC['width'],
                           height = TC['height'],
                           bridge_gap = TC['b_g'],
                           bridge_w   = TC['b_w'] ,
                           gap = TC['gap'],
-                          g_w = TC['g_w'],
-                          g_h = TC['g_h'],
-                          g_t = TC['g_t'],
+                          ground_w = TC['ground_w'],
+                          ground_h = TC['ground_h'],
+                          ground_t = TC['ground_t'],
                           jj_params= TC['jj_pp'],
                           layer_configuration = self.layers_configuration,
                           Couplers = TC['Couplers'],
@@ -104,11 +103,6 @@ class TWOQTC(DesignElement):
                           calculate_capacitance=True,
                           arms = TC['arms']
                                  )
-
-
-
-
-
 
         Q1Render = Qubit1.render()
         Q2Render = Qubit2.render()

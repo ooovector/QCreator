@@ -9,6 +9,8 @@ from QCreator import general_sample_creator as creator
 from QCreator import meshing
 reload(gdspy)
 
+
+#chip parameters
 ### to have 50 Oms impedance with eps=11.75
 tl_core = 20.
 tl_gap = 12.
@@ -91,22 +93,20 @@ for pad_side_id in range(3):
 p1 = pads_left[0]
 p2 = pads_right[0]
 
-
-Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.3,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground)
-         ]
-
-Couplers_Squid=[elements.pp_squid_coupler.PP_Squid_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.3,
+#Qubit parameters
+Couplers=[elements.shoe_transmon.Shoe_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.3,
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground)
          ]
 
 
-width = 200
-height= 200
+width = 100
+height= 400
 gap   = 50
-ground_w = 600
-ground_h   = 400
+ground_w = 1000
+ground_h   = 1000
 ground_t   = 10
+
+shoes = {1:(10,20),2:(70,50),3:(100,80),4:(150,100),}
 # b_g   = 19 # from JJ Design for JJ4q
 JJ_pad_offset_x = 16 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design
@@ -124,28 +124,28 @@ rph,rg,rpw,rw = lph,lg,lpw,lw
 
 arms = {'l.ph':lph,'l.g':lg,'l.pw':lpw,'l.w':lw,'r.ph':rph,'r.g':rg,'r.pw':rpw,'r.w':rw}
 
-transmon1 = elements.pp_squid_coupler.PP_Squid_C(name='PP_Transmon1',center=(2000,1550),
+transmon1 = elements.shoe_transmon.Shoe_Transmon(name='Shoe_Transmon1',center=(2000,2750),
                           width = width,
                           height = height,
                           bridge_gap = JJ_pad_offset_x,
                           bridge_w   = JJ_pad_offset_y ,
+                          shoes = shoes,
                           gap = gap,
                           ground_w = ground_w,
                           ground_h = ground_h,
                           ground_t = ground_t,
                           jj_params= jj_pp,
-                          fluxline_params = fluxline,
-                          arms = arms,
                           layer_configuration = sample.layer_configuration,
-                          Couplers = Couplers_Squid,
+                          Couplers = Couplers,
                           calculate_capacitance = False,
                           transformations = {}
                           )
 
-center = (2000,2750)
-transmon2 = elements.pp_transmon.PP_Transmon(name='PP_Transmon2',center=center,
+
+transmon2 = elements.shoe_transmon.Shoe_Transmon(name='Shoe_Transmon2',center=(3500,2750),
                           width = width,
                           height = height,
+                          shoes = shoes,
                           bridge_gap = JJ_pad_offset_x,
                           bridge_w   = JJ_pad_offset_y ,
                           gap = gap,
@@ -156,7 +156,7 @@ transmon2 = elements.pp_transmon.PP_Transmon(name='PP_Transmon2',center=center,
                           layer_configuration = sample.layer_configuration,
                           Couplers = Couplers,
                           calculate_capacitance = False,
-                          transformations = {'rotate':[np.pi/2+0.2,center]}
+                          transformations = {}
                           )
 sample.add(transmon1)
 sample.add(transmon2)

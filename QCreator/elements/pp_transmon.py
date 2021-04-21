@@ -316,13 +316,13 @@ class PP_Transmon(DesignElement):
                     coupler_connection = rotate_point(coupler.connection, self.transformations['rotate'][0], self.transformations['rotate'][1])
                     qubit_center = rotate_point(deepcopy(self.center), self.transformations['rotate'][0], self.transformations['rotate'][1])
                     if coupler.side == "left":
-                        coupler_phi = 0+np.arctan2(coupler_connection[1]-coupler.connection[1], coupler_connection[0]-coupler.connection[0])
+                        coupler_phi = 0+self.transformations['rotate'][0]
                     if coupler.side == "right":
-                        coupler_phi = np.pi+np.arctan2(coupler_connection[1]-coupler.connection[1], coupler_connection[0]-coupler.connection[0])
+                        coupler_phi = np.pi+self.transformations['rotate'][0]
                     if coupler.side == "top":
-                        coupler_phi = -np.pi / 2+np.arctan2(coupler_connection[1]-coupler.connection[1], coupler_connection[0]-coupler.connection[0])
+                        coupler_phi = -np.pi / 2+self.transformations['rotate'][0]
                     if coupler.side == "bottom":
-                        coupler_phi = np.pi / 2+np.arctan2(coupler_connection[1]-coupler.connection[1], coupler_connection[0]-coupler.connection[0])
+                        coupler_phi = np.pi / 2+self.transformations['rotate'][0]
 
             if self.transformations == {}:
                 coupler_connection = coupler.connection

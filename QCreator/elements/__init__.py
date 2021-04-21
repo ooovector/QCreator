@@ -13,8 +13,10 @@ from .coaxmon import CoaxmonCoupler
 from .tqcoupler import MMCoupler
 from .pp_transmon import PP_Transmon
 from .pp_transmon import PP_Transmon_Coupler
+from .shoe_transmon import Shoe_Transmon
+from .shoe_transmon import Shoe_Transmon_Coupler
 from .xmon import Xmon
-
 from .pp_squid import PP_Squid
 from .pp_squid_coupler import PP_Squid_C
+from .fungus_squid_coupler import Fungus_Squid_C
 from .twoqtc import TWOQTC

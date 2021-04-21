@@ -9,9 +9,9 @@ from . import JJ4q
 from copy import deepcopy
 
 
-class PP_Squid_C(DesignElement):
+class Fungus_Squid_C(DesignElement):
     """
-    PP-Transmon consists of several parts:
+    Fungus-Transmon (asymmetric pad size) consists of several parts:
     1) Central part - central circuit
     params: center = center of the qubit, w,h,gap = width,height,gap of the Parallel Plate Transmon in the ground cavity
     2) Couplers - claw like couplers for the left and right, rectangular pad couplers on top and bottom
@@ -22,14 +22,17 @@ class PP_Squid_C(DesignElement):
     7) remove_ground - removes the ground on the specified site (left,right, top, bottom)
     8) arms - the parameters for the squid arms for coupling left and right qubits
     """
-    def __init__(self, name: str, center: Tuple[float, float],width: float, height: float,gap: float,bridge_gap:float,bridge_w:float, ground_w: float, ground_h: float,ground_t: float,layer_configuration: LayerConfiguration,
-                 jj_params: Dict,fluxline_params: Dict,Couplers,transformations:Dict,arms:Dict,remove_ground = {},secret_shift = 0,calculate_capacitance = False):
+    def __init__(self, name: str, center: Tuple[float, float],width: Tuple[float,float], height: Tuple[float,float],gap: float,bridge_gap:float,bridge_w:float, ground_w: float, ground_h: float,ground_t: float,layer_configuration: LayerConfiguration,
+                 jj_params: Dict,fluxline_params: Dict,Couplers,transformations:Dict,arms:Dict,remove_ground = {},secret_shift = 0,calculate_capacitance = False,shoes = {}):
         super().__init__(type='qubit', name=name)
         #qubit parameters
         self.transformations = transformations# to mirror the structure
         self.center = center
-        self.w = width
-        self.h = height
+        self.w_pads = width
+        self.h_pads = height
+        self.w = width[1]
+        self.h = height[1]
+        self.shoes = shoes
         self.gap = gap
         self.g_w = ground_w
         self.g_h = ground_h
@@ -86,22 +89,45 @@ class PP_Squid_C(DesignElement):
         # restricted area for a future grid lines
         result_restricted = gdspy.Rectangle((self.center[0]-self.g_w/2,self.center[1]-self.g_h/2),(self.center[0]+self.g_w/2,self.center[1]+self.g_h/2),layer=self.layer_configuration.restricted_area_layer)
 
-        P1 = gdspy.Rectangle((self.center[0]-self.gap/2-self.w,self.center[1]-self.h/2),(self.center[0]-self.gap/2,self.center[1]+self.h/2))
-        P2 = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w, self.center[1] - self.h / 2),(self.center[0] + self.gap / 2, self.center[1] + self.h / 2))
+        P1 = gdspy.Rectangle((self.center[0]-self.gap/2-self.w_pads[0],self.center[1]-self.h_pads[0]/2),(self.center[0]-self.gap/2,self.center[1]+self.h_pads[0]/2))
+        P2 = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w_pads[1], self.center[1] - self.h_pads[1] / 2),(self.center[0] + self.gap / 2, self.center[1] + self.h_pads[1] / 2))
+        # adding the shoe caps here
+        for key in self.shoes:
+            if key == 1:
+                P1 = gdspy.boolean(P1, gdspy.Rectangle(
+                    (self.center[0] - self.gap / 2 - self.w_pads[0], self.center[1] + self.h_pads[0] / 2), (
+                    self.center[0] - self.gap / 2 - self.w_pads[0] - self.shoes[key][0],
+                    self.center[1] + self.h_pads[0] / 2 - self.shoes[key][1])), 'or')
+            if key == 2:
+                P1 = gdspy.boolean(P1, gdspy.Rectangle(
+                    (self.center[0] - self.gap / 2 - self.w_pads[0], self.center[1] - self.h_pads[0] / 2), (
+                    self.center[0] - self.gap / 2 - self.w_pads[0] - self.shoes[key][0],
+                    self.center[1] - self.h_pads[0] / 2 + self.shoes[key][1])), 'or')
+            if key == 3:
+                P2 = gdspy.boolean(P2, gdspy.Rectangle(
+                    (self.center[0] + self.gap / 2 + self.w, self.center[1] + self.h / 2), (
+                    self.center[0] + self.gap / 2 + self.w + self.shoes[key][0],
+                    self.center[1] + self.h / 2 - self.shoes[key][1])), 'or')
+            if key == 4:
+                P2 = gdspy.boolean(P2, gdspy.Rectangle(
+                    (self.center[0] + self.gap / 2 + self.w, self.center[1] - self.h / 2), (
+                    self.center[0] + self.gap / 2 + self.w + self.shoes[key][0],
+                    self.center[1] - self.h / 2 + self.shoes[key][1])), 'or')
 
         #coupler arms left and right
-        left_arm    = gdspy.Rectangle((self.center[0]-self.gap/2-self.w,self.center[1]-self.arms['l.w']/2),(self.center[0]-self.g_w/2+self.g_t+self.arms['l.g'],self.center[1]+self.arms['l.w']/2))
-        left_arm    = gdspy.boolean(gdspy.Rectangle((self.center[0]-self.g_w/2+self.g_t+self.arms['l.g'],self.center[1]-self.arms['l.ph']/2),(self.center[0]-self.g_w/2+self.g_t+self.arms['l.g']+self.arms['l.pw'],self.center[1]+self.arms['l.ph']/2)), left_arm, 'or')
-        P1          = gdspy.boolean(P1, left_arm, 'or')
+        if self.arms != {}:
+            left_arm    = gdspy.Rectangle((self.center[0]-self.gap/2-self.w,self.center[1]-self.arms['l.w']/2),(self.center[0]-self.g_w/2+self.g_t+self.arms['l.g'],self.center[1]+self.arms['l.w']/2))
+            left_arm    = gdspy.boolean(gdspy.Rectangle((self.center[0]-self.g_w/2+self.g_t+self.arms['l.g'],self.center[1]-self.arms['l.ph']/2),(self.center[0]-self.g_w/2+self.g_t+self.arms['l.g']+self.arms['l.pw'],self.center[1]+self.arms['l.ph']/2)), left_arm, 'or')
+            P1          = gdspy.boolean(P1, left_arm, 'or')
 
-        right_arm = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w, self.center[1] + self.arms['r.w'] / 2), (
-        self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'], self.center[1] - self.arms['r.w'] / 2))
-        right_arm = gdspy.boolean(gdspy.Rectangle(
-            (self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'], self.center[1] + self.arms['r.ph'] / 2), (
-            self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'] - self.arms['r.pw'],
-            self.center[1] - self.arms['r.ph'] / 2)), right_arm, 'or')
+            right_arm = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w, self.center[1] + self.arms['r.w'] / 2), (
+            self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'], self.center[1] - self.arms['r.w'] / 2))
+            right_arm = gdspy.boolean(gdspy.Rectangle(
+                (self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'], self.center[1] + self.arms['r.ph'] / 2), (
+                self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'] - self.arms['r.pw'],
+                self.center[1] - self.arms['r.ph'] / 2)), right_arm, 'or')
 
-        P2 = gdspy.boolean(P2, right_arm, 'or')
+            P2 = gdspy.boolean(P2, right_arm, 'or')
 
 
         self.layers.append(9)
@@ -127,19 +153,20 @@ class PP_Squid_C(DesignElement):
         fluxline = flux.render(self.center, self.w, self.h,self.g_h,self.g_t)['positive']
 
         self.couplers.append(flux)
-
+        result = gdspy.boolean(result, fluxline, 'or', layer=self.layer_configuration.total_layer)
         #removing ground where the fluxline is
         ground_fluxline =True
         if ground_fluxline == False:
-            result = gdspy.boolean(result, gdspy.Rectangle((self.center[0]-l_arm/2-t_r-self.g_t,self.center[1]+self.h/2+0.01),(self.center[0]+3*l_arm/2+t_r+t_m+self.g_t,self.center[1]+self.h/2+250)), 'not', layer=self.layer_configuration.total_layer)
+            result = gdspy.boolean(result, gdspy.Rectangle((self.center[0]-l_arm/2-t_r-self.g_t,self.center[1]+self.h/2+0.01),(self.center[0]+3*l_arm/2+t_r+t_m+self.g_t,self.center[1]+self.h/2)), 'not', layer=self.layer_configuration.total_layer)
         else:
             result = gdspy.boolean(result, gdspy.Rectangle(
-                (self.center[0] , self.center[1] + self.h / 2 + 0.01),
-                (self.center[0] +  l_arm + t_m, self.center[1] + self.h / 2 + 250)), 'not',
+                (self.center[0]+t_r/2 , self.center[1] + self.g_h/2-self.g_t),
+                (self.center[0] +  l_arm + t_m-t_r/2, self.center[1] + self.g_h/2 )), 'not',
                                    layer=self.layer_configuration.total_layer)
-
-
-        result = gdspy.boolean(result, fluxline, 'or', layer=self.layer_configuration.total_layer)
+            result = gdspy.boolean(result, gdspy.Rectangle(
+                (self.center[0]-100 , self.center[1] + self.g_h / 2 ),
+                (self.center[0]+100 +  l_arm + t_m, self.center[1] + self.g_h / 2 +2000)), 'not',
+                                   layer=self.layer_configuration.total_layer)
 
         # add couplers
         last_step_cap = [gdspy.boolean(gdspy.boolean(P2, P2_bridge, 'or'),gdspy.boolean(P1, P1_bridge, 'or'),'or')]
@@ -284,13 +311,13 @@ class PP_Squid_C(DesignElement):
 
         for key in self.remove_ground:
             if key == 'left':
-                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2,z[1] - y / 2+t), (z[0] - x / 2 +t, z[1] + y / 2-t)) , 'not')
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2,z[1] - y / 2), (z[0] - x / 2 +t, z[1] + y / 2)) , 'not')
             if key == 'right':
-                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] + x / 2,z[1] - y / 2+t), (z[0] + x / 2 -t, z[1] + y / 2-t)) , 'not')
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] + x / 2,z[1] - y / 2), (z[0] + x / 2 -t, z[1] + y / 2)) , 'not')
             if key == 'top':
-                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2+t,z[1] + y / 2), (z[0] + x / 2-t, z[1] + y / 2-t)) , 'not')
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2,z[1] + y / 2-t), (z[0] + x / 2, z[1] + y / 2)) , 'not')
             if key == 'bottom':
-                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2+t,z[1] - y / 2), (z[0] + x / 2-t, z[1] - y / 2+t)) , 'not')
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2,z[1] - y / 2), (z[0] + x / 2, z[1] - y / 2+t)) , 'not')
 
         return ground
 
@@ -317,16 +344,16 @@ class PP_Squid_C(DesignElement):
                     coupler_connection = rotate_point(coupler.connection, self.transformations['rotate'][0], self.transformations['rotate'][1])
                     qubit_center = rotate_point(deepcopy(self.center), self.transformations['rotate'][0], self.transformations['rotate'][1])
                     if coupler.side == "left":
-                        coupler_phi = 0+np.arctan2(coupler_connection[1]-coupler.connection[1], coupler_connection[0]-coupler.connection[0])
+                        coupler_phi = 0+self.transformations['rotate'][0]
                     if coupler.side == "right":
-                        coupler_phi = np.pi+np.arctan2(coupler_connection[1]-coupler.connection[1], coupler_connection[0]-coupler.connection[0])
+                        coupler_phi = np.pi+self.transformations['rotate'][0]
                     if coupler.side == "top":
-                        coupler_phi = -np.pi / 2+np.arctan2(coupler_connection[1]-coupler.connection[1], coupler_connection[0]-coupler.connection[0])
+                        coupler_phi = -np.pi / 2+self.transformations['rotate'][0]
                     if coupler.side == "bottom":
-                        coupler_phi = np.pi / 2+np.arctan2(coupler_connection[1]-coupler.connection[1], coupler_connection[0]-coupler.connection[0])
+                        coupler_phi = np.pi / 2+self.transformations['rotate'][0]
                     if coupler.side == "fluxline":
-                        coupler_phi = -np.pi / 2 + np.arctan2(coupler_connection[1] - coupler.connection[1],
-                                                              coupler_connection[0] - coupler.connection[0])
+                        coupler_phi =  -np.pi/2+self.transformations['rotate'][0]
+
             if self.transformations == {}:
                 coupler_connection = coupler.connection
                 if coupler.side == "left":
@@ -339,8 +366,9 @@ class PP_Squid_C(DesignElement):
                     coupler_phi = -np.pi/2
                 if coupler.side == "bottom":
                     coupler_phi = np.pi/2
-            if coupler.connection is not None:
 
+
+            if coupler.connection is not None:
                 self.terminals['coupler'+str(id)] = DesignTerminal(tuple(coupler_connection),
                                                                    coupler_phi, g=coupler.g, s=coupler.s,
                                                                 w=coupler.w, type='cpw')
