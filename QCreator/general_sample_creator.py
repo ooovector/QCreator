@@ -234,7 +234,7 @@ class Sample:
         points = [tuple(t1.position)] + points + [tuple(t2.position)]
         cpw = elements.CPW(name, points, w, s, g, self.layer_configuration, r=self.default_cpw_radius(w, s, g),
                            corner_type='round', orientation1=orientation1, orientation2=orientation2)
-        print('cpw segments', cpw.segments)
+
         if airbridge:
             cpw_with_bridges = self.generate_bridge_over_cpw(name=name, o=cpw,
                                                              geometry=airbridge,
