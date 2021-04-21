@@ -145,7 +145,8 @@ def draw_double_resonator_plus_double_qubit(sample,
                         object1=None, port1=None, open_end_length1=None,
                         object2=None, port2=None, open_end_length2=None,
                         min_bridge_spacing=None, airbridge=None,
-                        port_orientation='left'):
+                        port_orientation='left',
+                        meander_first_intend_orientation='left'):
     # 2. Create main copler:
 
     main_coupler = elements.CPWCoupler('TL-resonator coupler', [(coupler_start_x, coupler_start_y),
@@ -177,7 +178,7 @@ def draw_double_resonator_plus_double_qubit(sample,
                                                  meander_length=closed_end_meander_length1,
                                                  length_left=length_left1,
                                                  length_right=length_right1,
-                                                 first_step_orientation='left',
+                                                 first_step_orientation=meander_first_intend_orientation,
                                                  meander_orientation=angle2, meander_type='round',
                                                  min_spacing=min_bridge_spacing, airbridge=airbridge)
     closed_end_meander2 = sample.connect_meander(name='closed end 2', o1=fanout1,
@@ -185,7 +186,7 @@ def draw_double_resonator_plus_double_qubit(sample,
                                                  meander_length=closed_end_meander_length2,
                                                  length_left=length_left2,
                                                  length_right=length_right2,
-                                                 first_step_orientation='left',
+                                                 first_step_orientation=meander_first_intend_orientation,
                                                  meander_orientation=angle1, meander_type='round',
                                                  min_spacing=min_bridge_spacing, airbridge=airbridge)
 

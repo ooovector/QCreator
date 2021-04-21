@@ -21,10 +21,18 @@ def meander_creation(name: str, initial_position: Tuple[(float, float)], w: floa
     points.append((initial_position[0] + np.cos(orientation + np.pi) * indent_length,
                    initial_position[1] + np.sin(orientation + np.pi) * indent_length))
 
-    indent_first = length_left if first_step_orientation == 'left' else length_right
+    if first_step_orientation =='left':
+        indent_first = length_left
+        points.append((points[-1][0] + np.cos(meander_orientation) * indent_first,
+                       points[-1][1] + np.sin(meander_orientation) * indent_first))
+    elif first_step_orientation =='right':
+        indent_first = length_right
+        points.append((points[-1][0] + np.cos(meander_orientation+np.pi) * indent_first,
+                       points[-1][1] + np.sin(meander_orientation+np.pi) * indent_first))
+    else:
+        raise print('meander first step orientation is wrong')
 
-    points.append((points[-1][0] + np.cos(meander_orientation) * indent_first,
-                   points[-1][1] + np.sin(meander_orientation) * indent_first))
+
 
     if end_point is not None:
         end_point_indent = [(end_point[0] + np.cos(end_orientation + np.pi) * indent_length,
@@ -54,9 +62,12 @@ def meander_creation(name: str, initial_position: Tuple[(float, float)], w: floa
     # from the end of the meander is less than the meander step
     if end_orientation is not None:
         N = N - 1
-
+    if first_step_orientation == 'right':
+        N=N+1
+        i=2
+    else:
+        i = 1
     # make a meander
-    i = 1
     while i <= N:
         list = [(points[-1][0] + np.sin(meander_orientation) * default_bend_diameter,
                  points[-1][1] - np.cos(meander_orientation) * default_bend_diameter)]
