@@ -56,6 +56,7 @@ class CPWCoupler(DesignElement):
         self.cl, self.ll = self.cm()
 
     def finalize_points(self):
+        eps = 1e-7
         orientation1 = np.asarray([np.cos(self.terminals['port1'].orientation),
                                    np.sin(self.terminals['port1'].orientation)])
 
@@ -68,21 +69,21 @@ class CPWCoupler(DesignElement):
         if orientation1_delta > np.pi:
             orientation1_delta -= 2 * np.pi
             orientation1_delta = np.abs(orientation1_delta)
-            if orientation1_delta > 0.001:
-                second_point = adapted_points[0] + adapter_length * orientation1 * np.tan(orientation1_delta / 2)
-                adapted_points = [adapted_points[0], second_point] + adapted_points[1:]
+        if orientation1_delta > eps:
+            second_point = adapted_points[0] + adapter_length * orientation1 * np.tan(orientation1_delta / 2)
+            adapted_points = [adapted_points[0], second_point] + adapted_points[1:]
 
         orientation2_delta = np.abs(self.terminals['port2'].orientation - self.last_segment_orientation)
         if orientation2_delta > np.pi:
             orientation2_delta -= 2 * np.pi
             orientation2_delta = np.abs(orientation2_delta)
-            if orientation2_delta > 0.001:
-                blast_point = self.points[-1] + adapter_length * orientation2 * np.tan(orientation2_delta / 2 + 0.001)
-                adapted_points = adapted_points[:-1] + [blast_point, adapted_points[-1]]
+        if orientation2_delta > eps:
+            blast_point = self.points[-1] + adapter_length * orientation2 * np.tan(orientation2_delta / 2 + 0.001)
+            adapted_points = adapted_points[:-1] + [blast_point, adapted_points[-1]]
 
         # remove duplicates
         adapted_points2 = [adapted_points[0]]
-        eps = 1e-7
+
         for p in adapted_points[1:]:
             if np.sqrt(np.sum((p - adapted_points2[-1]) ** 2)) > eps:
                 adapted_points2.append(p)
