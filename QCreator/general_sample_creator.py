@@ -268,8 +268,19 @@ class Sample:
         # self.connect(cpw, 'port2', o2, port2)
 
 
-    def watch(self):
-        gdspy.LayoutViewer(depth=0, pattern={'default': 8}, background='#FFFFFF')  # this opens a viewer
+    def watch(self,dark = False):
+        #Gerhards color scheme here :D, dark and smooth colours
+        bkg = '#2C2A4A'
+
+        colour = {}
+        c_list = ['#DABFFF','#D5A021','#95B2B0','#7FDEFF','#D3BDB0','#89937C','#EAE2B7','#EDA4BD','#A0ACAD','#C8D6AF','#95B2B0','#BA274A','#2191FB','#FCB0B3','#CE7DA5','#CFFFB0','#907AD6','#A44200']
+        for i in range(18):
+            colour[(i,0)] = c_list[i]
+        if dark:
+            gdspy.LayoutViewer(depth=0, pattern={'default': 8}, background=bkg,color=colour)  # this opens a viewer
+        else:
+            gdspy.LayoutViewer(depth=0, pattern={'default': 8}, background='#FFFFFF')
+
 
     def cpw_shift(self, element, port_name, length):
         return [(element.get_terminals()[port_name].position[0] + \

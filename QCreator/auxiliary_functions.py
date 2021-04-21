@@ -177,7 +177,7 @@ def draw_single_resonator_plus_qubit(sample, elements,
                                                 length_right=length_right,
                                                 first_step_orientation=port_orientation,
                                                 meander_orientation=angle,
-                                                meander_type='round')
+                                                meander_type='round')[0]
     total_length.append(closed_end_meander.length)
     # # 7. Create grounding of resonator
     resonator_ground_ = sample.ground(o=closed_end_meander, port='port2', name='resonator ground', grounding_width=30,
@@ -359,14 +359,14 @@ def draw_double_resonator_plus_double_qubit(sample, elements,
                                                  length_left=length_left1,
                                                  length_right=length_right1,
                                                  first_step_orientation='left',
-                                                 meander_orientation=angle2, meander_type='round')
+                                                 meander_orientation=angle2, meander_type='round')[0]
     closed_end_meander2 = sample.connect_meander(name='closed end 2', o1=fanout_for_closed_end,
                                                  port1=closed_end_direction2,
                                                  meander_length=closed_end_meander_length2,
                                                  length_left=length_left2,
                                                  length_right=length_right2,
                                                  first_step_orientation='left',
-                                                 meander_orientation=angle1, meander_type='round')
+                                                 meander_orientation=angle1, meander_type='round')[0]
 
     # 7. Create fanout to create closed enfd of resonator
     fanout_for_open_end = sample.fanout(o=main_coupler, port=port2, name='open end resonator fanout', grouping=[1, 4])
