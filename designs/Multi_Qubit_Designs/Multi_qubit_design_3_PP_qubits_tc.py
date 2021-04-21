@@ -23,6 +23,8 @@ pad_offset = 800
 
 jc = 1e-6 # uA/um^2
 
+#Chip parameters
+
 layers_configuration = {
     'total':0,
     'restricted area':10,
@@ -35,7 +37,7 @@ layers_configuration = {
     'inverted':17
 }
 
-sample = creator.Sample('1Q_test',layers_configuration)
+sample = creator.Sample('3Q_test',layers_configuration)
 
 #specify sample vertical and horizontal lengths
 sample.chip_geometry.sample_vertical_size=4.3e3
@@ -91,40 +93,63 @@ for pad_side_id in range(3):
 p1 = pads_left[0]
 p2 = pads_right[0]
 
+#Qubit parameters
 
-Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.3,
+Coupler1=[elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.3,
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground)
          ]
 
-Couplers_Squid=[elements.pp_squid_coupler.PP_Squid_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.3,
+Coupler2=[elements.pp_transmon.PP_Transmon_Coupler(50,70,16,'top',coupler_type = 'coupler',heightl = 0.3,
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground)
+         ]
+
+Coupler3=[elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = 'coupler',heightr = 0.3,
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground)
          ]
 
 
-width = 200
-height= 200
-gap   = 50
-ground_w = 600
-ground_h   = 400
+Couplers_Squid1=[]
+
+Couplers_Squid2=[]
+
+
+width = 75
+height= 550
+gap   = 70
+ground_w = 310
+ground_h   = 650
 ground_t   = 10
-# b_g   = 19 # from JJ Design for JJ4q
-JJ_pad_offset_x = 16 # for JJ_manhatten #for the JJ connections pads between the PPs
+
+JJ_pad_offset_x = 10 # for JJ_manhatten
 JJ_pad_offset_y = 16 # JJ design
 
-a1    = 0.15 #Junction height in um
-a2    = 0.30 # Junction width in um
+#square junctions
+a1    = np.sqrt(0.15*0.3) #Junction height in um
+a2    = a1 # Junction width in um
 
 #jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':np.pi/2}
 jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8 }# hole sizes for the JJs
 
 l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 6, 5, 20, 50, resonator_gap
 fluxline = {'l':l,'t_m':t_m,'t_r':t_r,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
+
+
+
 lph,lg,lpw,lw = 85,0,55,0.5*200/7
 rph,rg,rpw,rw = lph,lg,lpw,lw
 
 arms = {'l.ph':lph,'l.g':lg,'l.pw':lpw,'l.w':lw,'r.ph':rph,'r.g':rg,'r.pw':rpw,'r.w':rw}
 
-transmon1 = elements.pp_squid_coupler.PP_Squid_C(name='PP_Transmon1',center=(2000,1550),
+width_tc = 2.1/7*200
+height_tc= 11/7*200
+gap_tc   = 1.9/7*200
+ground_w_tc = 750
+ground_h_tc   = 15/7*200
+ground_t_tc   = 10
+
+
+
+transmon1 = elements.pp_transmon.PP_Transmon(name='PP_Transmon1',center=(2050,2000),
                           width = width,
                           height = height,
                           bridge_gap = JJ_pad_offset_x,
@@ -133,32 +158,91 @@ transmon1 = elements.pp_squid_coupler.PP_Squid_C(name='PP_Transmon1',center=(200
                           ground_w = ground_w,
                           ground_h = ground_h,
                           ground_t = ground_t,
+                          jj_params= jj_pp,
+                          layer_configuration = sample.layer_configuration,
+                          Couplers = Coupler1,
+                          calculate_capacitance = False,
+                          transformations = {},
+                          remove_ground = {'right':0.66},
+                          )
+transmon2 = elements.pp_transmon.PP_Transmon(name='PP_Transmon2',center=(2050+ground_w+ground_w_tc,2000),
+                          width = width,
+                          height = height,
+                          bridge_gap = JJ_pad_offset_x,
+                          bridge_w   = JJ_pad_offset_y ,
+                          gap = gap,
+                          ground_w = ground_w,
+                          ground_h = ground_h,
+                          ground_t = ground_t,
+                          jj_params= jj_pp,
+                          layer_configuration = sample.layer_configuration,
+                          Couplers = Coupler2,
+                          calculate_capacitance = False,
+                          transformations = {},
+                          remove_ground = {'right':0.66,'left':0.66},
+                          )
+
+transmon3 = elements.pp_transmon.PP_Transmon(name='PP_Transmon3',center=(2050+2*ground_w+2*ground_w_tc,2000),
+                          width = width,
+                          height = height,
+                          bridge_gap = JJ_pad_offset_x,
+                          bridge_w   = JJ_pad_offset_y ,
+                          gap = gap,
+                          ground_w = ground_w,
+                          ground_h = ground_h,
+                          ground_t = ground_t,
+                          jj_params= jj_pp,
+                          layer_configuration = sample.layer_configuration,
+                          Couplers = Coupler3,
+                          calculate_capacitance = False,
+                          transformations = {},
+                          remove_ground={'left': 0.66},
+                          )
+
+
+tc1 = elements.pp_squid_coupler.PP_Squid_C(name='PP_Coupler1',center=(2050+ground_w/2+ground_w_tc/2,2000),
+                          width = width_tc,
+                          height = height_tc,
+                          bridge_gap = JJ_pad_offset_x,
+                          bridge_w   = JJ_pad_offset_y ,
+                          gap = gap,
+                          ground_w = ground_w_tc,
+                          ground_h = ground_h_tc,
+                          ground_t = ground_t_tc,
                           jj_params= jj_pp,
                           fluxline_params = fluxline,
                           arms = arms,
                           layer_configuration = sample.layer_configuration,
-                          Couplers = Couplers_Squid,
+                          Couplers = Couplers_Squid1,
                           calculate_capacitance = False,
-                          transformations = {}
+                          transformations = {},
+                          remove_ground = {'left':1,'right':1},
                           )
 
-center = (2000,2750)
-transmon2 = elements.pp_transmon.PP_Transmon(name='PP_Transmon2',center=center,
-                          width = width,
-                          height = height,
+tc2 = elements.pp_squid_coupler.PP_Squid_C(name='PP_Coupler2',center=(2050+3*ground_w/2+3*ground_w_tc/2,2000),
+                          width = width_tc,
+                          height = height_tc,
                           bridge_gap = JJ_pad_offset_x,
                           bridge_w   = JJ_pad_offset_y ,
                           gap = gap,
-                          ground_w = ground_w,
-                          ground_h = ground_h,
-                          ground_t = ground_t,
+                          ground_w = ground_w_tc,
+                          ground_h = ground_h_tc,
+                          ground_t = ground_t_tc,
                           jj_params= jj_pp,
+                          fluxline_params = fluxline,
+                          arms = arms,
                           layer_configuration = sample.layer_configuration,
-                          Couplers = Couplers,
+                          Couplers = Couplers_Squid1,
                           calculate_capacitance = False,
-                          transformations = {'rotate':[np.pi/2+0.2,center]}
+                          transformations = {},
+                          remove_ground = {'left':1,'right':1},
                           )
+
+
 sample.add(transmon1)
 sample.add(transmon2)
+sample.add(transmon3)
+sample.add(tc1)
+sample.add(tc2)
 sample.draw_design()
 #sample.watch()

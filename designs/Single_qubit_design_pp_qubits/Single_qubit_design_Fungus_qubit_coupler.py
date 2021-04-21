@@ -9,6 +9,8 @@ from QCreator import general_sample_creator as creator
 from QCreator import meshing
 reload(gdspy)
 
+
+#chip parameters
 ### to have 50 Oms impedance with eps=11.75
 tl_core = 20.
 tl_gap = 12.
@@ -91,59 +93,37 @@ for pad_side_id in range(3):
 p1 = pads_left[0]
 p2 = pads_right[0]
 
-
-Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.3,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground)
-         ]
-
-Couplers_Squid=[elements.pp_squid_coupler.PP_Squid_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.3,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground)
-         ]
+#Qubit parameters
+Couplers=[]#elements.shoe_transmon.Shoe_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.3,w=resonator_core,s=resonator_gap,g=resonator_ground)]
 
 
-width = 200
-height= 200
-gap   = 50
-ground_w = 600
-ground_h   = 400
+
+width = (150,100)
+height= (700,200)
+gap   = 80
+ground_w = 800
+ground_h   = 750
 ground_t   = 10
+
 # b_g   = 19 # from JJ Design for JJ4q
 JJ_pad_offset_x = 16 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design
 
-a1    = 0.15 #Junction height in um
-a2    = 0.30 # Junction width in um
+a1    = np.sqrt(0.3*0.15) #Junction height in um
+a2    = a1 # Junction width in um
 
 #jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':np.pi/2}
 jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8 }# hole sizes for the JJs
 
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 6, 5, 20, 50, resonator_gap
+l, t_m, t_r, gp, l_arm, h_arm, s_gap = 430, resonator_core, 3, 5, 20, 50, resonator_gap
 fluxline = {'l':l,'t_m':t_m,'t_r':t_r,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
 lph,lg,lpw,lw = 85,0,55,0.5*200/7
 rph,rg,rpw,rw = lph,lg,lpw,lw
 
 arms = {'l.ph':lph,'l.g':lg,'l.pw':lpw,'l.w':lw,'r.ph':rph,'r.g':rg,'r.pw':rpw,'r.w':rw}
-
-transmon1 = elements.pp_squid_coupler.PP_Squid_C(name='PP_Transmon1',center=(2000,1550),
-                          width = width,
-                          height = height,
-                          bridge_gap = JJ_pad_offset_x,
-                          bridge_w   = JJ_pad_offset_y ,
-                          gap = gap,
-                          ground_w = ground_w,
-                          ground_h = ground_h,
-                          ground_t = ground_t,
-                          jj_params= jj_pp,
-                          fluxline_params = fluxline,
-                          arms = arms,
-                          layer_configuration = sample.layer_configuration,
-                          Couplers = Couplers_Squid,
-                          calculate_capacitance = False,
-                          transformations = {}
-                          )
-
-center = (2000,2750)
-transmon2 = elements.pp_transmon.PP_Transmon(name='PP_Transmon2',center=center,
+shoes = {1:(150,100),2:(150,100)}
+center = (2000,2050)
+transmon1 = elements.fungus_squid_coupler.Fungus_Squid_C(name='Shoe_Transmon1',center=center,
                           width = width,
                           height = height,
                           bridge_gap = JJ_pad_offset_x,
@@ -156,9 +136,16 @@ transmon2 = elements.pp_transmon.PP_Transmon(name='PP_Transmon2',center=center,
                           layer_configuration = sample.layer_configuration,
                           Couplers = Couplers,
                           calculate_capacitance = False,
-                          transformations = {'rotate':[np.pi/2+0.2,center]}
+                          fluxline_params = fluxline,
+                          arms = {},
+                          transformations = {'rotate':[np.pi,center]},
+                          #transformations={},
+                          remove_ground  = {'left':'','top':'','bottom':''},
+                          shoes = shoes,
+
                           )
+
+
 sample.add(transmon1)
-sample.add(transmon2)
 sample.draw_design()
 #sample.watch()
