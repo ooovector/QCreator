@@ -291,19 +291,19 @@ class Shoe_Transmon(DesignElement):
             if key == 'left':
                 if self.remove_ground[key] != None:
                     factor = self.remove_ground[key]
-                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2,z[1] - factor*y / 2+t), (z[0] - x / 2 +t, z[1] + factor*y / 2-t)) , 'not')
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - x / 2,z[1] - factor*y / 2), (z[0] - x / 2 +t, z[1] + factor*y / 2)) , 'not')
             if key == 'right':
                 if self.remove_ground[key] != None:
                     factor = self.remove_ground[key]
-                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] + x / 2,z[1] - factor*y / 2+t), (z[0] + x / 2 -t, z[1] + factor*y / 2-t)) , 'not')
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] + x / 2,z[1] - factor*y / 2), (z[0] + x / 2 -t, z[1] + factor*y / 2)) , 'not')
             if key == 'top':
                 if self.remove_ground[key] != None:
                     factor = self.remove_ground[key]
-                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - factor*x / 2+t,z[1] + y / 2), (z[0] + factor*x / 2-t, z[1] + y / 2-t)) , 'not')
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - factor*x / 2,z[1] + y / 2), (z[0] + factor*x / 2, z[1] + y / 2-t)) , 'not')
             if key == 'bottom':
                 if self.remove_ground[key] != None:
                     factor = self.remove_ground[key]
-                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - factor*x / 2+t,z[1] - y / 2), (z[0] + factor*x / 2-t, z[1] - y / 2+t)) , 'not')
+                ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - factor*x / 2,z[1] - y / 2), (z[0] + factor*x / 2, z[1] - y / 2+t)) , 'not')
 
         return ground
 

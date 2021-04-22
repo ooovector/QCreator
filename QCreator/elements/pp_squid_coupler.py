@@ -89,19 +89,20 @@ class PP_Squid_C(DesignElement):
         P1 = gdspy.Rectangle((self.center[0]-self.gap/2-self.w,self.center[1]-self.h/2),(self.center[0]-self.gap/2,self.center[1]+self.h/2))
         P2 = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w, self.center[1] - self.h / 2),(self.center[0] + self.gap / 2, self.center[1] + self.h / 2))
 
-        #coupler arms left and right
-        left_arm    = gdspy.Rectangle((self.center[0]-self.gap/2-self.w,self.center[1]-self.arms['l.w']/2),(self.center[0]-self.g_w/2+self.g_t+self.arms['l.g'],self.center[1]+self.arms['l.w']/2))
-        left_arm    = gdspy.boolean(gdspy.Rectangle((self.center[0]-self.g_w/2+self.g_t+self.arms['l.g'],self.center[1]-self.arms['l.ph']/2),(self.center[0]-self.g_w/2+self.g_t+self.arms['l.g']+self.arms['l.pw'],self.center[1]+self.arms['l.ph']/2)), left_arm, 'or')
-        P1          = gdspy.boolean(P1, left_arm, 'or')
+        # coupler arms left and right
+        if self.arms != {}:
+            left_arm    = gdspy.Rectangle((self.center[0]-self.gap/2-self.w,self.center[1]-self.arms['l.w']/2),(self.center[0]-self.g_w/2+self.g_t+self.arms['l.g'],self.center[1]+self.arms['l.w']/2))
+            left_arm    = gdspy.boolean(gdspy.Rectangle((self.center[0]-self.g_w/2+self.g_t+self.arms['l.g'],self.center[1]-self.arms['l.ph']/2),(self.center[0]-self.g_w/2+self.g_t+self.arms['l.g']+self.arms['l.pw'],self.center[1]+self.arms['l.ph']/2)), left_arm, 'or')
+            P1          = gdspy.boolean(P1, left_arm, 'or')
 
-        right_arm = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w, self.center[1] + self.arms['r.w'] / 2), (
-        self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'], self.center[1] - self.arms['r.w'] / 2))
-        right_arm = gdspy.boolean(gdspy.Rectangle(
-            (self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'], self.center[1] + self.arms['r.ph'] / 2), (
-            self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'] - self.arms['r.pw'],
-            self.center[1] - self.arms['r.ph'] / 2)), right_arm, 'or')
+            right_arm = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w, self.center[1] + self.arms['r.w'] / 2), (
+            self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'], self.center[1] - self.arms['r.w'] / 2))
+            right_arm = gdspy.boolean(gdspy.Rectangle(
+                (self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'], self.center[1] + self.arms['r.ph'] / 2), (
+                self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'] - self.arms['r.pw'],
+                self.center[1] - self.arms['r.ph'] / 2)), right_arm, 'or')
 
-        P2 = gdspy.boolean(P2, right_arm, 'or')
+            P2 = gdspy.boolean(P2, right_arm, 'or')
 
 
         self.layers.append(9)

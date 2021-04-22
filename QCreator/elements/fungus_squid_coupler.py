@@ -383,13 +383,15 @@ class Fungus_Squid_C(DesignElement):
 
     def generate_JJ(self):
         #cheap Manhatten style
-        reach = 32
-        result = gdspy.Rectangle((self.center[0]-self.b_g/2,self.center[1]+self.h/2-self.b_w/3+self.JJ_params['a1']/2),(self.center[0]-self.b_g/2+reach,self.center[1]+self.h/2-self.b_w/3-self.JJ_params['a1']/2))
+        reach1 = 16
+        reach2 = 32
 
-        result = gdspy.boolean(result,gdspy.Rectangle((self.center[0]-self.b_g/2,self.center[1]+self.h/2-2*self.b_w/3+self.JJ_params['a1']/2),(self.center[0]-self.b_g/2+reach,self.center[1]+self.h/2-2*self.b_w/3-self.JJ_params['a1']/2))
+        result = gdspy.Rectangle((self.center[0]-self.b_g/2,self.center[1]+self.h/2-self.b_w/3+self.JJ_params['a1']/2),(self.center[0]-self.b_g/2+reach1,self.center[1]+self.h/2-self.b_w/3-self.JJ_params['a1']/2))
+
+        result = gdspy.boolean(result,gdspy.Rectangle((self.center[0]-self.b_g/2,self.center[1]+self.h/2-2*self.b_w/3+self.JJ_params['a1']/2),(self.center[0]-self.b_g/2+reach1,self.center[1]+self.h/2-2*self.b_w/3-self.JJ_params['a1']/2))
 ,'or')
 
-        result = gdspy.boolean(result,gdspy.Rectangle((self.center[0]+self.b_g/2,self.center[1]+self.h/2-2*self.b_w),(self.center[0]+self.b_g/2+self.JJ_params['a2'],self.center[1]+self.h/2-2*self.b_w+reach)), 'or')
+        result = gdspy.boolean(result,gdspy.Rectangle((self.center[0]+self.b_g/2,self.center[1]+self.h/2-2*self.b_w),(self.center[0]+self.b_g/2+self.JJ_params['a2'],self.center[1]+self.h/2-2*self.b_w+reach2)), 'or')
         result = gdspy.boolean(result, result, 'or', layer=self.layer_configuration.jj_layer)
 
         angle = self.JJ_params['angle_JJ']
