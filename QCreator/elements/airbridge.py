@@ -83,9 +83,7 @@ class AirbridgeOverCPW(DesignElement):
         self.terminals = {'port1': DesignTerminal(position=self.position - self.p, orientation=self.orientation,
                                                   type='cpw', w=self.w, s=self.s, g=self.g, disconnected='short'),
                           'port2': DesignTerminal(position=self.position + self.p, orientation=self.orientation + np.pi,
-                                                  type='cpw', w=self.w, s=self.s, g=self.g, disconnected='short'),
-                          'port': DesignTerminal(position=self.position, orientation=self.orientation + np.pi,
-                                                 type='cpw', w=self.w, s=self.s, g=self.g, disconnected='short')}
+                                                  type='cpw', w=self.w, s=self.s, g=self.g, disconnected='short')}
 
     def render(self):
         bend_radius = self.g
@@ -152,34 +150,22 @@ class AirbridgeOverCPW(DesignElement):
 
         bridge_capacitance = epsilon_0 * epsilon * s / h
 
-        c1 = tlsim.Capacitor(c=bridge_capacitance)
         cl, ll = self.cm()
-        line1_length = self.geometry.pad_width / 2
-        line1 = tlsim.TLCoupler(n=1,
-                                l=line1_length,
-                                cl=cl,
-                                ll=ll,
-                                rl=np.zeros((1, 1)),
-                                gl=np.zeros((1, 1)),
-                                name=self.name + '_line1',
-                                cutoff=cutoff)
-        line2 = tlsim.TLCoupler(n=1,
-                                l=line1_length,
-                                cl=cl,
-                                ll=ll,
-                                rl=np.zeros((1, 1)),
-                                gl=np.zeros((1, 1)),
-                                name=self.name + '_line2',
-                                cutoff=cutoff)
 
-        elements = [c1, line1, line2]
+        c = (bridge_capacitance + cl[0,0] * 1e-6 * self.geometry.pad_width)
+        l = ll[0,0] * 1e-6 * self.geometry.pad_width
+
+        c1 = tlsim.Capacitor(c=c/2, name=self.name + '_c1')
+        c2 = tlsim.Capacitor(c=c/2, name=self.name + '_c2')
+        l = tlsim.Inductor(l=l, name=self.name + '_l')
+
+        elements = [c1, c2, l]
         if track_changes:
             self.tls_cache.append(elements)
 
-        tls_instance.add_element(line1, [terminal_mapping['port1'], terminal_mapping['port']])
-        tls_instance.add_element(line2, [terminal_mapping['port'], terminal_mapping['port2']])
-
-        tls_instance.add_element(c1, [terminal_mapping['port'], 0])
+        tls_instance.add_element(l, [terminal_mapping['port1'], terminal_mapping['port2']])
+        tls_instance.add_element(c1, [terminal_mapping['port1'], 0])
+        tls_instance.add_element(c2, [terminal_mapping['port2'], 0])
 
         return elements
 
