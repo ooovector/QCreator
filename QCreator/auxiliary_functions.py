@@ -8,7 +8,7 @@ def draw_single_resonator_plus_qubit(sample,
                           tl_core, tl_gap, tl_ground, grounding_width,
                           closed_end_meander_length, length_left, length_right,
                           min_bridge_spacing = None,
-                          airbridge = None, object=None, port=None,
+                          airbridge = None, object1=None, port=None,
                           open_end_length = None,
                           port_orientation='left', direction_orientation='down'):
 
@@ -63,8 +63,8 @@ def draw_single_resonator_plus_qubit(sample,
                                       grounding_between=[(0, 2)])
 
     # 10. Connect open end with the coupler part of the qubit
-    if object is None:
-        object = elements.OpenEnd(name='open end',
+    if object1 is None:
+        object1 = elements.OpenEnd(name='open end',
                                      position=(fanout2.get_terminals()[fanout2_port].position[0],
                                                fanout2.get_terminals()[fanout2_port].position[1]
                                                -np.cos(angle)*open_end_length),
@@ -77,18 +77,18 @@ def draw_single_resonator_plus_qubit(sample,
                                      h2=10,
                                      )
         port = 'wide'
-        sample.add(object)
+        sample.add(object1)
 
-    open_end = sample.connect_cpw(fanout2, object, fanout2_port, port, name='right open end',
+    open_end = sample.connect_cpw(fanout2, object1, fanout2_port, port, name='right open end',
                                     points=[], airbridge=airbridge, min_spacing=min_bridge_spacing)
 
     total_length.append(sum([line.length for line in open_end]))
-    res_params = total_length
-
+    z01 = np.sqrt(open_end[0].ll[0] / open_end[0].cl[0])[0]
+    res_params = (sum(total_length), z01, open_end[0].cl[0, 0])
     if direction_orientation == 'up':
         g1, g2 = g2, g1
 
-    return g1, g2, res_params, closed_end_meander
+    return g1, g2, res_params
 
 
 def draw_single_resonator(sample,
@@ -104,7 +104,7 @@ def draw_single_resonator(sample,
                                             tl_core, tl_gap, tl_ground, grounding_width,
                                             closed_end_meander_length, length_left, length_right,
                                             min_bridge_spacing=min_bridge_spacing,
-                                            airbridge=airbridge, object=None, port=None,
+                                            airbridge=airbridge, object1=None, port=None,
                                             open_end_length = open_end_length,
                                             port_orientation=port_orientation,
                                             direction_orientation=direction_orientation)
