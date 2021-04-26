@@ -219,6 +219,7 @@ tc1 = elements.fungus_squid_coupler.Fungus_Squid_C(name='PP_Coupler1',center=(20
                           calculate_capacitance = False,
                           transformations = {'rotate':(np.pi/2,(2050+ground_w/2+ground_w_tc/2-x_shift,2000+ground_h+shift))},
                           remove_ground = {'left':1},
+                          asymmetry = 200,
                           )
 
 tc2 = elements.fungus_squid_coupler.Fungus_Squid_C(name='PP_Coupler2',center=(2050+3*ground_w/2+3*ground_w_tc/2-3*x_shift,2000-ground_h-shift),
@@ -238,6 +239,7 @@ tc2 = elements.fungus_squid_coupler.Fungus_Squid_C(name='PP_Coupler2',center=(20
                           calculate_capacitance = False,
                           transformations = {'rotate':(-np.pi/2,(2050+3*ground_w/2+3*ground_w_tc/2-3*x_shift,2000-ground_h-shift))},
                           remove_ground = {'left':1},
+                          asymmetry = 200,
                           )
 
 

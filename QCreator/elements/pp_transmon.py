@@ -7,7 +7,7 @@ from typing import List, Tuple, Mapping, Dict
 from . import squid3JJ #TODO make this qubit class suitable for any squid types
 from . import JJ4q
 from copy import deepcopy
-
+import sys
 
 class PP_Transmon(DesignElement):
     """
@@ -29,6 +29,7 @@ class PP_Transmon(DesignElement):
                  transformations: Dict,
                  calculate_capacitance: False,
                  remove_ground = {},
+                 holes = False,
                  secret_shift = 0):
         super().__init__(type='qubit', name=name)
         #qubit parameters
@@ -77,6 +78,8 @@ class PP_Transmon(DesignElement):
 
         #remove ground on these sites
         self.remove_ground = remove_ground
+        #To introduce rectangular holes in the ground around the qubit
+        self.holes = holes
 
         #for calculating cacities
         self.secret_shift = secret_shift
@@ -293,6 +296,16 @@ class PP_Transmon(DesignElement):
                     factor = self.remove_ground[key]
                 ground = gdspy.fast_boolean(ground,gdspy.Rectangle((z[0] - factor*x / 2,z[1] - y / 2), (z[0] + factor*x / 2, z[1] - y / 2+t)) , 'not')
 
+        if self.holes :
+            print('importing file')
+            hole_mask = gdspy.GdsLibrary(infile=".\\QCreator\\QCreator\\elements\\masks\\Holes.gds")
+            print('imported holes')
+            for holes in hole_mask:
+                ground = gdspy.fast_boolean(ground,holes,'not')
+                print('done subtracting holes')
+                print(ground)
+            ground = gdspy.fast_boolean(None, ground, 'or')
+            print(ground)
         return ground
 
 

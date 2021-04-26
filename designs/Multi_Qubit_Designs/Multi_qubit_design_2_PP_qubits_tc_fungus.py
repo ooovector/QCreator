@@ -126,13 +126,13 @@ a2    = a1 # Junction width in um
 #jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':np.pi/2}
 jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8 }# hole sizes for the JJs
 
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 500, resonator_core, 6, 5, 20, 50, resonator_gap
+l, t_m, t_r, gp, l_arm, h_arm, s_gap = 500, resonator_core, 3, 5, 20, 50, resonator_gap
 fluxline = {'l':l,'t_m':t_m,'t_r':t_r,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
 
 
 arms = {}
 
-width_tc    = [200,50]
+width_tc    = [80,50]
 height_tc   = [600,150]
 gap_tc      = 70
 ground_w_tc = 500
@@ -180,7 +180,7 @@ transmon2 = elements.shoe_transmon.Shoe_Transmon(name='Shoe_Transmon2',center=(2
 
 
 
-shift = 70
+shift = -20
 tc1 = elements.fungus_squid_coupler.Fungus_Squid_C(name='PP_Coupler1',center=(2050+ground_w/2+ground_w_tc/2-x_shift,2000+ground_h+shift),
                           width = width_tc,
                           height = height_tc,
@@ -196,8 +196,9 @@ tc1 = elements.fungus_squid_coupler.Fungus_Squid_C(name='PP_Coupler1',center=(20
                           layer_configuration = sample.layer_configuration,
                           Couplers = Couplers_Squid1,
                           calculate_capacitance = False,
-                          transformations = {'rotate':(np.pi/2,(2050+ground_w/2+ground_w_tc/2-x_shift,2000+ground_h+shift))},
-                          remove_ground = {'left':1},
+                          transformations = {},#'rotate':(np.pi/2,(2050+ground_w/2+ground_w_tc/2-x_shift,2000+ground_h+shift))},
+                          remove_ground = {'left':1,'top':1,'bottom':1,'right':1},
+                          asymmetry = 210,
                           )
 
 

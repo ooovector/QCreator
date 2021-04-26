@@ -220,8 +220,9 @@ tc1 = elements.fungus_squid_coupler.Fungus_Squid_C(name='PP_Coupler1',center=(20
                           Couplers = Couplers_Squid1,
                           calculate_capacitance = False,
                           transformations = {'rotate':[-np.pi/2,(2050+ground_w/2+ground_h_tc/2,2000)]},
-                          remove_ground = {'left':1,'top':1,'bottom':1,'right':1},
-                          shoes = {1:(150,60),2:(150,60)}
+                          remove_ground = {'left':0.5,'top':1,'bottom':1,'right':1},
+                          shoes = {1:(150,60),2:(150,60)},
+                          asymmetry = 100
                           )
 
 
