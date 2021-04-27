@@ -120,27 +120,28 @@ class PP_Squid_C(DesignElement):
         result = gdspy.boolean(result, P2_bridge, 'or', layer=self.layer_configuration.total_layer)
         self.layers.append(self.layer_configuration.total_layer)
 
-        f = self.fluxline_params
-        l, t_m, t_r, gap, l_arm, h_arm, s_gap = f['l'],f['t_m'],f['t_r'],f['gap'],f['l_arm'],f['h_arm'],f['s_gap']
+        if self.fluxline_params != {}:
+            f = self.fluxline_params
+            l, t_m, t_r, gap, l_arm, h_arm, s_gap = f['l'],f['t_m'],f['t_r'],f['gap'],f['l_arm'],f['h_arm'],f['s_gap']
 
-        flux = PP_Squid_Fluxline(l, t_m, t_r, gap, l_arm, h_arm, s_gap,g = f.get('g'),w = f.get('w'),s = f.get('s'))
+            flux = PP_Squid_Fluxline(l, t_m, t_r, gap, l_arm, h_arm, s_gap,g = f.get('g'),w = f.get('w'),s = f.get('s'))
 
-        fluxline = flux.render(self.center, self.w, self.h,self.g_h,self.g_t)['positive']
+            fluxline = flux.render(self.center, self.w, self.h,self.g_h,self.g_t)['positive']
 
-        self.couplers.append(flux)
+            self.couplers.append(flux)
 
-        #removing ground where the fluxline is
-        ground_fluxline =True
-        if ground_fluxline == False:
-            result = gdspy.boolean(result, gdspy.Rectangle((self.center[0]-l_arm/2-t_r-self.g_t,self.center[1]+self.h/2+0.01),(self.center[0]+3*l_arm/2+t_r+t_m+self.g_t,self.center[1]+self.h/2+250)), 'not', layer=self.layer_configuration.total_layer)
-        else:
-            result = gdspy.boolean(result, gdspy.Rectangle(
-                (self.center[0] , self.center[1] + self.h / 2 + 0.01),
-                (self.center[0] +  l_arm + t_m, self.center[1] + self.h / 2 + 250)), 'not',
-                                   layer=self.layer_configuration.total_layer)
+            #removing ground where the fluxline is
+            ground_fluxline =True
+            if ground_fluxline == False:
+                result = gdspy.boolean(result, gdspy.Rectangle((self.center[0]-l_arm/2-t_r-self.g_t,self.center[1]+self.h/2+0.01),(self.center[0]+3*l_arm/2+t_r+t_m+self.g_t,self.center[1]+self.h/2+250)), 'not', layer=self.layer_configuration.total_layer)
+            else:
+                result = gdspy.boolean(result, gdspy.Rectangle(
+                    (self.center[0] , self.center[1] + self.h / 2 + 0.01),
+                    (self.center[0] +  l_arm + t_m, self.center[1] + self.h / 2 + 250)), 'not',
+                                       layer=self.layer_configuration.total_layer)
 
 
-        result = gdspy.boolean(result, fluxline, 'or', layer=self.layer_configuration.total_layer)
+            result = gdspy.boolean(result, fluxline, 'or', layer=self.layer_configuration.total_layer)
 
         # add couplers
         last_step_cap = [gdspy.boolean(gdspy.boolean(P2, P2_bridge, 'or'),gdspy.boolean(P1, P1_bridge, 'or'),'or')]

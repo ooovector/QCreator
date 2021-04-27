@@ -29,6 +29,7 @@ class PP_Transmon(DesignElement):
                  transformations: Dict,
                  calculate_capacitance: False,
                  remove_ground = {},
+                 shoes = {},
                  holes = False,
                  secret_shift = 0):
         super().__init__(type='qubit', name=name)
@@ -51,6 +52,9 @@ class PP_Transmon(DesignElement):
 
         #couplers
         self.couplers = Couplers
+
+        #shoes
+        self.shoes = shoes
 
         # JJs and fluxline
         self.JJ_params = jj_params
@@ -96,6 +100,53 @@ class PP_Transmon(DesignElement):
         P1 = gdspy.Rectangle((self.center[0]-self.gap/2-self.w,self.center[1]-self.h/2),(self.center[0]-self.gap/2,self.center[1]+self.h/2))
         P2 = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w, self.center[1] - self.h / 2),(self.center[0] + self.gap / 2, self.center[1] + self.h / 2))
 
+        # adding the shoe caps here
+        if self.shoes != {}:
+            Rot = 0
+            if 'R' in self.shoes:
+                Rot = self.shoes['R']
+            for key in self.shoes:
+                if key == 1:
+                    Shoe = gdspy.Rectangle(
+                        (self.center[0] - self.gap / 2 - self.w+30, self.center[1] + self.h / 2), (
+                        self.center[0] - self.gap / 2 - self.w - self.shoes[key][0],
+                        self.center[1] + self.h / 2 - self.shoes[key][1]))
+                    if 'R' in self.shoes:
+                        Shoe.translate(0,self.shoes[key][1]/2)
+
+                    Shoe.rotate(-Rot,(self.center[0] - self.gap / 2 - self.w, self.center[1] + self.h / 2))
+
+                    P1 = gdspy.boolean(P1, Shoe, 'or')
+                if key == 2:
+                    Shoe = gdspy.Rectangle(
+                        (self.center[0] - self.gap / 2 - self.w+30, self.center[1] - self.h / 2), (
+                        self.center[0] - self.gap / 2 - self.w - self.shoes[key][0],
+                        self.center[1] - self.h / 2 + self.shoes[key][1]))
+                    if 'R' in self.shoes:
+                        Shoe.translate(0,-self.shoes[key][1]/2)
+
+                    Shoe.rotate(Rot, (self.center[0] - self.gap / 2 - self.w, self.center[1] - self.h / 2))
+                    P1 = gdspy.boolean(P1, Shoe, 'or')
+                if key == 3:
+                    Shoe = gdspy.Rectangle(
+                        (self.center[0] + self.gap / 2 + self.w-30, self.center[1] + self.h / 2), (
+                        self.center[0] + self.gap / 2 + self.w + self.shoes[key][0],
+                        self.center[1] + self.h / 2 - self.shoes[key][1]))
+                    if 'R' in self.shoes:
+                        Shoe.translate(0,self.shoes[key][1]/2)
+
+                    Shoe.rotate(+Rot, (self.center[0] + self.gap / 2 + self.w, self.center[1] + self.h / 2))
+                    P2 = gdspy.boolean(P2, Shoe, 'or')
+                if key == 4:
+                    Shoe =  gdspy.Rectangle(
+                        (self.center[0] + self.gap / 2 + self.w-30, self.center[1] - self.h / 2), (
+                        self.center[0] + self.gap / 2 + self.w + self.shoes[key][0],
+                        self.center[1] - self.h / 2 + self.shoes[key][1]))
+                    if 'R' in self.shoes:
+                        Shoe.translate(0,-self.shoes[key][1]/2)
+
+                    Shoe.rotate(-Rot, (self.center[0] + self.gap / 2 + self.w, self.center[1] - self.h / 2))
+                    P2 = gdspy.boolean(P2, Shoe, 'or')
 
         self.layers.append(9)
         result = gdspy.boolean(ground, P1, 'or', layer=self.layer_configuration.total_layer)
@@ -129,6 +180,7 @@ class PP_Transmon(DesignElement):
         box = gdspy.Rectangle((self.center[0] - self.g_w / 2, self.center[1] - self.g_h / 2),(self.center[0] + self.g_w / 2, self.center[1] + self.g_h / 2))
 
         if len(self.couplers) != 0:
+
             for id, coupler in enumerate(self.couplers):
                 coupler_parts = coupler.render(self.center, self.g_w,self.g_h)
 
