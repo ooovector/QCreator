@@ -141,17 +141,17 @@ jj_coaxmon_sm_SQUID = {'a1':30,
               }
 jj_coaxmon_sm_rad = {'a1':15,
                'b1':0.15,#0.16,
-               'a2':0.25,#0.45,
-               'b2':0.15,#0.2,
-               'c1':0.3,#0.486,
+               'a2':0.4,#0.45,
+               'b2':0.2,#0.2,
+               'c1':0.4,#0.486,
                'c2':10,
                'angle_qubit':-np.pi/2-np.pi/3,
                'angle_JJ': 0,
                'length':10,
                'width':4,
-             'ic1': 0.25*0.3*jc,#0.45 * 0.486 * jc,
-             'ic2': -0.15*0.15*jc,#0.2 * 0.16 * jc,
-             'ic3': 0.15*0.15*jc,#0.2 * 0.16 * jc,
+             'ic1': 0.4*0.4*jc,#0.45 * 0.486 * jc,
+             'ic2': -0.2*0.15*jc,#0.2 * 0.16 * jc,
+             'ic3': 0.2*0.15*jc,#0.2 * 0.16 * jc,
              'lm': 12e-12
              }
 jj_coaxmon_2JJ = {'a1':30,
@@ -165,23 +165,24 @@ jj_coaxmon_2JJ = {'a1':30,
                'length':10,
                'width':4,
               'ic1': 0.2 * 0.3 * jc,
-              'ic2': 0.15 * 0.15 * jc,
-              'ic3': 0.15 * 0.15 * jc,
+              'ic2': -0.15 * 0.15 * jc,
               'lm': 12e-12
               }
 
-# add first coaxmon
 offset=200
+transformations={'mirror':[(coupler_start+offset,central_line_y),(coupler_start+offset+10,central_line_y)]}
 coaxmon1= elements.coaxmon.Coaxmon(name='Coaxmon1',center=(coupler_start+offset,central_line_y-900),
-                          center_radius = 50,
-                          inner_couplers_radius = 80,
-                          outer_couplers_radius = 110,
-                          inner_ground_radius = 130,
-                          outer_ground_radius = 160,
+                          center_radius = 100,
+                          inner_couplers_radius = 140,
+                          outer_couplers_radius = 200,
+                          inner_ground_radius = 230,
+                          outer_ground_radius = 250,
                           layer_configuration = sample.layer_configuration,
-                          Couplers=Couplers_qubit_alone,jj_params= jj_coaxmon_sm_rad,transformations={},
+                          Couplers=Couplers_qubit_alone,jj_params= jj_coaxmon,transformations=transformations,
                           calculate_capacitance = True, third_JJ=True, small_SQUID=False)
-transformations={'mirror':[(coupler_start+offset,central_line_y),(coupler_start+10+offset,central_line_y)]}
+
+offset = 1200
+transformations={'mirror':[(coupler_start+offset,central_line_y),(coupler_start+offset+10,central_line_y)]}
 coaxmon2= elements.coaxmon.Coaxmon(name='Coaxmon2',center=(coupler_start+offset,central_line_y-900),
                           center_radius = 100,
                           inner_couplers_radius = 140,
@@ -189,23 +190,20 @@ coaxmon2= elements.coaxmon.Coaxmon(name='Coaxmon2',center=(coupler_start+offset,
                           inner_ground_radius = 230,
                           outer_ground_radius = 250,
                           layer_configuration = sample.layer_configuration,
-                          Couplers=Couplers_qubit_alone,jj_params= jj_coaxmon_sm_SQUID,transformations=transformations,
+                          Couplers=Couplers_qubit_alone,jj_params= jj_coaxmon_sm_SQUID,transformations={},
                           calculate_capacitance = True, small_SQUID=True,third_JJ=True)
 
-# add third coaxmon
-offset = 1200
-
 coaxmon3= elements.coaxmon.Coaxmon(name='Coaxmon3',center=(coupler_start+offset,central_line_y-900),
-                          center_radius = 100,
-                          inner_couplers_radius = 140,
-                          outer_couplers_radius = 200,
-                          inner_ground_radius = 230,
-                          outer_ground_radius = 250,
+                          center_radius = 70,
+                          inner_couplers_radius = 100,
+                          outer_couplers_radius = 130,
+                          inner_ground_radius = 150,
+                          outer_ground_radius = 180,
                           layer_configuration = sample.layer_configuration,
-                          Couplers=Couplers_qubit_alone,jj_params= jj_coaxmon,transformations={},
+                          Couplers=Couplers_qubit_alone,jj_params= jj_coaxmon_sm_rad,transformations=transformations,
                           calculate_capacitance = True, third_JJ=True, small_SQUID=False)
 
-# add fourth coaxmon
+offset = 2000
 transformations={'mirror':[(coupler_start+offset,central_line_y),(coupler_start+offset+10,central_line_y)]}
 coaxmon4= elements.coaxmon.Coaxmon(name='Coaxmon4',center=(coupler_start+offset,central_line_y-900),
                           center_radius = 100,
@@ -232,7 +230,7 @@ jj_geometry3 = {
     'fcore': 4,
     'fgap': 4,
     'gter': 4,
-    'lm': 12e-12
+    'lm': 2e-12
         }
 jj_geometry = {
     'gwidth': 72,#60,
@@ -248,7 +246,7 @@ jj_geometry = {
     'fcore': 4,
     'fgap': 4,
     'gter': 4,
-    'lm': 12e-12
+    'lm': 2e-12
         }
 
 
@@ -266,7 +264,7 @@ jj = {
     'side_r_length': 4,#9,
     'up_l_length': 7 - 0.16,
     'up_r_length': 7 - 0.16,
-    'ic_l': 0.15*0.15*jc,
+    'ic_l': -0.15*0.15*jc,
     'ic_r': 0.2*0.3*jc
 }
 
@@ -284,7 +282,7 @@ jj3 = {
     'side_r_length': 4,#9,
     'up_l_length': 7 - 0.16,
     'up_r_length': 7 - 0.16,
-    'ic_l': 0.243*0.243*jc,
+    'ic_l': -0.243*0.243*jc,
     'ic_r': 0.45*0.45*jc,
     'ic3': 0.243 * 0.243 * jc
 }
@@ -305,33 +303,35 @@ crab_terminals = {
     'right_g':20
 }
 
+
+
 xmon1 = elements.xmon.Xmon(name = 'Xmon1',
-                         center=(coupler_start+2000, central_line_y-1000),
+                         center=(coupler_start+coupler_length+resonator_core/2+resonator_gap, central_line_y-1000),
                           length = 150,
                           width_gap = 15,
                           center_width = 15,
                           crab_position = ('up',),
-                          crab_shoulder = 30,
-                          crab_thickness = 8,
+                          crab_shoulder = 40,
+                          crab_thickness = 40,
                           crab_terminals = crab_terminals,
-                          ground_thickness = 10,
+                          ground_thickness = 15,
                           delete_ground = '',
                           jj_position = 'down',
                           jj_params1 = jj_geometry3,
                           jj_params2 = jj3,
                           layer_configuration = sample.layer_configuration)
 xmon2 = elements.xmon.Xmon(name = 'Xmon2',
-                         center=(coupler_start+2000, central_line_y+1000),
+                         center=(coupler_start+1750+coupler_length+resonator_core/2+resonator_gap, central_line_y-1000),
                           length = 150,
                           width_gap = 15,
                           center_width = 15,
-                          crab_position = ('down',),
-                          crab_shoulder = 30,
-                          crab_thickness = 8,
+                          crab_position = ('up',),
+                          crab_shoulder = 40,
+                          crab_thickness = 40,
                           crab_terminals = crab_terminals,
                           ground_thickness = 10,
                           delete_ground = '',
-                          jj_position = 'up',
+                          jj_position = 'down',
                           jj_params1 = jj_geometry,
                           jj_params2 = jj,
                           layer_configuration = sample.layer_configuration)

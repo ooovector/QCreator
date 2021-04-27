@@ -573,30 +573,12 @@ class Xmon(DesignElement):
 
         x7 = self._x0
         y7 = self._y0 - contact_pad_b_outer - H_b - L_b - H1_b - pad1_b - h - contact_pad1_b_outer
-        x7_ = x7
-        y7_ = y7 + (contact_pad1_b_outer - contact_pad1_b_inner)
 
-        points7 = [(x7 - contact_pad1_a_outer / 2, y7 + contact_pad1_b_outer),
+        x8 = self._x0 - contact_pad1_a_inner / 2
+        y8 = self._y0 - contact_pad_b_outer - H_b - L_b - H1_b - pad1_b - h
 
-                   (x7 - contact_pad1_a_outer / 2, y7),
-
-                   (x7 + contact_pad1_a_outer / 2, y7),
-
-                   (x7 + contact_pad1_a_outer / 2, y7 + contact_pad1_b_outer),
-
-                   (x7_ + contact_pad1_a_inner / 2, y7_ + contact_pad1_b_inner),
-
-                   (x7_ + contact_pad1_a_inner / 2, y7_),
-
-                   (x7_ - contact_pad1_a_inner / 2, y7_),
-
-                   (x7_ - contact_pad1_a_inner / 2, y7_ + contact_pad1_b_inner)]
-
-        x8 = x7_ - contact_pad1_a_inner / 2
-        y8 = y7_ + contact_pad1_b_inner
-
-        x9 = x7_ + contact_pad1_a_inner / 2
-        y9 = y7_ + contact_pad1_b_inner
+        x9 = self._x0 + contact_pad1_a_inner / 2
+        y9 = self._y0 - contact_pad_b_outer - H_b - L_b - H1_b - pad1_b - h
 
         # parametr4=pad3_b
         # parametr5=pad4_b
@@ -625,11 +607,11 @@ class Xmon(DesignElement):
 
         delta = 6
 
-        x10 = x7 - contact_pad1_a_outer / 2
-        y10 = y7 + delta
+        x10 = x8#x7 - contact_pad1_a_outer / 2
+        y10 = y8
 
-        x11 = x7 + contact_pad1_a_outer / 2
-        y11 = y7 + delta
+        x11 = x9#x7 + contact_pad1_a_outer / 2
+        y11 = y9
 
         L1_a = 2.1
         L1_b = 1
@@ -638,7 +620,7 @@ class Xmon(DesignElement):
         L2_b = 1
 
         rec1_a_outer = 4.8
-        rec1_b_outer = 2.8
+        rec1_b_outer = 3.8
 
         rec1_a_inner = 2
         rec1_b_inner = 1
@@ -703,7 +685,7 @@ class Xmon(DesignElement):
 
         squid = gdspy.PolygonSet(
             [points0, points1, points1_1, points2, points3, points4, points5_for_pad1, points6_for_pad2,
-             points7, points8_for_pad3, points9_for_pad4, points10, points11, points12, points13])
+             points8_for_pad3, points9_for_pad4, points10, points11, points12, points13])
         jj = gdspy.boolean(squid, squid, "or", layer=self.layer_configuration.jj_layer)
         if self.jjpos == 'up':
             jj = jj.rotate(np.pi, self.center)
@@ -788,8 +770,8 @@ class Xmon(DesignElement):
         #scaling factor for C
         scal_C = 1e-15
 
-        jj1 = tlsim.JosephsonJunction(e_j=self.jj['ic_l']*hbar/(2*e), name=self.name + ' jj1')
-        jj2 = tlsim.JosephsonJunction(e_j=self.jj['ic_r']*hbar/(2*e), name=self.name + ' jj2')
+        jj1 = tlsim.JosephsonJunction(e_j=self.jj['ic_r']*hbar/(2*e), name=self.name + ' jj1')
+        jj2 = tlsim.JosephsonJunction(e_j=self.jj['ic_l']*hbar/(2*e), name=self.name + ' jj2')
         m = tlsim.Inductor(self.jgeom['lm'], name=self.name + ' flux-wire')
         c = tlsim.Capacitor(c=self.C['qubit']*scal_C, name=self.name+' qubit-ground')
         cache = [jj1, jj2, m, c]

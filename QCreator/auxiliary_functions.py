@@ -131,7 +131,8 @@ def draw_double_resonator(sample,
                         closed_end_meander_length2,length_left2, length_right2,
                         object1=None, port1=None, open_end_length1=open_end_length1,
                         object2=None, port2=None, open_end_length2=open_end_length2,
-                        min_bridge_spacing=None, airbridge=None, port_orientation='left')
+                        min_bridge_spacing=min_bridge_spacing, airbridge=airbridge,
+                        port_orientation=port_orientation)
 
 
 def draw_double_resonator_plus_double_qubit(sample,
@@ -228,10 +229,12 @@ def draw_double_resonator_plus_double_qubit(sample,
 
     # 11. Connect open end with the coupler part of the resonator
     open_end_resonator1 = sample.connect_cpw(fanout2, object1, fanout2_port, port1, name='right open end',
-                                             points=open_end_shift1, min_spacing=None, airbridge=None)
+                                             points=open_end_shift1, min_spacing=min_bridge_spacing,
+                                             airbridge=airbridge)
 
     open_end_resonator2 = sample.connect_cpw(fanout2, object2, fanout1_port, port2, name='right open end',
-                                             points=open_end_shift2, min_spacing=None, airbridge=None)
+                                             points=open_end_shift2, min_spacing=min_bridge_spacing,
+                                             airbridge=airbridge)
 
     # 11. Create grounding of resonator
     resonator_ground_1 = sample.ground(o=closed_end_meander1[-1], port='port2', name='resonator ground 1',
