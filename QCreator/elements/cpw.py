@@ -53,7 +53,6 @@ class CPWCoupler(DesignElement):
 
         self.segments = []
         self.finalize_points()
-        self.cl, self.ll = self.cm()
 
     def finalize_points(self):
         eps = 1e-7
@@ -177,13 +176,13 @@ class CPWCoupler(DesignElement):
     def get_terminals(self):
         return self.terminals
 
-    def cm(self):
+    def cm(self, epsilon):
         cross_section = [self.s[0]]
         for c in range(len(self.w)):
             cross_section.append(self.w[c])
             cross_section.append(self.s[c + 1])
 
-        cl, ll = cm.ConformalMapping(cross_section).cl_and_Ll()
+        cl, ll = cm.ConformalMapping(cross_section, epsilon=epsilon).cl_and_Ll()
 
         if not self.terminals['port1'].order:
             ll, cl = ll[::-1, ::-1], cl[::-1, ::-1]
@@ -191,8 +190,8 @@ class CPWCoupler(DesignElement):
         return cl, ll
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
-                   cutoff: float = np.inf) -> list:
-        cl, ll = self.cm()
+                   cutoff: float = np.inf, epsilon=11.45) -> list:
+        cl, ll = self.cm(epsilon)
         line = tlsim.TLCoupler(n=len(self.w),
                                l=self.length,  # TODO: get length
                                cl=cl,
@@ -354,10 +353,10 @@ class Narrowing(DesignElement):
         return self.terminals
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
-                   cutoff: float = np.inf) -> list:
+                   cutoff: float = np.inf, epsilon=11.45) -> list:
 
-        cl1, ll1 = cm.ConformalMapping([self.s1, self.w1, self.s1]).cl_and_Ll()
-        cl2, ll2 = cm.ConformalMapping([self.s2, self.w2, self.s2]).cl_and_Ll()
+        cl1, ll1 = cm.ConformalMapping([self.s1, self.w1, self.s1], epsilon=epsilon).cl_and_Ll()
+        cl2, ll2 = cm.ConformalMapping([self.s2, self.w2, self.s2], epsilon=epsilon).cl_and_Ll()
 
         l = tlsim.Inductor(l=(ll1 + ll2) / 2 * self.length)
         c1 = tlsim.Capacitor(c=cl1 / 2 * self.length)
@@ -539,16 +538,16 @@ class RectGrounding(DesignElement):
     def get_terminals(self):
         return self.terminals
 
-    def cm(self):
+    def cm(self, epsilon):
         cross_section_narrow = [self.narrow_port_s[0]]
         for c in range(len(self.narrow_port_w)):
             cross_section_narrow.append(self.narrow_port_w[c])
             cross_section_narrow.append(self.narrow_port_s[c + 1])
 
-        return cm.ConformalMapping(cross_section_narrow).cl_and_Ll()
+        return cm.ConformalMapping(cross_section_narrow, epsilon=epsilon).cl_and_Ll()
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
-                   cutoff: float = np.inf) -> list:
+                   cutoff: float = np.inf, epsilon=11.45) -> list:
 
         cache = []
 
@@ -607,7 +606,7 @@ class RectGrounding(DesignElement):
 
                 elif ('narrow', 0) in terminal_mapping:
                     mapping_ += [terminal_mapping[('narrow', narrow_conductor)]]
-            cl, ll = self.cm()
+            cl, ll = self.cm(epsilon)
             continued_line = tlsim.TLCoupler(n=len(self.narrow_port_w),
                                              l=self.grounding_width,
                                              cl=cl,
@@ -931,13 +930,13 @@ class RectFanout(DesignElement):
 
         return {'positive': positive_total, 'restrict': restrict_total}
 
-    def cm(self):
+    def cm(self, epsilon):
         structure_of_fanout = self.finilize_points_for_tls()
         structure_for_tls = dict.fromkeys(structure_of_fanout.keys())
 
         for group in structure_of_fanout.keys():
             group_cl, group_ll = cm.ConformalMapping(
-                cross_section(structure_of_fanout[group]['w'], structure_of_fanout[group]['s'])).cl_and_Ll()
+                cross_section(structure_of_fanout[group]['w'], structure_of_fanout[group]['s']), epsilon).cl_and_Ll()
 
             structure_for_tls[group] = {'n': structure_of_fanout[group]['noc'],
                                         'l': structure_of_fanout[group]['l'],
@@ -947,8 +946,8 @@ class RectFanout(DesignElement):
         return structure_for_tls
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
-                   cutoff: float = np.inf) -> list:
-        structure_for_tls = self.cm()
+                   cutoff: float = np.inf, epsilon=11.45) -> list:
+        structure_for_tls = self.cm(epsilon)
 
         cache = []
 
@@ -1215,7 +1214,7 @@ class OpenEnd(DesignElement):
         return self.terminals
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
-                   cutoff: float = np.inf) -> list:
+                   cutoff: float = np.inf, epsilon=11.45) -> list:
         if self.number_of_conductors == 1:
             cache = []
             capacitance_value = 1e-15*20*0

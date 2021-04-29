@@ -765,7 +765,8 @@ class Xmon(DesignElement):
     def get_terminals(self):
         return self.terminals
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True, cutoff: float = np.inf) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True,
+                   cutoff: float = np.inf, epsilon: float = 11.45) -> list:
         from scipy.constants import hbar, e
         #scaling factor for C
         scal_C = 1e-15

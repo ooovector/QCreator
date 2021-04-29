@@ -61,5 +61,6 @@ class GridGround(DesignElement):
     def get_terminals(self) -> dict:
         return {}
 
-    def add_to_tls(self, tls_instance, terminal_mapping: dict, track_changes: bool = True, cutoff: float = np.inf) -> list:
+    def add_to_tls(self, tls_instance, terminal_mapping: dict, track_changes: bool = True,
+                   cutoff: float = np.inf, epsilon: float = 11.45) -> list:
         return []

@@ -126,10 +126,10 @@ class AirbridgeOverCPW(DesignElement):
     def get_terminals(self) -> dict:
         return self.terminals
 
-    def cm(self):
+    def cm(self, epsilon):
         cross_section = [self.s, self.w, self.s]
 
-        cl, ll = cm.ConformalMapping(cross_section).cl_and_Ll()
+        cl, ll = cm.ConformalMapping(cross_section, epsilon).cl_and_Ll()
 
         if not self.terminals['port1'].order:
             ll, cl = ll[::-1, ::-1], cl[::-1, ::-1]
@@ -137,7 +137,7 @@ class AirbridgeOverCPW(DesignElement):
         return cl, ll
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int],
-                   track_changes: bool = True, cutoff: float = np.inf) -> list:
+                   track_changes: bool = True, cutoff: float = np.inf, epsilon: float = 11.45) -> list:
         """
         In this model an airbridge is a capacitor with C = epsilon_0 * epsilon * (S / h),
         where S - area of the airbridge, h - height of the airbridge upon the surface of a chip
@@ -146,14 +146,14 @@ class AirbridgeOverCPW(DesignElement):
         h = 2*1e-6   # bridge height 2 mu m # TODO: OMG CONSTANTS IN CODE
         s = (self.geometry.bridge_length*1e-6) * (self.geometry.bridge_width*1e-6)
 
-        epsilon = 1 # TODO: OMG CONSTANTS IN CODE
+        epsilon_bridge = 1 # TODO: OMG CONSTANTS IN CODE
 
-        bridge_capacitance = epsilon_0 * epsilon * s / h
+        bridge_capacitance = epsilon_0 * epsilon_bridge * s / h
 
-        cl, ll = self.cm()
+        cl, ll = self.cm(epsilon)
 
-        c = (bridge_capacitance + cl[0,0] * 1e-6 * self.geometry.pad_width)
-        l = ll[0,0] * 1e-6 * self.geometry.pad_width
+        c = (bridge_capacitance + cl[0, 0] * 1e-6 * self.geometry.pad_width)
+        l = ll[0, 0] * 1e-6 * self.geometry.pad_width
 
         c1 = tlsim.Capacitor(c=c/2, name=self.name + '_c1')
         c2 = tlsim.Capacitor(c=c/2, name=self.name + '_c2')

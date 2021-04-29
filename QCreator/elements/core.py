@@ -71,7 +71,7 @@ class DesignElement:
 
     @abstractmethod
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
-                   cutoff: float = np.inf) -> list:
+                   cutoff: float = np.inf, epsilon: float = 11.45) -> list:
         """
         Adds the circuit to a transmission line system model
         :param cutoff:

@@ -12,7 +12,7 @@ from .functions_for_general_sample_creator import calculate_total_length, parame
 
 class Sample:
 
-    def __init__(self, name, configurations):
+    def __init__(self, name, configurations, epsilon=11.45):
         self.layer_configuration = elements.LayerConfiguration(**configurations)
         self.chip_geometry = elements.ChipGeometry(**configurations)
         self.name = str(name)
@@ -41,6 +41,8 @@ class Sample:
 
         self.pads = elements.Pads(self.objects)
         self.connections = []
+
+        self.epsilon = epsilon
 
     @staticmethod
     def default_cpw_radius(w, s, g):
@@ -358,7 +360,8 @@ class Sample:
                         max_connection_id += 1
                         connections_flat[(object_, terminal_name, conductor_id)] = max_connection_id
                         terminal_node_assignments[terminal_identifier] = max_connection_id
-            element_assignments[object_.name] = object_.add_to_tls(tls, terminal_node_assignments, cutoff=cutoff)
+            element_assignments[object_.name] = object_.add_to_tls(tls, terminal_node_assignments,
+                                                                   cutoff=cutoff, epsilon=self.epsilon)
         return tls, connections_flat, element_assignments
 
     def get_s21(self, p1: str, p2: str, frequencies: Iterable[float]):

@@ -24,7 +24,8 @@ class Pads(DesignElement):
     def get_terminals(self) -> dict:
         return {}
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True, cutoff: float = np.inf) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True,
+                   cutoff: float = np.inf, epsilon: float = 11.45) -> list:
         return []
 
 
@@ -63,5 +64,6 @@ class ChipEdgeGround(DesignElement):
     def get_terminals(self) -> dict:
         return {}
 
-    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True, cutoff: float = np.inf) -> list:
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True,
+                   cutoff: float = np.inf, epsilon: float = 11.45) -> list:
         return []
