@@ -10,13 +10,16 @@ def meander_creation(name: str, initial_position: Tuple[(float, float)], w: floa
                      meander_length: float,
                      length_left: float, length_right: float, first_step_orientation: float,
                      meander_orientation: float, end_point: Tuple[(float, float)], end_orientation: float,
-                     layer_configuration: LayerConfiguration, meander_type: str = 'round'):
+                     layer_configuration: LayerConfiguration, meander_type: str = 'round', r: float=None):
 
     # make small indent from the starting point
-    bend_radius = 40
+    if r is None:
+        bend_radius = 40
+    else:
+        bend_radius = r
     points = [tuple(initial_position)]
 
-    indent_length = 50  # (w+2*s)*2
+    indent_length = bend_radius * 1.25  # (w+2*s)*2
 
     points.append((initial_position[0] + np.cos(orientation + np.pi) * indent_length,
                    initial_position[1] + np.sin(orientation + np.pi) * indent_length))

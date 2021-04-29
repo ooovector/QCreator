@@ -474,7 +474,8 @@ class Sample:
                         length_left: float, length_right: float, first_step_orientation: float,
                         meander_orientation: float,
                         end_point=None, end_orientation=None, meander_type='round',
-                        airbridge: elements.AirBridgeGeometry = None, min_spacing: float = None
+                        airbridge: elements.AirBridgeGeometry = None, min_spacing: float = None,
+                        r = None
                         ):
 
         t1 = o1.get_terminals()[port1]
@@ -489,7 +490,7 @@ class Sample:
                                             meander_orientation=meander_orientation,
                                             end_point=end_point, end_orientation=end_orientation,
                                             layer_configuration=self.layer_configuration,
-                                            meander_type=meander_type)
+                                            meander_type=meander_type, r=r)
 
         if airbridge is not None:
             meander_with_bridges = self.generate_bridge_over_cpw(name=name, o=meander,
