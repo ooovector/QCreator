@@ -184,7 +184,7 @@ class Sample:
         else:
             raise ValueError('Unexpected data types of CPW parameters')
 
-        open_end = elements.OpenEnd(name, position_, w_, s_, g_, orientation_, self.layer_configuration)
+        open_end = elements.OpenEnd(name, position_, w_, s_, g_, orientation_+np.pi, self.layer_configuration)
         # open_end = elements.OpenEnd(name, o.get_terminals()[port], self.layer_configuration)
         self.add(open_end)
 
