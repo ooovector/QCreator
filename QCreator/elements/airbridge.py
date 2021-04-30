@@ -121,7 +121,12 @@ class AirbridgeOverCPW(DesignElement):
 
         bridge.rotate(self.orientation, self.position)
 
-        return {'positive': cpw_line, 'airbridges_pads': contacts, 'airbridges': bridge}
+        restrict_total = gdspy.FlexPath(points=[self.position - self.p, self.position + self.p],
+                                        width=self.w + 2 * self.s + 2 * self.g,
+                                        corners='natural', ends='flush',
+                                        layer=self.geometry.layer_configuration.restricted_area_layer)
+
+        return {'positive': cpw_line, 'airbridges_pads': contacts, 'airbridges': bridge, 'restrict': restrict_total}
 
     def get_terminals(self) -> dict:
         return self.terminals
