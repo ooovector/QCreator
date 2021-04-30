@@ -82,9 +82,10 @@ def draw_single_resonator_plus_qubit(sample,
     open_end = sample.connect_cpw(fanout2, object1, fanout2_port, port, name='right open end',
                                     points=[], airbridge=airbridge, min_spacing=min_bridge_spacing)
 
+    cl, ll = open_end[0].cm(sample.epsilon)
     total_length.append(sum([line.length for line in open_end]))
-    z01 = np.sqrt(open_end[0].ll[0] / open_end[0].cl[0])[0]
-    res_params = (sum(total_length), z01, open_end[0].cl[0, 0])
+    z01 = np.sqrt(ll[0] / cl[0])[0]
+    res_params = (sum(total_length), z01, cl[0, 0])
     if direction_orientation == 'up':
         g1, g2 = g2, g1
 
@@ -242,11 +243,12 @@ def draw_double_resonator_plus_double_qubit(sample,
     resonator_ground_2 = sample.ground(o=closed_end_meander2[-1], port='port2', name='resonator ground 2',
                                        grounding_width=30, grounding_between=[(0, 2)])
 
-    z01 = np.sqrt(open_end_resonator1[0].ll[0] / open_end_resonator2[0].cl[0])[0]
-    z02 = np.sqrt(open_end_resonator1[0].ll[0] / open_end_resonator2[0].cl[0])[0]
+    cl, ll = open_end_resonator1[0].cm(sample.epsilon)
+    z01 = np.sqrt(ll[0] / cl[0])[0]
+    z02 = np.sqrt(ll[0] / cl[0])[0]
     # get some resonator parameters
-    res_params1 = (closed_end_meander_length1+open_end_resonator1[0].length+coupler_length, z01, open_end_resonator1[0].cl[0,0])
-    res_params2 = (closed_end_meander_length2+open_end_resonator2[0].length+coupler_length, z02, open_end_resonator2[0].cl[0,0])
+    res_params1 = (closed_end_meander_length1+open_end_resonator1[0].length+coupler_length, z01, cl[0,0])
+    res_params2 = (closed_end_meander_length2+open_end_resonator2[0].length+coupler_length, z02, cl[0,0])
     return g1, g2, res_params1, res_params2
 
 
