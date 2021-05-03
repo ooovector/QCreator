@@ -226,7 +226,7 @@ class Fungus_Squid_C(DesignElement):
 
         # Box for inverted Polygons
         box = gdspy.Rectangle((self.center[0] - self.g_w / 2, self.center[1] - self.g_h / 2),(self.center[0] + self.g_w / 2, self.center[1] + self.g_h / 2))
-
+        pocket = gdspy.Rectangle((self.center[0] - self.g_w / 2+self.g_t, self.center[1] - self.g_h / 2+self.g_t),(self.center[0] + self.g_w / 2-self.g_t, self.center[1] + self.g_h / 2-self.g_t))
         if len(self.couplers) != 0:
             for id, coupler in enumerate(self.couplers):
                 if coupler.side == 'fluxline':
@@ -334,7 +334,9 @@ class Fungus_Squid_C(DesignElement):
                     'JJ': JJ.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
                     'inverted': inverted.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
                     'airbridges': Air.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
+                    'pocket': pocket.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
                     }
+
         if 'rotate' in self.transformations:
             return {'positive': result.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
                     'restrict': result_restricted.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
@@ -344,6 +346,7 @@ class Fungus_Squid_C(DesignElement):
                     'JJ': JJ.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
                     'inverted': inverted.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
                     'airbridges':Air.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
+                    'pocket': pocket.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
                     }
         elif self.transformations == {}:
             return {'positive': result,
@@ -353,6 +356,7 @@ class Fungus_Squid_C(DesignElement):
                     'JJ': JJ,
                     'inverted': inverted,
                     'airbridges': Air,
+                    'pocket':pocket,
                     }
 
     def generate_ground(self):
