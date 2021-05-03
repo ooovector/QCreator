@@ -28,16 +28,16 @@ layers_configuration = {
     'inverted':17
 }
 
-sample = creator.Sample('pcb',layers_configuration)
+sample = creator.Sample('Two-qubits-PP',layers_configuration)
 
 #specify sample vertical and horizontal lengths
-sample.chip_geometry.sample_vertical_size=4.3e3
-sample.chip_geometry.sample_horizontal_size=7e3
+sample.chip_geometry.sample_vertical_size=6e3
+sample.chip_geometry.sample_horizontal_size=10e3
 
 chip_edge_ground = elements.ChipEdgeGround(sample.chip_geometry, sample.layer_configuration, sample.pads)
 sample.add(chip_edge_ground)
 
-# 1. Create contact pads for 7*4.3 pcb WMI:
+# 1. Create contact pads for 6*10 pcb WMI from Huns:
 pads_left = []
 pads_right = []
 for pad_side_id in range(1):
@@ -59,26 +59,32 @@ for pad_side_id in range(1):
 
 pads_top = []
 pads_bottom = []
-eth_offset=2470
-for pad_side_id in range(3):
-    pad = elements.Pad('pad-bottom-' + str(pad_side_id),
-                       (sample.chip_geometry.sample_horizontal_size / 2+ eth_offset * (pad_side_id - 1), pad_offset),
-                       -np.pi / 2, tl_core, tl_gap, tl_ground,
-                       layer_configuration=sample.layer_configuration, chip_geometry=sample.chip_geometry,
-                       **elements.default_pad_geometry())
-    pads_bottom.append(pad)
-    sample.add(pad)
-    pad = elements.Pad('pad-top-' + str(pad_side_id),
-                       (sample.chip_geometry.sample_horizontal_size / 2 + eth_offset * (pad_side_id - 1),
-                        sample.chip_geometry.sample_vertical_size - pad_offset),
-                       np.pi / 2, tl_core, tl_gap, tl_ground,
-                       layer_configuration=sample.layer_configuration, chip_geometry=sample.chip_geometry,
-                       **elements.default_pad_geometry())
-    pads_top.append(pad)
-    sample.add(pad)
+huns_offset=2470
+pad_bottom_1 = elements.Pad('pad-bottom-' + str(1),
+                   (sample.chip_geometry.sample_horizontal_size / 2+ huns_offset *(- 1), pad_offset),
+                   -np.pi / 2, tl_core, tl_gap, tl_ground,
+                   layer_configuration=sample.layer_configuration, chip_geometry=sample.chip_geometry,
+                   **elements.default_pad_geometry())
+pad_bottom_2 = elements.Pad('pad-bottom-' + str(2),
+                   (sample.chip_geometry.sample_horizontal_size / 2+ huns_offset, pad_offset),
+                   -np.pi / 2, tl_core, tl_gap, tl_ground,
+                   layer_configuration=sample.layer_configuration, chip_geometry=sample.chip_geometry,
+                   **elements.default_pad_geometry())
+pads_bottom.append(pad_bottom_1)
+pads_bottom.append(pad_bottom_2)
+sample.add(pad_bottom_1)
+sample.add(pad_bottom_2)
+pad = elements.Pad('pad-top-' + str(pad_side_id),
+                   (sample.chip_geometry.sample_horizontal_size / 2,
+                    sample.chip_geometry.sample_vertical_size - pad_offset),
+                   np.pi / 2, tl_core, tl_gap, tl_ground,
+                   layer_configuration=sample.layer_configuration, chip_geometry=sample.chip_geometry,
+                   **elements.default_pad_geometry())
+pads_top.append(pad)
+sample.add(pad)
 
 p1 = pads_left[0]
-p2 = pads_right[0]
+p2 = pads_top[0]
 
 ################################
 # resonator parameters:
@@ -106,7 +112,7 @@ a2    = 0.30 # Junction width in um
 jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8 }# hole sizes for the JJs
 empty_ground = 0.66
 #Qubit 1
-Qubit1 = elements.pp_transmon.PP_Transmon(name='PP_Transmon2',center=(2000,1550),
+Qubit1 = elements.pp_transmon.PP_Transmon(name='PP_Transmon2',center=(4000,2500),
               width = width,
               height = height,
               bridge_gap = JJ_pad_offset_x,
@@ -123,7 +129,7 @@ Qubit1 = elements.pp_transmon.PP_Transmon(name='PP_Transmon2',center=(2000,1550)
                                  calculate_capacitance=False
                                  )
 #Qubit 2
-Qubit2 = elements.pp_transmon.PP_Transmon(name='PP_Transmon2',center=(2000,1550),
+Qubit2 = elements.pp_transmon.PP_Transmon(name='PP_Transmon2',center=(5000,2500),
               width = width,
               height = height,
               bridge_gap = JJ_pad_offset_x,
