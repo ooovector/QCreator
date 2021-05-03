@@ -37,7 +37,7 @@ layers_configuration = {
     'inverted':17
 }
 
-sample = creator.Sample('3Q_test',layers_configuration)
+sample = creator.Sample('3Q_1_fungus',layers_configuration)
 
 #specify sample vertical and horizontal lengths
 sample.chip_geometry.sample_vertical_size=4.3e3
@@ -112,7 +112,7 @@ Couplers_Squid2=[]
 width = 100
 height= 250
 gap   = 50
-ground_w = 310
+ground_w = 325
 ground_h = 325
 ground_t = 10
 
@@ -127,22 +127,23 @@ a2    = a1 # Junction width in um
 jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8 }# hole sizes for the JJs
 
 l, t_m, t_r, gp, l_arm, h_arm, s_gap = 500, resonator_core, 3, 5, 20, 50, resonator_gap
-fluxline = {'l':l,'t_m':t_m,'t_r':t_r,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
+fluxline = {}#{'l':l,'t_m':t_m,'t_r':t_r,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'extend_to_ground':False}
 
 
 arms = {}
 
-width_tc    = [80,50]
-height_tc   = [600,150]
+width_tc    = [60,50]
+height_tc   = [800,150]
 gap_tc      = 70
-ground_w_tc = 500
-ground_h_tc = 700
+ground_w_tc = 325
+ground_h_tc = 850
 ground_t_tc = 10
 
-shoes1 = {3:(70,50)}
-shoes2 = {1:(70,50)}
+shoes1 = {}#{3:(70,50)}
+shoes2 = {}#{1:(70,50)}
+shoes_tc= {1:(60,40),2:(60,40),'T':True}
 
-x_shift = 50
+
 transmon1 = elements.shoe_transmon.Shoe_Transmon(name='Shoe_Transmon1',center=(2050,2000),
                           width = width,
                           height = height,
@@ -157,10 +158,10 @@ transmon1 = elements.shoe_transmon.Shoe_Transmon(name='Shoe_Transmon1',center=(2
                           Couplers = Coupler1,
                           calculate_capacitance = False,
                           transformations = {},
-                          remove_ground = {'right':1,'top':1,},
+                          remove_ground = {'right':1},
                           shoes = shoes1,
                           )
-transmon2 = elements.shoe_transmon.Shoe_Transmon(name='Shoe_Transmon2',center=(2050+ground_w+ground_w_tc-2*x_shift,2000),
+transmon2 = elements.shoe_transmon.Shoe_Transmon(name='Shoe_Transmon2',center=(2050+ground_h_tc+ground_w,2000),
                           width = width,
                           height = height,
                           bridge_gap = JJ_pad_offset_x,
@@ -174,19 +175,18 @@ transmon2 = elements.shoe_transmon.Shoe_Transmon(name='Shoe_Transmon2',center=(2
                           Couplers = Coupler2,
                           calculate_capacitance = False,
                           transformations = {},
-                          remove_ground = {'left':1,'top':1,},
+                          remove_ground = {'left':1,},
                           shoes = shoes2,
                           )
 
+shift_y =gap_tc/2+width_tc[0]/2
 
-
-shift = -20
-tc1 = elements.fungus_squid_coupler.Fungus_Squid_C(name='PP_Coupler1',center=(2050+ground_w/2+ground_w_tc/2-x_shift,2000+ground_h+shift),
+tc1 = elements.fungus_squid_coupler.Fungus_Squid_C(name='PP_Coupler1',center=(2050+(ground_h_tc+ground_w)/2,2000+shift_y),
                           width = width_tc,
                           height = height_tc,
                           bridge_gap = JJ_pad_offset_x,
                           bridge_w   = JJ_pad_offset_y ,
-                          gap = gap,
+                          gap = gap_tc,
                           ground_w = ground_w_tc,
                           ground_h = ground_h_tc,
                           ground_t = ground_t_tc,
@@ -196,9 +196,10 @@ tc1 = elements.fungus_squid_coupler.Fungus_Squid_C(name='PP_Coupler1',center=(20
                           layer_configuration = sample.layer_configuration,
                           Couplers = Couplers_Squid1,
                           calculate_capacitance = False,
-                          transformations = {},#'rotate':(np.pi/2,(2050+ground_w/2+ground_w_tc/2-x_shift,2000+ground_h+shift))},
+                          transformations = {'rotate':(np.pi/2,(2050+(ground_h_tc+ground_w)/2,2000+shift_y))},
                           remove_ground = {'left':1,'top':1,'bottom':1,'right':1},
-                          asymmetry = 210,
+                          shoes = shoes_tc,
+                          asymmetry = 0,
                           )
 
 

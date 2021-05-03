@@ -79,8 +79,8 @@ center4 = (2050+spacing+ground_w,2000-spacing-ground_h)
 #Coupler
 arms = {}
 
-width_tc    = [60,50]
-height_tc   = [800,150]
+width_tc    = [60,75]
+height_tc   = [800,165]
 gap_tc      = 70
 ground_w_tc = 325
 ground_h_tc = 850
@@ -284,8 +284,8 @@ sample.add(tc4)
 """
 
 
-X = 1
-Y = 2
+X = 3
+Y = 3
 
 for i in range(Y):
     for j in range(X):
