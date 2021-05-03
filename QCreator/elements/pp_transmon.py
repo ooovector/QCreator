@@ -306,8 +306,8 @@ class PP_Transmon(DesignElement):
                     }
         if 'rotate' in self.transformations:
             return {'positive': result.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
-                    'restrict': result_restricted,
-                    'qubit': qubit.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]) if qubit is not None else None,
+                    'restrict': result_restricted.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
+                    'qubit': qubit.rotate(self.transformations['rotate'][0],self.transformations['rotate'][1]) if qubit is not None else None,
                     'qubit_cap': qubit_cap_parts,
                     'JJ': JJ.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
                     'inverted': inverted.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1])
