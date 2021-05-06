@@ -24,7 +24,7 @@ class Fungus_Squid_C(DesignElement):
     9) shoes - caps for the two pads
     """
     def __init__(self, name: str, center: Tuple[float, float],width: Tuple[float,float], height: Tuple[float,float],gap: float,bridge_gap:float,bridge_w:float, ground_w: float, ground_h: float,ground_t: float,layer_configuration: LayerConfiguration,
-                 jj_params: Dict,Couplers,transformations:Dict,arms:Dict,fluxline_params= {},remove_ground = {},secret_shift = 0,calculate_capacitance = False,shoes = {},claw = [],asymmetry = 0,air_bridge=[]):
+                 jj_params: Dict,Couplers,transformations:Dict,fluxline_params= {},remove_ground = {},secret_shift = 0,calculate_capacitance = False,shoes = {},claw = [],asymmetry = 0,air_bridge=[]):
         super().__init__(type='qubit', name=name)
         #qubit parameters
         self.transformations = transformations# to mirror the structure
@@ -76,9 +76,6 @@ class Fungus_Squid_C(DesignElement):
 
         # remove ground on these sites
         self.remove_ground = remove_ground
-
-        #small coupling pads
-        self.arms = arms
 
         self.secret_shift = secret_shift
 
@@ -160,26 +157,14 @@ class Fungus_Squid_C(DesignElement):
             #lower
             P1 = gdspy.boolean(P1, gdspy.Rectangle((self.center[0]-self.gap/2+i[0]-self.w_pads[0],self.center[1]+self.h_pads[0]/2+i[1]),(self.center[0]-self.gap/2-self.w_pads[0],self.center[1]-self.h_pads[0]/2-i[1])),'or')
 
-        #coupler arms left and right
-        if self.arms != {}:
-            left_arm    = gdspy.Rectangle((self.center[0]-self.gap/2-self.w,self.center[1]-self.arms['l.w']/2),(self.center[0]-self.g_w/2+self.g_t+self.arms['l.g'],self.center[1]+self.arms['l.w']/2))
-            left_arm    = gdspy.boolean(gdspy.Rectangle((self.center[0]-self.g_w/2+self.g_t+self.arms['l.g'],self.center[1]-self.arms['l.ph']/2),(self.center[0]-self.g_w/2+self.g_t+self.arms['l.g']+self.arms['l.pw'],self.center[1]+self.arms['l.ph']/2)), left_arm, 'or')
-            P1          = gdspy.boolean(P1, left_arm, 'or')
-
-            right_arm = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w, self.center[1] + self.arms['r.w'] / 2), (
-            self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'], self.center[1] - self.arms['r.w'] / 2))
-            right_arm = gdspy.boolean(gdspy.Rectangle(
-                (self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'], self.center[1] + self.arms['r.ph'] / 2), (
-                self.center[0] + self.g_w / 2 - self.g_t - self.arms['r.g'] - self.arms['r.pw'],
-                self.center[1] - self.arms['r.ph'] / 2)), right_arm, 'or')
-
-            P2 = gdspy.boolean(P2, right_arm, 'or')
 
 
         self.layers.append(9)
         result = gdspy.boolean(ground, P1, 'or', layer=self.layer_configuration.total_layer)
         result = gdspy.boolean(result, P2, 'or', layer=self.layer_configuration.total_layer)
 
+
+        #Change bridges for different desig
         P1_bridge = gdspy.Rectangle((self.center[0]-self.gap/2,self.center[1]+self.h/2+self.asymmetry),(self.center[0]-self.b_g/2,self.center[1]+self.h/2-self.b_w+self.asymmetry))
         P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2, self.center[1]+self.h/2-2*self.b_w+self.asymmetry),(self.center[0] + self.b_g / 2, self.center[1]+self.h/2-3*self.b_w+self.asymmetry))
 
@@ -190,6 +175,8 @@ class Fungus_Squid_C(DesignElement):
         result = gdspy.boolean(result, P1_bridge, 'or', layer=self.layer_configuration.total_layer)
         result = gdspy.boolean(result, P2_bridge, 'or', layer=self.layer_configuration.total_layer)
         self.layers.append(self.layer_configuration.total_layer)
+
+        #change orientation of fluxline
         if self.fluxline_params != {}:
             f = self.fluxline_params
             l, t_m, t_r, gap, l_arm, h_arm, s_gap = f['l'],f['t_m'],f['t_r'],f['gap'],f['l_arm'],f['h_arm'],f['s_gap']
@@ -452,7 +439,7 @@ class Fungus_Squid_C(DesignElement):
 
 
 
-
+    #change for new design
     def generate_JJ(self):
         #cheap Manhatten style
         reach1 = 16
@@ -606,7 +593,7 @@ class PP_Squid_Fluxline:
         if not self.extend:
             ground_t = ground_height/2
 
-        start = [center[0]+self.l_arm/2,center[1]+self.t_r+self.l+height/2+self.gap+self.asymmetry]
+        start  = [center[0]+self.l_arm/2,center[1]+self.t_r+self.l+height/2+self.gap+self.asymmetry]
         points = [start+[0,0],start+[self.t_m,0],start+[self.t_m,-self.l],start+[self.t_m+self.l_arm,-self.l]]
         points.append(start+[self.t_m+self.s_gap,-self.l+self.h_arm])
         points.append(start+[self.t_m+self.s_gap,0])
@@ -641,6 +628,8 @@ class PP_Squid_Fluxline:
         return {
             'positive': result
                         }
+
+
 
 def mirror_point(point,ref1,ref2):
     """

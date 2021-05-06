@@ -106,12 +106,15 @@ class PP_Transmon(DesignElement):
             if 'R' in self.shoes:
                 Rot = self.shoes['R']
             for key in self.shoes:
+                if 'R' not in self.shoes:
+                    Rot = 0
                 if key == 1:
                     Shoe = gdspy.Rectangle(
                         (self.center[0] - self.gap / 2 - self.w+30, self.center[1] + self.h / 2), (
                         self.center[0] - self.gap / 2 - self.w - self.shoes[key][0],
                         self.center[1] + self.h / 2 - self.shoes[key][1]))
-                    if 'R' in self.shoes:
+                    if 'R1' in self.shoes:
+                        Rot = self.shoes['R1']
                         Shoe.translate(0,self.shoes[key][1]/2)
 
                     Shoe.rotate(-Rot,(self.center[0] - self.gap / 2 - self.w, self.center[1] + self.h / 2))
@@ -122,7 +125,8 @@ class PP_Transmon(DesignElement):
                         (self.center[0] - self.gap / 2 - self.w+30, self.center[1] - self.h / 2), (
                         self.center[0] - self.gap / 2 - self.w - self.shoes[key][0],
                         self.center[1] - self.h / 2 + self.shoes[key][1]))
-                    if 'R' in self.shoes:
+                    if 'R2' in self.shoes:
+                        Rot = self.shoes['R2']
                         Shoe.translate(0,-self.shoes[key][1]/2)
 
                     Shoe.rotate(Rot, (self.center[0] - self.gap / 2 - self.w, self.center[1] - self.h / 2))
@@ -132,7 +136,8 @@ class PP_Transmon(DesignElement):
                         (self.center[0] + self.gap / 2 + self.w-30, self.center[1] + self.h / 2), (
                         self.center[0] + self.gap / 2 + self.w + self.shoes[key][0],
                         self.center[1] + self.h / 2 - self.shoes[key][1]))
-                    if 'R' in self.shoes:
+                    if 'R3' in self.shoes:
+                        Rot = self.shoes['R3']
                         Shoe.translate(0,self.shoes[key][1]/2)
 
                     Shoe.rotate(+Rot, (self.center[0] + self.gap / 2 + self.w, self.center[1] + self.h / 2))
@@ -142,7 +147,8 @@ class PP_Transmon(DesignElement):
                         (self.center[0] + self.gap / 2 + self.w-30, self.center[1] - self.h / 2), (
                         self.center[0] + self.gap / 2 + self.w + self.shoes[key][0],
                         self.center[1] - self.h / 2 + self.shoes[key][1]))
-                    if 'R' in self.shoes:
+                    if 'R4' in self.shoes:
+                        Rot = self.shoes['R4']
                         Shoe.translate(0,-self.shoes[key][1]/2)
 
                     Shoe.rotate(-Rot, (self.center[0] + self.gap / 2 + self.w, self.center[1] - self.h / 2))

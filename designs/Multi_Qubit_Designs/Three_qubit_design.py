@@ -28,7 +28,7 @@ layers_configuration = {
     'inverted':17
 }
 
-sample = creator.Sample('Two-qubits-PP',layers_configuration)
+sample = creator.Sample('Three-qubits-PP',layers_configuration)
 
 #specify sample vertical and horizontal lengths
 sample.chip_geometry.sample_vertical_size=6e3
@@ -95,7 +95,7 @@ resonator_ground = 5
 ############### Qubits and Coupler
 
 #Qubit parameters
-#origin of left qubit
+#origin of left bottom qubit
 origin = [4000,2200]
 
 
@@ -124,9 +124,15 @@ JJ_pad_offset_y = 16 # JJ design
 
 
 sh = (70,20)
-shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4}
-shoes2 = {}#{1:(70,50)}
-spacing = 900
+
+shoes1 = {1:sh,2:sh,3:sh,4:sh,'R1':np.pi/2,'R2':np.pi/4,'R3':np.pi/4,'R4':np.pi/4}
+
+shoes2 = {1:sh,2:sh,3:sh,4:sh,'R1':np.pi/4,'R2':np.pi/2,'R3':np.pi/4,'R4':np.pi/4}
+
+shoes3 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4}
+
+spacing = 740
+
 center1 = (origin[0],origin[1])
 center2 = (origin[0]+spacing+ground_w,origin[1])
 center3 = (origin[0],origin[1]-spacing-ground_h)
@@ -159,12 +165,17 @@ air = [-20,40,100]
 
 
 CC1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground),
+      elements.pp_transmon.PP_Transmon_Coupler(400,60,16,'bottom',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground),
+      ]
+
+CC2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground),
       elements.pp_transmon.PP_Transmon_Coupler(400,60,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground),
       ]
 
-CC2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground),
-      elements.pp_transmon.PP_Transmon_Coupler(400,60,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground),
+CC3 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground),
+      elements.pp_transmon.PP_Transmon_Coupler(400,60,16,'bottom',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground),
       ]
+
 
 
 l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 6, 5, 20, 50, resonator_gap
@@ -172,15 +183,14 @@ flux = {'l':l,'t_m':t_m,'t_r':t_r,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s
 flux = {}
 
 
-CC = [CC1,CC2]
+CC = [CC1,CC2,CC3]
 X = 2
 Y = 1
 qubits   = []
 couplers = []
-for i in range(Y):
-    for j in range(X):
-        center = (origin[0]+j*(spacing+ground_w),origin[1]+i*(spacing+ground_h))
-        element = elements.pp_transmon.PP_Transmon(name='Q'+str(j)+'_'+str(i), center=center,
+
+center = (origin[0]+0*(spacing+ground_w),origin[1]+0*(spacing+ground_h))
+Q1 = elements.pp_transmon.PP_Transmon(name='Q1', center=center,
                                            width=width,
                                            height=height,
                                            bridge_gap=JJ_pad_offset_x,
@@ -191,15 +201,98 @@ for i in range(Y):
                                            ground_t=ground_t,
                                            jj_params=jj_pp,
                                            layer_configuration=sample.layer_configuration,
-                                           Couplers=CC[j],
+                                           Couplers=CC[0],
                                            calculate_capacitance=False,
                                            remove_ground={'left': 1, 'right': 1, 'top': 1, 'bottom': 1},
                                            shoes=shoes1,
+                                           transformations={}#transformations={'rotate': (np.pi / 4, center)},
+                                           )
+
+sample.add(Q1)
+qubits.append(Q1)
+
+
+center = (origin[0]+0*(spacing+ground_w),origin[1]+1*(spacing+ground_h))
+Q2 = elements.pp_transmon.PP_Transmon(name='Q2', center=center,
+                                           width=width,
+                                           height=height,
+                                           bridge_gap=JJ_pad_offset_x,
+                                           bridge_w=JJ_pad_offset_y,
+                                           gap=gap,
+                                           ground_w=ground_w,
+                                           ground_h=ground_h,
+                                           ground_t=ground_t,
+                                           jj_params=jj_pp,
+                                           layer_configuration=sample.layer_configuration,
+                                           Couplers=CC[1],
+                                           calculate_capacitance=False,
+                                           remove_ground={'left': 1, 'right': 1, 'top': 1, 'bottom': 1},
+                                           shoes=shoes2,
+                                           transformations={}#transformations={'rotate': (np.pi / 4, center)},
+                                           )
+
+sample.add(Q2)
+qubits.append(Q2)
+
+
+
+
+
+
+
+center = (origin[0]+1*(spacing+ground_w)+150,origin[1]+1*(spacing+ground_h)/2)
+Q3 = elements.pp_transmon.PP_Transmon(name='Q3', center=center,
+                                           width=width,
+                                           height=height,
+                                           bridge_gap=JJ_pad_offset_x,
+                                           bridge_w=JJ_pad_offset_y,
+                                           gap=gap,
+                                           ground_w=ground_w,
+                                           ground_h=ground_h,
+                                           ground_t=ground_t,
+                                           jj_params=jj_pp,
+                                           layer_configuration=sample.layer_configuration,
+                                           Couplers=CC[2],
+                                           calculate_capacitance=False,
+                                           remove_ground={'left': 1, 'right': 1, 'top': 1, 'bottom': 1},
+                                           shoes=shoes3,
                                            transformations={'rotate': (np.pi / 4, center)},
                                            )
-        sample.add(element)
-        qubits.append(element)
 
+sample.add(Q3)
+qubits.append(Q3)
+
+
+center1 = (origin[0] - shift_y-gap/2-width, origin[1] +(spacing+ground_w)/2)
+
+T1 = elements.fungus_squid_coupler.Fungus_Squid_C(name='PP_Coupler1', center=center1,
+                                                  width=width_tc,
+                                                  height=height_tc,
+                                                  bridge_gap=JJ_pad_offset_x,
+                                                  bridge_w=JJ_pad_offset_y,
+                                                  gap=gap_tc,
+                                                  ground_w=ground_w_tc,
+                                                  ground_h=ground_h_tc,
+                                                  ground_t=ground_t,
+                                                  jj_params=jj_pp,
+                                                  fluxline_params=flux,
+                                                  layer_configuration=sample.layer_configuration,
+                                                  Couplers=[],
+                                                  calculate_capacitance=False,
+                                                  transformations={'rotate': (-np.pi, center1)},
+                                                  remove_ground={'left': 1, 'top': 1, 'bottom': 1, 'right': 1},
+                                                  shoes={},
+                                                  claw=claw_tc,
+                                                  asymmetry=a,
+                                                  air_bridge=air,
+                                                  )
+
+sample.add(T1)
+couplers.append(T1)
+
+
+
+"""
 for i in range(Y):
     for j in range(X):
         center1 = (origin[0] + (spacing / 2 + ground_w / 2)*(2*j+1), origin[1] - shift_y+(spacing+ground_w)*i)
@@ -254,6 +347,7 @@ for i in range(Y):
             sample.add(T2)
             couplers.append(T2)
 
+"""
 
 #lets do it smartly
 all_restricted = []
