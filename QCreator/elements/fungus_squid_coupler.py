@@ -320,7 +320,7 @@ class Fungus_Squid_C(DesignElement):
                     'qubit_cap': qubit_cap_parts,
                     'JJ': JJ.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
                     'inverted': inverted.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
-                    'airbridges': Air.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
+                    'airbridges': Air.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1])if Air is not None else None,
                     'pocket': pocket.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
                     }
 
@@ -332,7 +332,7 @@ class Fungus_Squid_C(DesignElement):
                     'qubit_cap': qubit_cap_parts,
                     'JJ': JJ.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
                     'inverted': inverted.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
-                    'airbridges':Air.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
+                    'airbridges':Air.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1])if Air is not None else None,
                     'pocket': pocket.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
                     }
         elif self.transformations == {}:
@@ -342,7 +342,7 @@ class Fungus_Squid_C(DesignElement):
                     'qubit_cap': qubit_cap_parts,
                     'JJ': JJ,
                     'inverted': inverted,
-                    'airbridges': Air,
+                    'airbridges': Air if Air is not None else None,
                     'pocket':pocket,
                     }
 

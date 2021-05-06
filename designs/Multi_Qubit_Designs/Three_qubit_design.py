@@ -144,6 +144,7 @@ arms = {}
 
 width_tc    = [60,75]
 height_tc   = [800,165]
+height_tc2 = [860,165,1200]
 gap_tc      = 70
 ground_w_tc = 325
 ground_h_tc = 950
@@ -151,7 +152,7 @@ ground_t_tc = 10
 
 claw_tc = [10,50]
 
-shift_y =gap_tc/2+width_tc[0]/2
+shift_y =gap_tc/2+width_tc[0]/2+claw_tc[0]
 
 origin = [origin[0],origin[1]]
 center_tc1 = (origin[0]+spacing/2+ground_w/2,origin[1]+shift_y)
@@ -162,6 +163,8 @@ center_tc4 = (origin[0]+spacing/2+ground_w/2,origin[1]-shift_y-spacing-ground_w)
 a = -250
 
 air = [-20,40,100]
+
+air2 = [200,40,100]
 
 
 CC1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground),
@@ -180,7 +183,7 @@ CC3 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = 'c
 
 l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 6, 5, 20, 50, resonator_gap
 flux = {'l':l,'t_m':t_m,'t_r':t_r,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
-flux = {}
+#flux = {}
 
 
 CC = [CC1,CC2,CC3]
@@ -237,10 +240,8 @@ qubits.append(Q2)
 
 
 
-
-
-
 center = (origin[0]+1*(spacing+ground_w)+150,origin[1]+1*(spacing+ground_h)/2)
+
 Q3 = elements.pp_transmon.PP_Transmon(name='Q3', center=center,
                                            width=width,
                                            height=height,
@@ -263,7 +264,7 @@ sample.add(Q3)
 qubits.append(Q3)
 
 
-center1 = (origin[0] - shift_y-gap/2-width, origin[1] +(spacing+ground_w)/2)
+center1 = (origin[0] - shift_y-gap/2-width, origin[1] +(spacing+ground_h)/2)
 
 T1 = elements.fungus_squid_coupler.Fungus_Squid_C(name='PP_Coupler1', center=center1,
                                                   width=width_tc,
@@ -291,88 +292,59 @@ sample.add(T1)
 couplers.append(T1)
 
 
+center2 = (origin[0] +1*(spacing+ground_h)/2+width_tc[0]/2-3, origin[1] +(spacing+ground_h)/2+shift_y-claw_tc[0])
 
-"""
-for i in range(Y):
-    for j in range(X):
-        center1 = (origin[0] + (spacing / 2 + ground_w / 2)*(2*j+1), origin[1] - shift_y+(spacing+ground_w)*i)
-        center2 = (origin[0] - shift_y+j*(spacing+ground_w), origin[1] + (spacing / 2 + ground_w / 2)*(2*i+1))
-        T1 = elements.fungus_squid_coupler.Fungus_Squid_C(name='PP_Coupler1',center=center1,
-                          width = width_tc,
-                          height = height_tc,
-                          bridge_gap = JJ_pad_offset_x,
-                          bridge_w   = JJ_pad_offset_y ,
-                          gap = gap_tc,
-                          ground_w = ground_w_tc,
-                          ground_h = ground_h_tc,
-                          ground_t = ground_t,
-                          jj_params= jj_pp,
-                          fluxline_params =flux,
-                          layer_configuration = sample.layer_configuration,
-                          Couplers = [],
-                          calculate_capacitance = False,
-                          transformations = {'rotate':(-np.pi/2,center1)},
-                          remove_ground = {'left':1,'top':1,'bottom':1,'right':1},
-                          shoes ={},
-                          claw  = claw_tc,
-                          asymmetry = a,
-                          air_bridge=air,
-                          )
 
-        T2 = elements.fungus_squid_coupler.Fungus_Squid_C(name='PP_Coupler2', center=center2,
-                                                           width=width_tc,
-                                                           height=height_tc,
-                                                           bridge_gap=JJ_pad_offset_x,
-                                                           bridge_w=JJ_pad_offset_y,
-                                                           gap=gap_tc,
-                                                           ground_w=ground_w_tc,
-                                                           ground_h=ground_h_tc,
-                                                           ground_t=ground_t,
-                                                           jj_params=jj_pp,
-                                                           fluxline_params={},
-                                                           layer_configuration=sample.layer_configuration,
-                                                           Couplers=[],
-                                                           calculate_capacitance=False,
-                                                           transformations={'rotate': (np.pi, center2)},
-                                                           remove_ground={'left': 1, 'top': 1, 'bottom': 1, 'right': 1},
-                                                           shoes={},
-                                                           claw=claw_tc,
-                                                           asymmetry=a,
-                                                           air_bridge=air,
-                                                           )
-        if(j!=X-1):
-            sample.add(T1)
-            couplers.append(T1)
-        if(i!=Y-1):
-            sample.add(T2)
-            couplers.append(T2)
+T2 = elements.y_squid_coupler.Y_Squid_C(name='Y_Coupler', center=center2,
+                                                  width=width_tc,
+                                                  height=height_tc2,
+                                                  bridge_gap=JJ_pad_offset_x,
+                                                  bridge_w=JJ_pad_offset_y,
+                                                  gap=gap_tc,
+                                                  ground_w=ground_w_tc,
+                                                  ground_h=ground_h_tc,
+                                                  ground_t=ground_t,
+                                                  jj_params=jj_pp,
+                                                  fluxline_params=flux,
+                                                  layer_configuration=sample.layer_configuration,
+                                                  Couplers=[],
+                                                  calculate_capacitance=False,
+                                                  transformations={'rotate': (np.pi/2, center2)},
+                                                  remove_ground={'left': 1, 'top': 1, 'bottom': 1, 'right': 1},
+                                                  shoes={},
+                                                  claw=claw_tc,
+                                                  asymmetry=a,
+                                                  air_bridge=air2,
+                                                  )
 
-"""
+sample.add(T2)
+couplers.append(T2)
+
 
 #lets do it smartly
 all_restricted = []
+all_inverted = []
+all_positive = []
 for Q in qubits:
     Qu = Q.render()
     all_restricted.append(Qu['restrict'])
+    all_inverted.append(Qu['pocket'])
+    all_positive.append(Qu['positive'])
 for Q in couplers:
     Qu = Q.render()
     all_restricted.append(Qu['restrict'])
+    all_inverted.append(Qu['pocket'])
+    all_positive.append(Qu['positive'])
 
 one = gdspy.Rectangle((0,0),(0,0))
 for i in all_restricted:
-    one = gdspy.boolean(one,i,'or',layer=layers_configuration['air bridges'])
+    one = gdspy.boolean(one,i,'or',layer=layers_configuration['vertical gridlines'])
 
-all_inverted = []
-
-for Q in qubits:
-    Qu = Q.render()
-    all_inverted.append(Qu['pocket'])
-
-for Q in couplers:
-    Qu = Q.render()
-    all_inverted.append(Qu['pocket'])
 
 for i in all_inverted:
+    one = gdspy.boolean(one,i,'not',layer=layers_configuration['vertical gridlines'])
+
+for i in all_positive:
     one = gdspy.boolean(one,i,'not',layer=layers_configuration['vertical gridlines'])
 
 

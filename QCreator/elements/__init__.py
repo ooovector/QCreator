@@ -18,3 +18,4 @@ from .pp_squid import PP_Squid
 from .pp_squid_coupler import PP_Squid_C
 from .fungus_squid_coupler import Fungus_Squid_C
 from .twoqtc import TWOQTC
+from .y_squid_coupler import Y_Squid_C
