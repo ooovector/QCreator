@@ -30,7 +30,7 @@ class Pads(DesignElement):
 
 
 class ChipEdgeGround(DesignElement):
-    def __init__(self, chip_geometry: ChipGeometry, layer_configuration: LayerConfiguration, pads: Pads):
+    def __init__(self, chip_geometry: ChipGeometry, layer_configuration: LayerConfiguration, pads: Pads, edge: float=600):
         """
         Element for creating a wide and solid ground electrode around the edges of the chip to wirebond for wirebonding
         to PCB.
@@ -42,13 +42,14 @@ class ChipEdgeGround(DesignElement):
         self.chip_geometry = chip_geometry
         self.layer_configuration = layer_configuration
         self.pads = pads
+        self.edge = edge
 
     def render(self):
         """
         Draws edge g metallization on chip
         :return:
         """
-        edge = 600 #  fundamental constant - edge length
+        edge = self.edge #  fundamental constant - edge length
         r1 = gdspy.Rectangle((0, 0), (self.chip_geometry.sample_horizontal_size, self.chip_geometry.sample_vertical_size))
         r2 = gdspy.Rectangle((edge, edge), (self.chip_geometry.sample_horizontal_size - edge,
                                             self.chip_geometry.sample_vertical_size - edge))
