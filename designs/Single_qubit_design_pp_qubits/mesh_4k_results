@@ -1,0 +1,33 @@
+Running C:\Program Files (x86)\LayoutEditor\bin\fastcap.exe LayoutEditor 0.1 (fastlc)
+  Input: E:\Github2.0\QCreator\designs\Single_qubit_design_pp_qubits\mesh_4k_data
+  Date: Thu Apr 22 10:02:19 2021
+
+INPUT SUMMARY
+  Expansion order: 2
+  Number of partitioning levels: 7
+  Overall permittivity factor: 1
+Title: `'
+  Total number of panels: 16267
+    Number of conductor panels: 16267
+    Number of dielectric interface panels: 0
+    Number of thin conductor on dielectric interface panels: 0
+  Number of conductors: 4
+No expansions at level 7 (lowest)
+Percentage of multiplies done by multipole: 99.3%
+
+ITERATION DATA
+Starting on column 1 (1.0%GROUP1)
+1 2 3 4 5 6 7 8 9 
+Starting on column 2 (2.0%GROUP1)
+1 2 3 4 5 6 7 8 9 
+Starting on column 3 (3.0%GROUP1)
+1 2 3 4 5 6 7 8 9 10 
+Starting on column 4 (4.0%GROUP1)
+1 2 3 4 5 6 7 8 9 10 
+
+CAPACITANCE MATRIX, picofarads
+                       1            2            3            4 
+1.0%GROUP1 1    1.087e+04        -2460       -314.1        -4465
+2.0%GROUP1 2        -2460    1.078e+04       -39.93        -4483
+3.0%GROUP1 3       -314.1       -39.93         3936        -3136
+4.0%GROUP1 4        -4465        -4483        -3136    2.317e+04
