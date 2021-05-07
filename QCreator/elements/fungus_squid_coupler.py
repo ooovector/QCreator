@@ -407,7 +407,7 @@ class Fungus_Squid_C(DesignElement):
                     if coupler.side == "bottom":
                         coupler_phi = np.pi / 2
                     if coupler.side == 'fluxline':
-                        coupler_phi = -np.pi / 2
+                        coupler_phi = 0
             if 'rotate' in self.transformations:
                 if coupler.connection is not None:
                     coupler_connection = rotate_point(coupler.connection, self.transformations['rotate'][0], self.transformations['rotate'][1])
@@ -421,7 +421,7 @@ class Fungus_Squid_C(DesignElement):
                     if coupler.side == "bottom":
                         coupler_phi = np.pi / 2+self.transformations['rotate'][0]
                     if coupler.side == "fluxline":
-                        coupler_phi =  -np.pi/2+self.transformations['rotate'][0]
+                        coupler_phi =  np.pi+self.transformations['rotate'][0]
 
             if self.transformations == {}:
                 coupler_connection = coupler.connection
@@ -432,7 +432,7 @@ class Fungus_Squid_C(DesignElement):
                 if coupler.side == "top":
                     coupler_phi = -np.pi/2
                 if coupler.side == "fluxline":
-                    coupler_phi = -np.pi/2
+                    coupler_phi = np.pi
                 if coupler.side == "bottom":
                     coupler_phi = np.pi/2
 
