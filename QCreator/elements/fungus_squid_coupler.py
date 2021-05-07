@@ -164,9 +164,11 @@ class Fungus_Squid_C(DesignElement):
         result = gdspy.boolean(result, P2, 'or', layer=self.layer_configuration.total_layer)
 
 
-        #Change bridges for different desig
-        P1_bridge = gdspy.Rectangle((self.center[0]-self.gap/2,self.center[1]+self.h/2+self.asymmetry),(self.center[0]-self.b_g/2,self.center[1]+self.h/2-self.b_w+self.asymmetry))
-        P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2, self.center[1]+self.h/2-2*self.b_w+self.asymmetry),(self.center[0] + self.b_g / 2, self.center[1]+self.h/2-3*self.b_w+self.asymmetry))
+
+        P1_bridge = gdspy.Rectangle((self.center[0]-self.gap/2,self.center[1]+self.h/2+self.asymmetry+3*self.b_w),(self.center[0]+self.gap/2+self.w-self.b_w,self.center[1]+self.h/2+self.asymmetry+2*self.b_w))
+
+        P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2+self.w, self.center[1]+self.h/2+self.asymmetry),(self.center[0] + self.gap / 2+self.w-self.b_w, self.center[1]+self.h/2+self.asymmetry+2*self.b_w-self.b_g))
+
 
 
         qubit_cap_parts.append(gdspy.boolean(P1, P1_bridge, 'or', layer=8+self.secret_shift))
@@ -180,10 +182,15 @@ class Fungus_Squid_C(DesignElement):
         if self.fluxline_params != {}:
             f = self.fluxline_params
             l, t_m, t_r, gap, l_arm, h_arm, s_gap = f['l'],f['t_m'],f['t_r'],f['gap'],f['l_arm'],f['h_arm'],f['s_gap']
-
-            flux = PP_Squid_Fluxline(l, t_m, t_r, gap, l_arm, h_arm, s_gap,asymmetry = self.asymmetry,g = f.get('g'),w = f.get('w'),s = f.get('s'),extend = f.get('extend_to_ground'))
+            flux_distance = f['flux_distance']
+            #result_restricted, to ct off hanging parts from the fluxline, None for no cutoff
+            flux = PP_Squid_Fluxline(l, t_m, t_r, gap, l_arm, h_arm, s_gap,flux_distance,self.w,self.h,self.gap,self.b_w,self.b_g,ground = None,asymmetry = self.asymmetry,g = f.get('g'),w = f.get('w'),s = f.get('s'),extend = f.get('extend_to_ground'))
 
             fluxline = flux.render(self.center, self.w, self.h,self.g_h,self.g_t)['positive']
+
+            r_flux = flux.render(self.center, self.w, self.h,self.g_h,self.g_t)['restricted']
+            #adding fluxline restricted area
+            result_restricted = gdspy.boolean(result_restricted,r_flux,'or', layer=self.layer_configuration.restricted_area_layer)
 
             self.couplers.append(flux)
             result = gdspy.boolean(result, fluxline, 'or', layer=self.layer_configuration.total_layer)
@@ -214,6 +221,9 @@ class Fungus_Squid_C(DesignElement):
         # Box for inverted Polygons
         box = gdspy.Rectangle((self.center[0] - self.g_w / 2, self.center[1] - self.g_h / 2),(self.center[0] + self.g_w / 2, self.center[1] + self.g_h / 2))
         pocket = gdspy.Rectangle((self.center[0] - self.g_w / 2+self.g_t, self.center[1] - self.g_h / 2+self.g_t),(self.center[0] + self.g_w / 2-self.g_t, self.center[1] + self.g_h / 2-self.g_t))
+        if self.fluxline_params != {}:
+            pocket = gdspy.boolean(pocket,r_flux,'or', layer=self.layer_configuration.restricted_area_layer)
+
         if len(self.couplers) != 0:
             for id, coupler in enumerate(self.couplers):
                 if coupler.side == 'fluxline':
@@ -441,22 +451,26 @@ class Fungus_Squid_C(DesignElement):
 
     #change for new design
     def generate_JJ(self):
+
         #cheap Manhatten style
-        reach1 = 16
-        reach2 = 32
+        reach1 = 11
+        reach2 = 25
 
-        result = gdspy.Rectangle((self.center[0]-self.b_g/2,self.center[1]+self.h/2-self.b_w/3+self.JJ_params['a1']/2+self.asymmetry),(self.center[0]-self.b_g/2+reach1,self.center[1]+self.h/2-self.b_w/3-self.JJ_params['a1']/2+self.asymmetry))
-
-        result = gdspy.boolean(result,gdspy.Rectangle((self.center[0]-self.b_g/2,self.center[1]+self.h/2-2*self.b_w/3+self.JJ_params['a1']/2+self.asymmetry),(self.center[0]-self.b_g/2+reach1,self.center[1]+self.h/2-2*self.b_w/3-self.JJ_params['a1']/2+self.asymmetry))
+        #double strip 1
+        result = gdspy.Rectangle((self.center[0]+self.gap/2+self.w-self.b_w,self.center[1]+self.h/2-self.b_w/3+self.JJ_params['a1']/2+self.asymmetry+3*self.b_w),(self.center[0]+self.gap/2+self.w-self.b_w+reach1,self.center[1]+self.h/2-self.b_w/3-self.JJ_params['a1']/2+self.asymmetry+3*self.b_w))
+        #double strip 2
+        result = gdspy.boolean(result,gdspy.Rectangle((self.center[0]+self.gap/2+self.w-self.b_w,self.center[1]+self.h/2-2*self.b_w/3+self.JJ_params['a1']/2+self.asymmetry+3*self.b_w),(self.center[0]+self.gap/2+self.w-self.b_w+reach1,self.center[1]+self.h/2-2*self.b_w/3-self.JJ_params['a1']/2+self.asymmetry+3*self.b_w))
 ,'or')
-
-        result = gdspy.boolean(result,gdspy.Rectangle((self.center[0]+self.b_g/2,self.center[1]+self.h/2-2*self.b_w+self.asymmetry),(self.center[0]+self.b_g/2+self.JJ_params['a2'],self.center[1]+self.h/2-2*self.b_w+reach2+self.asymmetry)), 'or')
+        #single strip
+        result = gdspy.boolean(result,gdspy.Rectangle((self.center[0]+self.gap/2+self.w-self.b_w/2,self.center[1]+self.h/2+self.asymmetry+2*self.b_w-self.b_g),(self.center[0]+self.gap/2+self.w-self.b_w/2+self.JJ_params['a2'],self.center[1]+self.h/2+self.asymmetry+2*self.b_w-self.b_g+reach2)), 'or')
+        #placing the junctions in the correct layer
         result = gdspy.boolean(result, result, 'or', layer=self.layer_configuration.jj_layer)
 
         angle = self.JJ_params['angle_JJ']
         result.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
-
         return result
+
+
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict,
                    track_changes: bool = True, cutoff: float = np.inf, epsilon: float = 11.45) -> list:
@@ -572,7 +586,7 @@ class PP_Squid_Fluxline:
     6) h_arm - height of the return arm
     7) s_gap - gap between main and return fluxline
     """
-    def __init__(self, l,t_m,t_r,gap,l_arm,h_arm,s_gap,asymmetry = 0,w= None, g=None, s=None,extend = None):
+    def __init__(self, l,t_m,t_r,gap,l_arm,h_arm,s_gap,flux_distance,pad_w,pad_h,pad_g,b_w,b_g,ground,asymmetry = 0,w= None, g=None, s=None,extend = None):
         self.l      = l
         self.t_m    = t_m
         self.t_r    = t_r
@@ -581,6 +595,7 @@ class PP_Squid_Fluxline:
         self.h_arm  = h_arm
         self.s_gap  = s_gap
         self.asymmetry = asymmetry
+        self.flux_distance = flux_distance
         self.side   = 'fluxline'
         self.connection = None
         #for the terminals:
@@ -588,12 +603,18 @@ class PP_Squid_Fluxline:
         self.w = w
         self.s = s
         self.extend = extend
-
+        #pad parameters
+        self.pad_w = pad_w
+        self.pad_h = pad_h
+        self.b_w = b_w
+        self.b_g = b_g
+        self.pad_g = pad_g
+        self.ground = ground
     def render(self, center, width,height,ground_height,ground_t):
         if not self.extend:
             ground_t = ground_height/2
 
-        start  = [center[0]+self.l_arm/2,center[1]+self.t_r+self.l+height/2+self.gap+self.asymmetry]
+        start  = [0,0]#[self.l_arm/2,self.t_r+self.l+height/2+self.gap+self.asymmetry]
         points = [start+[0,0],start+[self.t_m,0],start+[self.t_m,-self.l],start+[self.t_m+self.l_arm,-self.l]]
         points.append(start+[self.t_m+self.s_gap,-self.l+self.h_arm])
         points.append(start+[self.t_m+self.s_gap,0])
@@ -612,21 +633,51 @@ class PP_Squid_Fluxline:
         points = [(i[0]+i[2],i[1]+i[3]) for i in points]
         result = gdspy.Polygon(points)
 
+        #restricted area:
+        points2 = [points[13],points[6],points[7],points[8],points[9],points[10],points[11],points[12],points[13]]
 
-        result = gdspy.boolean(result,gdspy.Rectangle(
-                (center[0] , center[1] + ground_height / 2 - ground_t),
-                (center[0] +  self.l_arm + self.t_m, center[1] + ground_height / 2 + 250)),'not')
+        restrict = gdspy.Polygon(points2)
 
-        result = gdspy.boolean(result,gdspy.Rectangle(
-                (center[0] -2*self.l_arm, center[1] + ground_height / 2 ),
-                (center[0] +2*self.l_arm, center[1] + ground_height / 2 +100)),'not')
+
+
+        #cutouts of the ground
+        cutout1 = gdspy.Rectangle(
+                (0,ground_height / 2 - ground_t),
+                (self.l_arm + self.t_m,ground_height / 2 + 250))
+        cutout2 = gdspy.Rectangle(
+                (-2*self.l_arm, center[1] + ground_height / 2 ),
+                (+2*self.l_arm, center[1] + ground_height / 2 +100))
+
+        result = gdspy.boolean(result,cutout1,'not')
+
+        result = gdspy.boolean(result,cutout2,'not')
+
+        result.translate(-self.t_m/2,+self.l+self.t_r)
+        result.rotate(-np.pi/2)
+
+        restrict.translate(-self.t_m/2,+self.l+self.t_r)
+        restrict.rotate(-np.pi / 2)
+
+        # move fluxline to correct position
+        result.translate(center[0], center[1])
+        result.translate(self.pad_g/2+self.pad_w-self.b_w/2+self.flux_distance,self.asymmetry+self.pad_h/2+3.5*self.b_w)
+
+        restrict.translate(center[0], center[1])
+        restrict.translate(self.pad_g/2+self.pad_w-self.b_w/2+self.flux_distance,self.asymmetry+self.pad_h/2+3.5*self.b_w)
+
+        #cuttng off the hanging rest:
+        if self.ground != None:
+            result = gdspy.boolean(result,self.ground,'and')
 
         self.result_coupler = result
 
+        point = (center[0]-self.t_m/2+self.pad_g/2+self.pad_w-self.b_w/2+self.flux_distance+self.t_r+self.l,center[1]+self.l+self.t_r+self.asymmetry+self.pad_h/2+3.5*self.b_w)
 
-        self.connection = (center[0]+self.l_arm/2+self.t_m/2, center[1]+ground_height/2-ground_t)
+        self.connection = point#(center[0]+self.l_arm/2+self.t_m/2, center[1]+ground_height/2-ground_t)
+
         return {
-            'positive': result
+            'positive': result,
+            'restricted':restrict,
                         }
 
 

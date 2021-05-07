@@ -164,7 +164,7 @@ a = -250
 
 air = [-20,40,100]
 
-air2 = [200,40,100]
+air2 = [[200,40,100],[400,40,100]]
 
 
 CC1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground),
@@ -181,9 +181,9 @@ CC3 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = 'c
 
 
 
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 6, 5, 20, 50, resonator_gap
-flux = {'l':l,'t_m':t_m,'t_r':t_r,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
-#flux = {}
+l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 3, 5, 20, 50, resonator_gap
+flux_distance = 20
+flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
 
 
 CC = [CC1,CC2,CC3]
@@ -315,6 +315,7 @@ T2 = elements.y_squid_coupler.Y_Squid_C(name='Y_Coupler', center=center2,
                                                   claw=claw_tc,
                                                   asymmetry=a,
                                                   air_bridge=air2,
+                                                  y_gap = 50
                                                   )
 
 sample.add(T2)
