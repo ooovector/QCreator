@@ -24,7 +24,7 @@ class Y_Squid_C(DesignElement):
     9) shoes - caps for the two pads
     """
     def __init__(self, name: str, center: Tuple[float, float],width: Tuple[float,float], height: Tuple[float,float,float],gap: float,bridge_gap:float,bridge_w:float, ground_w: float, ground_h: float,ground_t: float,layer_configuration: LayerConfiguration,
-                 jj_params: Dict,Couplers,transformations:Dict,fluxline_params= {},remove_ground = {},secret_shift = 0,calculate_capacitance = False,shoes = {},claw = [],asymmetry = 0,air_bridge=[],y_gap=15):
+                 jj_params: Dict,Couplers,transformations:Dict,fluxline_params= {},remove_ground = {},secret_shift = 0,calculate_capacitance = False,shoes = {},claw = [],asymmetry = 0,asymmetry_coupler=0,air_bridge=[],y_gap=15,):
         super().__init__(type='qubit', name=name)
         #qubit parameters
         self.transformations = transformations# to mirror the structure
@@ -39,6 +39,7 @@ class Y_Squid_C(DesignElement):
         self.shoes = shoes
         self.claw = claw
         self.asymmetry = asymmetry # to shift the right smaller pad
+        self.asymmetry_coupler = asymmetry_coupler
         self.gap = gap
         self.g_w = ground_w
         self.g_h = ground_h
@@ -197,11 +198,6 @@ class Y_Squid_C(DesignElement):
         result = gdspy.boolean(result, P2, 'or', layer=self.layer_configuration.total_layer)
 
 
-        #Change bridges for different desig
-#        P1_bridge = gdspy.Rectangle((self.center[0]-self.gap/2,self.center[1]+self.h/2+self.asymmetry),(self.center[0]-self.b_g/2,self.center[1]+self.h/2-self.b_w+self.asymmetry))
-#        P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2, self.center[1]+self.h/2-2*self.b_w+self.asymmetry),(self.center[0] + self.b_g / 2, self.center[1]+self.h/2-3*self.b_w+self.asymmetry))
-
-
         P1_bridge = gdspy.Rectangle((self.center[0]-self.gap/2,self.center[1]+self.h/2+self.asymmetry+3*self.b_w),(self.center[0]+self.gap/2+self.w-self.b_w,self.center[1]+self.h/2+self.asymmetry+2*self.b_w))
 
         P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2+self.w, self.center[1]+self.h/2+self.asymmetry),(self.center[0] + self.gap / 2+self.w-self.b_w, self.center[1]+self.h/2+self.asymmetry+2*self.b_w-self.b_g))
@@ -257,8 +253,6 @@ class Y_Squid_C(DesignElement):
                 Air = gdspy.boolean(Air, left_air, 'or',layer = self.layer_configuration.airbridges_layer)
                 Air = gdspy.boolean(Air, right_air, 'or', layer=self.layer_configuration.airbridges_layer)
 
-
-
         # add couplers
         last_step_cap = [gdspy.boolean(gdspy.boolean(P2, P2_bridge, 'or'),gdspy.boolean(P1, P1_bridge, 'or'),'or')]
         self.layers.append(self.layer_configuration.total_layer)
@@ -292,6 +286,8 @@ class Y_Squid_C(DesignElement):
 
 
         if len(self.couplers) != 0:
+            center_save = self.center
+            self.center = [self.center[0],self.center[1]+self.asymmetry_coupler]
             for id, coupler in enumerate(self.couplers):
                 if coupler.side == 'fluxline':
                     continue
@@ -309,18 +305,26 @@ class Y_Squid_C(DesignElement):
                 height_left = coupler.height_left
                 height_right = coupler.height_right
                 #to make sure ground is placed correctly
+                l1_check = True
+                l2_check = True
+                #to make sure ground is placed correctly, l1_check an l2_check is needed if one wants to remove the ground between coupler and qubit
                 if l1 < t:
+                    l1_check = False
                     l1 = t
                 if l2 < t:
+                    l2_check = False
                     l2 = t
 
                 if side =='right':
                     #upper
-                    extended = gdspy.Rectangle((self.center[0]+self.g_w/2-l1-self.g_t+t,self.center[1]+height_right*self.g_h/2),(self.center[0]+self.g_w/2-l1+t,self.center[1]+gap+height_right*self.g_h/2+t+self.g_t+gap))
+                    extended = gdspy.Rectangle((0, 0), (0, 0))  # empty object
+                    if l1_check:
+                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+self.g_w/2-l1-self.g_t+t,self.center[1]+height_right*self.g_h/2),(self.center[0]+self.g_w/2-l1+t,self.center[1]+gap+height_right*self.g_h/2+t+self.g_t+gap)),'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+t+self.g_w/2-l1,self.center[1]+gap+height_right*self.g_h/2+t+gap),(self.center[0]+self.g_w/2+2*gap+t+self.g_t,self.center[1]+gap+height_right*self.g_h/2+t+self.g_t+gap)),'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+self.g_w/2+2*gap+t,self.center[1]+gap+height_right*self.g_h/2+t+gap),(self.center[0]+self.g_w/2+2*gap+t+self.g_t,self.center[1]+5+gap)), 'or')
                     #lower
-                    extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+t+self.g_w/2-l2-self.g_t,self.center[1]-height_right*self.g_h/2),(self.center[0]+t+self.g_w/2-l2,self.center[1]-gap-height_right*self.g_h/2-t-self.g_t-gap)), 'or')
+                    if l2_check:
+                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+t+self.g_w/2-l2-self.g_t,self.center[1]-height_right*self.g_h/2),(self.center[0]+t+self.g_w/2-l2,self.center[1]-gap-height_right*self.g_h/2-t-self.g_t-gap)), 'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+t+self.g_w/2-l2,self.center[1]-gap-height_right*self.g_h/2-t-gap),(self.center[0]+self.g_w/2+2*gap+t+self.g_t,self.center[1]-gap-height_right*self.g_h/2-t-self.g_t-gap)),'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+self.g_w/2+2*gap+t,self.center[1]-gap-height_right*self.g_h/2-t-gap),(self.center[0]+self.g_w/2+2*gap+t+self.g_t,self.center[1]-5-gap)), 'or')
                     result = gdspy.boolean(result,extended,'or')
@@ -334,11 +338,15 @@ class Y_Squid_C(DesignElement):
 
                 if side =='left':
                     #upper
-                    extended = gdspy.Rectangle((self.center[0]-self.g_w/2+l1+self.g_t-t,self.center[1]+height_left*self.g_h/2),(self.center[0]-t-self.g_w/2+l1,self.center[1]+gap+height_left*self.g_h/2+t+self.g_t+gap))
+                    extended = gdspy.Rectangle((0,0),(0,0)) # empty object
+                    if l1_check:
+                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-self.g_w/2+l1+self.g_t-t,self.center[1]+height_left*self.g_h/2),(self.center[0]-t-self.g_w/2+l1,self.center[1]+gap+height_left*self.g_h/2+t+self.g_t+gap)),'or')
+
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-t-self.g_w/2+l1,self.center[1]+gap+height_left*self.g_h/2+t+gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]+gap+height_left*self.g_h/2+t+self.g_t+gap)),'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-self.g_w/2-2*gap-t,self.center[1]+gap+height_left*self.g_h/2+t+gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]+5+gap)), 'or')
                     #lower
-                    extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-t-self.g_w/2+l2+self.g_t,self.center[1]-height_left*self.g_h/2),(self.center[0]-t-self.g_w/2+l2,self.center[1]-gap-height_left*self.g_h/2-t-self.g_t-gap)), 'or')
+                    if l2_check:
+                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-t-self.g_w/2+l2+self.g_t,self.center[1]-height_left*self.g_h/2),(self.center[0]-t-self.g_w/2+l2,self.center[1]-gap-height_left*self.g_h/2-t-self.g_t-gap)), 'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-t-self.g_w/2+l2,self.center[1]-gap-height_left*self.g_h/2-t-gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]-gap-height_left*self.g_h/2-t-self.g_t-gap)),'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-self.g_w/2-2*gap-t,self.center[1]-gap-height_left*self.g_h/2-t-gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]-5-gap)), 'or')
                     result = gdspy.boolean(result,extended,'or')
@@ -372,6 +380,7 @@ class Y_Squid_C(DesignElement):
                         qubit_cap_parts.append(gdspy.boolean(coupler.result_coupler, coupler.result_coupler, 'or',layer=10+id+self.secret_shift))
                         self.layers.append(10+id+self.secret_shift)
                         last_step_cap.append(coupler.result_coupler)
+            self.center = center_save
         qubit_cap_parts.append(gdspy.boolean(result,last_step_cap,'not'))
 
         inverted = gdspy.boolean(box, result, 'not',layer=self.layer_configuration.inverted)
