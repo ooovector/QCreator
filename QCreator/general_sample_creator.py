@@ -122,11 +122,12 @@ class Sample:
 
     def fanout(self, o: elements.DesignElement, port: str, name: str, grouping: Tuple[int, int],
                down_s_right: float = None, center_s_left: float = None,
-               center_s_right: float = None, up_s_left: float = None):
+               center_s_right: float = None, up_s_left: float = None, kinetic_inductance=None):
 
         fanout = elements.RectFanout(name, o.get_terminals()[port], grouping, self.layer_configuration,
                                      down_s_right=down_s_right, center_s_left=center_s_left,
-                                     center_s_right=center_s_right, up_s_left=up_s_left)
+                                     center_s_right=center_s_right, up_s_left=up_s_left,
+                                     kinetic_inductance=kinetic_inductance)
         self.add(fanout)
         self.connect(o, port, fanout, 'wide')
         return fanout

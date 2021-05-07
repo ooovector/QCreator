@@ -7,10 +7,11 @@ from .. import transmission_line_simulator as tlsim
 from typing import List, Tuple, Mapping, Union, Iterable, Dict
 from copy import  deepcopy
 
+
 class CPWCoupler(DesignElement):
     def __init__(self, name: str, points: List[Tuple[float, float]], w: List[float], s: List[float], g: float,
                  layer_configuration: LayerConfiguration, r: float, corner_type: str = 'round',
-                 orientation1: float = None, orientation2: float = None):
+                 orientation1: float = None, orientation2: float = None, kinetic_inductance = None):
         """
         Create a coplanar waveguide (CPW) through points.
         :param name: element identifier
@@ -21,6 +22,7 @@ class CPWCoupler(DesignElement):
         :param layer_configuration:
         :param r: bend radius
         :param corner_type: 'round' for circular arcs instead of sharp corners, anything else for sharp corners
+        :param kinetic_inductance: additional kinetic inductance (added direclty to wire inductance) per square in Henries
         """
         super().__init__('mc-cpw', name)
         self.w = w
@@ -39,6 +41,10 @@ class CPWCoupler(DesignElement):
                                                     self.points[1][0] - self.points[0][0])
         self.last_segment_orientation = np.arctan2(self.points[-2][1] - self.points[-1][1],
                                                    self.points[-2][0] - self.points[-1][0])
+        if kinetic_inductance is not None:
+            self.kinetic_inductance = kinetic_inductance
+        else:
+            self.kinetic_inductance = [0 for i in range(len(w))]
 
         if orientation1 is None:
             orientation1 = self.first_segment_orientation
@@ -192,6 +198,8 @@ class CPWCoupler(DesignElement):
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
                    cutoff: float = np.inf, epsilon=11.45) -> list:
         cl, ll = self.cm(epsilon)
+        lk = np.asarray(self.kinetic_inductance) / np.asarray(self.w)
+        ll = ll + np.diag(lk)
         line = tlsim.TLCoupler(n=len(self.w),
                                l=self.length,  # TODO: get length
                                cl=cl,
@@ -667,7 +675,7 @@ class RectFanout(DesignElement):
 
     def __init__(self, name: str, port: DesignTerminal, grouping: Tuple[int, int],
                  layer_configuration: LayerConfiguration, down_s_right: float = None, center_s_left: float = None,
-                 center_s_right: float = None, up_s_left: float = None):
+                 center_s_right: float = None, up_s_left: float = None, kinetic_inductance = None):
         """
         Create fanout element for coupled CPWs. Ground electrodes are added between the groups.
         :param name: element identifier
@@ -701,6 +709,11 @@ class RectFanout(DesignElement):
             self.s = self.port.s
             self.g = self.port.g
 
+        if kinetic_inductance is not None:
+            self.kinetic_inductance = kinetic_inductance
+        else:
+            self.kinetic_inductance = [0 for i in range(len(self.w))]
+
         self.width_total, self.widths, self.offsets = widths_offsets(self.w, self.s, self.g)
 
         if down_s_right is None:
@@ -722,6 +735,10 @@ class RectFanout(DesignElement):
                          [up_s_left] + self.s[(self.grouping[1] + 1):]]
         self.groups_w = [self.w[:self.grouping[0]], self.w[self.grouping[0]:self.grouping[1]],
                          self.w[self.grouping[1]:]]
+
+        self.groups_kinetic_inductance = [self.kinetic_inductance[:self.grouping[0]],
+                                          self.kinetic_inductance[self.grouping[0]:self.grouping[1]],
+                                          self.kinetic_inductance[self.grouping[1]:]]
 
         self.groups_widths_total = []
         self.groups_widths = []
@@ -881,10 +898,20 @@ class RectFanout(DesignElement):
                 w = [self.get_terminals()[port_type].w]
                 s = [self.get_terminals()[port_type].s, self.get_terminals()[port_type].s]
 
+            if port_type == 'down':
+                kinetic_inductance = self.groups_kinetic_inductance[0]
+            elif port_type == 'center':
+                kinetic_inductance = self.groups_kinetic_inductance[1]
+            elif port_type == 'up':
+                kinetic_inductance = self.groups_kinetic_inductance[2]
+            else:
+                kinetic_inductance = self.kinetic_inductance
+
             structure_of_fanout[group] = {'l': dict_of_lengths[group],
                                           'w': w,
                                           's': s,
                                           'g': self.get_terminals()[port_type].g,
+                                          'kinetic_inductance': kinetic_inductance,
                                           'noc': number_of_conductors}
 
         return structure_of_fanout
@@ -937,6 +964,8 @@ class RectFanout(DesignElement):
         for group in structure_of_fanout.keys():
             group_cl, group_ll = cm.ConformalMapping(
                 cross_section(structure_of_fanout[group]['w'], structure_of_fanout[group]['s']), epsilon).cl_and_Ll()
+
+            group_ll = group_ll + np.asarray(structure_of_fanout[group]['kinetic_inductance'])/np.asarray(structure_of_fanout[group]['w'])
 
             structure_for_tls[group] = {'n': structure_of_fanout[group]['noc'],
                                         'l': structure_of_fanout[group]['l'],
