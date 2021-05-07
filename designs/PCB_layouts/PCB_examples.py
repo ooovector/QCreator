@@ -122,3 +122,53 @@ sample.add(chip_edge_ground)
 #
 # p1 = pads_left[0]
 # p2 = pads_right[0]
+
+
+# # 1. Create contact pads for 6*10 pcb WMI from Huns:
+# pads_left = []
+# pads_right = []
+# for pad_side_id in range(1):
+#     pad = elements.Pad('pad-left-' + str(pad_side_id),
+#                        (pad_offset, sample.chip_geometry.sample_vertical_size / 2), np.pi, tl_core,
+#                        tl_gap, tl_ground,
+#                        layer_configuration=sample.layer_configuration, chip_geometry=sample.chip_geometry,
+#                        **elements.default_pad_geometry())
+#     pads_left.append(pad)
+#     sample.add(pad)
+#     pad = elements.Pad('pad-right-' + str(pad_side_id),
+#                        (sample.chip_geometry.sample_horizontal_size - pad_offset,
+#                         sample.chip_geometry.sample_vertical_size / 2), 0, tl_core,
+#                        tl_gap, tl_ground,
+#                        layer_configuration=sample.layer_configuration, chip_geometry=sample.chip_geometry,
+#                        **elements.default_pad_geometry())
+#     pads_right.append(pad)
+#     sample.add(pad)
+#
+# pads_top = []
+# pads_bottom = []
+# huns_offset=2470
+# pad_bottom_1 = elements.Pad('pad-bottom-' + str(1),
+#                    (sample.chip_geometry.sample_horizontal_size / 2+ huns_offset *(- 1), pad_offset),
+#                    -np.pi / 2, tl_core, tl_gap, tl_ground,
+#                    layer_configuration=sample.layer_configuration, chip_geometry=sample.chip_geometry,
+#                    **elements.default_pad_geometry())
+# pad_bottom_2 = elements.Pad('pad-bottom-' + str(2),
+#                    (sample.chip_geometry.sample_horizontal_size / 2+ huns_offset, pad_offset),
+#                    -np.pi / 2, tl_core, tl_gap, tl_ground,
+#                    layer_configuration=sample.layer_configuration, chip_geometry=sample.chip_geometry,
+#                    **elements.default_pad_geometry())
+# pads_bottom.append(pad_bottom_1)
+# pads_bottom.append(pad_bottom_2)
+# sample.add(pad_bottom_1)
+# sample.add(pad_bottom_2)
+# pad = elements.Pad('pad-top-' + str(pad_side_id),
+#                    (sample.chip_geometry.sample_horizontal_size / 2,
+#                     sample.chip_geometry.sample_vertical_size - pad_offset),
+#                    np.pi / 2, tl_core, tl_gap, tl_ground,
+#                    layer_configuration=sample.layer_configuration, chip_geometry=sample.chip_geometry,
+#                    **elements.default_pad_geometry())
+# pads_top.append(pad)
+# sample.add(pad)
+#
+# p1 = pads_left[0]
+# p2 = pads_top[0]
