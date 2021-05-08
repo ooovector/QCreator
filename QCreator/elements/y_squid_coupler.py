@@ -760,9 +760,10 @@ class PP_Squid_Fluxline:
 
         self.result_coupler = result
 
-        point = (center[0]-self.t_m/2+self.pad_g/2+self.pad_w-self.b_w/2+self.flux_distance+self.t_r+self.l,center[1]+self.l+self.t_r+self.asymmetry+self.pad_h/2+3.5*self.b_w)
+        point = (center[0] + self.pad_g / 2 + self.pad_w - self.b_w / 2 + self.flux_distance + self.t_r + self.l,
+                 center[1] + self.asymmetry + self.pad_h / 2 + 3.5 * self.b_w)
 
-        self.connection = point#(center[0]+self.l_arm/2+self.t_m/2, center[1]+ground_height/2-ground_t)
+        self.connection = point
 
         return {
             'positive': result,

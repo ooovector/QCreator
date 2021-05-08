@@ -504,8 +504,6 @@ class PP_Transmon_Coupler:
         self.g = g
         self.s = s
 
-
-
     def render(self, center, g_w,g_h):
         result = 0
         if self.side == "left":
