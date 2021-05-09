@@ -15,6 +15,7 @@ tl_gap = 12.
 tl_ground = 10.
 
 pad_offset = 800
+fluxline_core, fluxline_gap, fluxline_ground=9,5,10
 
 layers_configuration = {
     'total':0,
@@ -82,13 +83,13 @@ for pad_side_id in range(3):
 # resonator parameters:
 resonator_core = 8
 resonator_gap = 7
-resonator_ground = 5
+resonator_ground = 10
 
 ############### Qubits and Coupler
 
 #Qubit parameters
 #origin of left bottom qubit
-origin = [2400,1300]
+origin = [2200,1400]
 
 
 width = 250
@@ -174,9 +175,11 @@ CC3 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = 'c
 
 
 
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 3, 5, 20, 50, resonator_gap
+l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, fluxline_core, 3, 5, 20, 50, fluxline_gap
+
+fluxline_core, fluxline_gap, fluxline_ground=9,5,10
 flux_distance = 7
-flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
+flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':fluxline_ground,'w':fluxline_core,'s':fluxline_gap}
 
 
 CC = [CC1,CC2,CC3]
@@ -362,3 +365,4 @@ one = gdspy.boolean(one, island, 'not', layer=layers_configuration['vertical gri
 
 
 sample.total_cell.add(one)
+print('uploaded')
