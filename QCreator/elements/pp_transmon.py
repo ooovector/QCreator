@@ -234,6 +234,17 @@ class PP_Transmon(DesignElement):
                     remove = gdspy.Rectangle((self.center[0]+self.g_w/2-l1,self.center[1]+gap+height_right*self.g_h/2+t+self.g_t+gap),(self.center[0]+self.g_w/2,self.center[1]-gap-height_right*self.g_h/2-t-self.g_t-gap))
                     result = gdspy.boolean(result,remove.translate(-coupler.sctq,0),'not')
                     extended.translate(-coupler.sctq,0)
+
+                    #remove/add missing overhang:
+                    #add missing piece
+                    if coupler.sctq<0:
+                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+self.g_w/2,self.center[1]+gap+height_right*self.g_h/2+t+self.g_t+gap),(self.center[0]+self.g_w/2-coupler.sctq,self.center[1]-gap-height_right*self.g_h/2-t-self.g_t-gap)),'or')
+
+                    #remove additional pieces
+                    if coupler.sctq>self.g_t:
+                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+self.g_t-self.g_w/2,self.center[1]+self.g_t-self.g_h/2),(self.center[0]-self.g_t+self.g_w/2,self.center[1]-self.g_t+self.g_h/2)),'not')
+
+
                     result = gdspy.boolean(result,extended,'or')
                     # box for inverted polygon
                     box = gdspy.boolean(box, gdspy.Rectangle((self.center[0] + self.g_w / 2 + self.g_t + 2 * gap + t,
@@ -243,6 +254,7 @@ class PP_Transmon(DesignElement):
                                                                  1] + height_right * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(-coupler.sctq,0),
                                         'or', layer=self.layer_configuration.inverted)
                     pocket = gdspy.boolean(pocket, gdspy.Rectangle((self.center[0] + self.g_w / 2 + self.g_t + 2 * gap + t,self.center[1] - height_right * self.g_h / 2 - self.g_t - 2 * gap - t),(self.center[0] + self.g_w / 2 - l1 + t, self.center[1] + height_right * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(-coupler.sctq, 0),'or')
+
 
                 if side =='left':
                     #upper
@@ -258,8 +270,18 @@ class PP_Transmon(DesignElement):
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-t-self.g_w/2+l2,self.center[1]-gap-height_left*self.g_h/2-t-gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]-gap-height_left*self.g_h/2-t-self.g_t-gap)),'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-self.g_w/2-2*gap-t,self.center[1]-gap-height_left*self.g_h/2-t-gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]-5-gap)), 'or')
 
-                    #still remove correct ground here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                    extended.translate(+coupler.sctq,0)
+                    extended.translate(+coupler.sctq, 0)
+                    # remove/add missing overhang:
+                    # add missing piece
+                    if coupler.sctq < 0:
+                        extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0] - self.g_w / 2, self.center[1] + gap + height_left * self.g_h / 2 + t + self.g_t + gap), (self.center[0] - self.g_w / 2 + coupler.sctq,self.center[1] - gap - height_left * self.g_h / 2 - t - self.g_t - gap)),'or')
+
+                    # remove additional pieces
+                    if coupler.sctq > self.g_t:
+                        extended = gdspy.boolean(extended, gdspy.Rectangle(
+                            (self.center[0] - self.g_t + self.g_w / 2, self.center[1] + self.g_t - self.g_h / 2),(self.center[0] + self.g_t - self.g_w / 2, self.center[1] - self.g_t + self.g_h / 2)),'not')
+
+
                     result = gdspy.boolean(result,extended,'or')
 
                     #box for inverted polygon
@@ -276,6 +298,15 @@ class PP_Transmon(DesignElement):
                     extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1+l2+gap,self.center[1]+self.g_h/2),(self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1]+self.g_h/2+t+gap+gap)), 'or')
                     extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1] + self.g_h / 2 + t + gap + gap),(self.center[0]-self.g_w/2+l1+l2/2+gap+5,self.center[1] + self.g_h / 2 + t + gap + gap + self.g_t)),'or')
                     extended.translate(0,-coupler.sctq)
+                    # remove/add missing overhang:
+                    # add missing piece
+                    if coupler.sctq < 0:
+                        extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+ self.g_h / 2),(self.center[0]-self.g_w/2+l1-gap+l2/2,self.center[1]+self.g_h/2+coupler.sctq)),'or')
+
+                    # remove additional pieces
+                    if coupler.sctq > self.g_t:
+                        extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0] - self.g_t + self.g_w / 2, self.center[1] + self.g_t - self.g_h / 2),(self.center[0] + self.g_t - self.g_w / 2, self.center[1] - self.g_t + self.g_h / 2)),'not')
+
                     result = gdspy.boolean(result,extended,'or')
 
                     # box for inverted polygon
@@ -292,6 +323,21 @@ class PP_Transmon(DesignElement):
                     extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1+l2+gap,self.center[1]-self.g_h/2),(self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1]-self.g_h/2-t-gap-gap)), 'or')
                     extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1] - self.g_h / 2 - t - gap-gap),(self.center[0]-self.g_w/2+l1+l2/2+gap+5,self.center[1] - self.g_h / 2 - t - gap-gap- self.g_t)),'or')
                     extended.translate(0, +coupler.sctq)
+                    # remove/add missing overhang:
+                    # add missing piece
+                    if coupler.sctq < 0:
+                        extended = gdspy.boolean(extended, gdspy.Rectangle(
+                            (self.center[0] - self.g_w / 2 + l1 - gap - self.g_t, self.center[1]- self.g_h / 2), (
+                            self.center[0] - self.g_w / 2 + l1 - gap + l2 / 2,
+                            self.center[1] - self.g_h / 2 - coupler.sctq)), 'or')
+
+                    # remove additional pieces
+                    if coupler.sctq > self.g_t:
+                        extended = gdspy.boolean(extended, gdspy.Rectangle(
+                            (self.center[0] - self.g_t + self.g_w / 2, self.center[1] + self.g_t - self.g_h / 2),
+                            (self.center[0] + self.g_t - self.g_w / 2, self.center[1] - self.g_t + self.g_h / 2)),
+                                                 'not')
+
                     result = gdspy.boolean(result,extended,'or')
 
                     # box for inverted polygon
