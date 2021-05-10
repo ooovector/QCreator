@@ -443,7 +443,6 @@ class PP_Transmon(DesignElement):
                 self.terminals['coupler'+str(id)] = DesignTerminal(tuple(coupler_connection),
                                                                    coupler_phi, g=coupler.g, s=coupler.s,
                                                                 w=coupler.w, type='cpw')
-                #print(self.terminals)
         return True
 
 
