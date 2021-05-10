@@ -75,6 +75,23 @@ class Sample:
 
         self.fill_object_arrays()
 
+    def draw_terminals(self):
+        #draws all terminals as an arrow
+        for object_ in self.objects:
+            if hasattr(object_,'terminals'):
+                for terminal_ in object_.terminals:
+                    if object_.terminals[terminal_] != None:
+                        ter = object_.terminals[terminal_]
+                        T = gdspy.Rectangle((-10,0),(10,4))
+                        T = gdspy.boolean(T,gdspy.Rectangle((-1,0),(1,30)),'or',layer=13)
+                        T = T.rotate(ter.orientation+np.pi/2)
+                        T.translate(ter.position[0],ter.position[1])
+                        self.total_cell.add(T)
+
+
+
+
+
     def draw_cap(self):  # TODO: maybe we need to come up with a better way, but for this moment it's fine
         """
         This function creates new cells with specified qubits
