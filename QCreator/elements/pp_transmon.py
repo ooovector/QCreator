@@ -259,27 +259,27 @@ class PP_Transmon(DesignElement):
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-self.g_w/2-2*gap-t,self.center[1]-gap-height_left*self.g_h/2-t-gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]-5-gap)), 'or')
 
                     #still remove correct ground here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                    extended.translate(-coupler.sctq,0)
+                    extended.translate(+coupler.sctq,0)
                     result = gdspy.boolean(result,extended,'or')
 
                     #box for inverted polygon
-                    box = gdspy.boolean(box, gdspy.Rectangle((self.center[0] - self.g_w / 2 - self.g_t - 2 * gap - t,self.center[1] - height_left * self.g_h / 2 - self.g_t - 2 * gap - t),(self.center[0] - self.g_w / 2 + l1 - t, self.center[1] + height_left * self.g_h / 2 + self.g_t + 2 * gap + t)),'or', layer=self.layer_configuration.inverted)
+                    box = gdspy.boolean(box, gdspy.Rectangle((self.center[0] - self.g_w / 2 - self.g_t - 2 * gap - t,self.center[1] - height_left * self.g_h / 2 - self.g_t - 2 * gap - t),(self.center[0] - self.g_w / 2 + l1 - t, self.center[1] + height_left * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(+coupler.sctq,0),'or', layer=self.layer_configuration.inverted)
                     pocket = gdspy.boolean(pocket, gdspy.Rectangle((self.center[0] - self.g_w / 2 - self.g_t - 2 * gap - t,
                                                               self.center[
                                                                   1] - height_left * self.g_h / 2 - self.g_t - 2 * gap - t),
                                                              (self.center[0] - self.g_w / 2 + l1 - t, self.center[
-                                                                 1] + height_left * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(coupler.sctq,0),
-                                        'or')
+                                                                 1] + height_left * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(coupler.sctq,0),'or')
 
                 if side == 'top':
                     extended = gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+self.g_h/2),(self.center[0]-self.g_w/2+l1-gap,self.center[1]+self.g_h/2+t+gap+gap))
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+self.g_h/2+t+gap+gap),(self.center[0]-self.g_w/2+l1-gap+l2/2-5,self.center[1]+self.g_h/2+t+gap+gap+self.g_t)),'or')
                     extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1+l2+gap,self.center[1]+self.g_h/2),(self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1]+self.g_h/2+t+gap+gap)), 'or')
                     extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1] + self.g_h / 2 + t + gap + gap),(self.center[0]-self.g_w/2+l1+l2/2+gap+5,self.center[1] + self.g_h / 2 + t + gap + gap + self.g_t)),'or')
+                    extended.translate(0,-coupler.sctq)
                     result = gdspy.boolean(result,extended,'or')
 
                     # box for inverted polygon
-                    box = gdspy.boolean(box,gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+self.g_h/2),(self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1] + self.g_h / 2 + t + gap + gap + self.g_t)),'or', layer=self.layer_configuration.inverted)
+                    box = gdspy.boolean(box,gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+self.g_h/2),(self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1] + self.g_h / 2 + t + gap + gap + self.g_t)).translate(0,-coupler.sctq),'or', layer=self.layer_configuration.inverted)
                     pocket = gdspy.boolean(pocket, gdspy.Rectangle(
                         (self.center[0] - self.g_w / 2 + l1 - gap - self.g_t, self.center[1] + self.g_h / 2), (
                         self.center[0] - self.g_w / 2 + l1 + l2 + self.g_t + gap,
@@ -291,11 +291,12 @@ class PP_Transmon(DesignElement):
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]-self.g_h/2-t-gap-gap),(self.center[0]-self.g_w/2+l1-gap+l2/2-5,self.center[1]-self.g_h/2-t-gap-gap-self.g_t)),'or')
                     extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1+l2+gap,self.center[1]-self.g_h/2),(self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1]-self.g_h/2-t-gap-gap)), 'or')
                     extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1] - self.g_h / 2 - t - gap-gap),(self.center[0]-self.g_w/2+l1+l2/2+gap+5,self.center[1] - self.g_h / 2 - t - gap-gap- self.g_t)),'or')
+                    extended.translate(0, +coupler.sctq)
                     result = gdspy.boolean(result,extended,'or')
 
                     # box for inverted polygon
                     box = gdspy.boolean(box, gdspy.Rectangle(
-                        (self.center[0] - self.g_w / 2 + l1 - gap - self.g_t, self.center[1] - self.g_h / 2), (self.center[0] - self.g_w / 2 + l1 + l2 + self.g_t + gap,self.center[1] - self.g_h / 2 - t - gap - gap - self.g_t)), 'or',layer=self.layer_configuration.inverted)
+                        (self.center[0] - self.g_w / 2 + l1 - gap - self.g_t, self.center[1] - self.g_h / 2), (self.center[0] - self.g_w / 2 + l1 + l2 + self.g_t + gap,self.center[1] - self.g_h / 2 - t - gap - gap - self.g_t)).translate(0,+coupler.sctq), 'or',layer=self.layer_configuration.inverted)
                     pocket = gdspy.boolean(pocket,gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+self.g_h/2),(self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1] + self.g_h / 2 + t + gap + gap + self.g_t)).translate(0,coupler.sctq),'or')
 
 
@@ -567,7 +568,7 @@ class PP_Transmon_Coupler:
             result = gdspy.Rectangle((center[0]-g_w/2+self.l1,center[1]-g_h/2-self.gap),(center[0]-g_w/2+self.l1+self.l2,center[1]-g_h/2-self.gap-self.t))
             line   = gdspy.Rectangle((center[0]-g_w/2+self.l1+self.l2/2-self.w/2,center[1]-g_h/2-self.gap-self.t),(center[0]-g_w/2+self.l1+self.l2/2+self.w/2,center[1]-g_h/2-self.gap-self.t-self.gap))
             result = gdspy.boolean(result, line, 'or')
-            result.translate(0,-self.sctq)
+            result.translate(0,+self.sctq)
             self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]-g_h/2-self.gap-self.t-self.gap+self.sctq)
 
         self.result_coupler = result
