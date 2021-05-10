@@ -405,9 +405,6 @@ class Fungus_Squid_C(DesignElement):
 
     def set_terminals(self):
         for id, coupler in enumerate(self.couplers):
-            print(coupler)
-            print(id)
-            print('-------------')
             if 'mirror' in self.transformations:
                 if coupler.connection is not None:
                     coupler_connection = mirror_point(coupler.connection, self.transformations['mirror'][0], self.transformations['mirror'][1])
