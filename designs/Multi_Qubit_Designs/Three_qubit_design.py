@@ -162,7 +162,7 @@ air = [-20,40,100]
 air2 = [[200,40,100],[400,40,100]]
 
 
-CC1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground),
+CC1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=50),
        elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.05,w=resonator_core,s=resonator_gap,g=resonator_ground),
       ]
 
@@ -360,9 +360,10 @@ for i in all_positive:
     one = gdspy.boolean(one,i,'not',layer=layers_configuration['vertical gridlines'])
 
 #removes the middle island
+"""
 island = gdspy.Polygon([(center1[0]-15,center1[1]),center1tc,(center2[0]-15,center2[1]),center2tc])
 one = gdspy.boolean(one, island, 'not', layer=layers_configuration['vertical gridlines'])
-
+"""
 
 sample.total_cell.add(one)
 print('uploaded')

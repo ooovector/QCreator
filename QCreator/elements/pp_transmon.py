@@ -230,14 +230,19 @@ class PP_Transmon(DesignElement):
                         extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+t+self.g_w/2-l2-self.g_t,self.center[1]-height_right*self.g_h/2),(self.center[0]+t+self.g_w/2-l2,self.center[1]-gap-height_right*self.g_h/2-t-self.g_t-gap)), 'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+t+self.g_w/2-l2,self.center[1]-gap-height_right*self.g_h/2-t-gap),(self.center[0]+self.g_w/2+2*gap+t+self.g_t,self.center[1]-gap-height_right*self.g_h/2-t-self.g_t-gap)),'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+self.g_w/2+2*gap+t,self.center[1]-gap-height_right*self.g_h/2-t-gap),(self.center[0]+self.g_w/2+2*gap+t+self.g_t,self.center[1]-5-gap)), 'or')
+                    #shift coupler to qubit and remove ground where necessary
+                    remove = gdspy.Rectangle((self.center[0]+self.g_w/2-l1,self.center[1]+gap+height_right*self.g_h/2+t+self.g_t+gap),(self.center[0]+self.g_w/2,self.center[1]-gap-height_right*self.g_h/2-t-self.g_t-gap))
+                    result = gdspy.boolean(result,remove.translate(-coupler.sctq,0),'not')
+                    extended.translate(-coupler.sctq,0)
                     result = gdspy.boolean(result,extended,'or')
                     # box for inverted polygon
                     box = gdspy.boolean(box, gdspy.Rectangle((self.center[0] + self.g_w / 2 + self.g_t + 2 * gap + t,
                                                               self.center[
                                                                   1] - height_right * self.g_h / 2 - self.g_t - 2 * gap - t),
                                                              (self.center[0] + self.g_w / 2 - l1 + t, self.center[
-                                                                 1] + height_right * self.g_h / 2 + self.g_t + 2 * gap + t)),
+                                                                 1] + height_right * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(-coupler.sctq,0),
                                         'or', layer=self.layer_configuration.inverted)
+                    pocket = gdspy.boolean(pocket, gdspy.Rectangle((self.center[0] + self.g_w / 2 + self.g_t + 2 * gap + t,self.center[1] - height_right * self.g_h / 2 - self.g_t - 2 * gap - t),(self.center[0] + self.g_w / 2 - l1 + t, self.center[1] + height_right * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(-coupler.sctq, 0),'or')
 
                 if side =='left':
                     #upper
@@ -252,10 +257,19 @@ class PP_Transmon(DesignElement):
                         extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-t-self.g_w/2+l2+self.g_t,self.center[1]-height_left*self.g_h/2),(self.center[0]-t-self.g_w/2+l2,self.center[1]-gap-height_left*self.g_h/2-t-self.g_t-gap)), 'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-t-self.g_w/2+l2,self.center[1]-gap-height_left*self.g_h/2-t-gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]-gap-height_left*self.g_h/2-t-self.g_t-gap)),'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-self.g_w/2-2*gap-t,self.center[1]-gap-height_left*self.g_h/2-t-gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]-5-gap)), 'or')
+
+                    #still remove correct ground here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                    extended.translate(-coupler.sctq,0)
                     result = gdspy.boolean(result,extended,'or')
 
                     #box for inverted polygon
                     box = gdspy.boolean(box, gdspy.Rectangle((self.center[0] - self.g_w / 2 - self.g_t - 2 * gap - t,self.center[1] - height_left * self.g_h / 2 - self.g_t - 2 * gap - t),(self.center[0] - self.g_w / 2 + l1 - t, self.center[1] + height_left * self.g_h / 2 + self.g_t + 2 * gap + t)),'or', layer=self.layer_configuration.inverted)
+                    pocket = gdspy.boolean(pocket, gdspy.Rectangle((self.center[0] - self.g_w / 2 - self.g_t - 2 * gap - t,
+                                                              self.center[
+                                                                  1] - height_left * self.g_h / 2 - self.g_t - 2 * gap - t),
+                                                             (self.center[0] - self.g_w / 2 + l1 - t, self.center[
+                                                                 1] + height_left * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(coupler.sctq,0),
+                                        'or')
 
                 if side == 'top':
                     extended = gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+self.g_h/2),(self.center[0]-self.g_w/2+l1-gap,self.center[1]+self.g_h/2+t+gap+gap))
@@ -266,7 +280,11 @@ class PP_Transmon(DesignElement):
 
                     # box for inverted polygon
                     box = gdspy.boolean(box,gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+self.g_h/2),(self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1] + self.g_h / 2 + t + gap + gap + self.g_t)),'or', layer=self.layer_configuration.inverted)
-
+                    pocket = gdspy.boolean(pocket, gdspy.Rectangle(
+                        (self.center[0] - self.g_w / 2 + l1 - gap - self.g_t, self.center[1] + self.g_h / 2), (
+                        self.center[0] - self.g_w / 2 + l1 + l2 + self.g_t + gap,
+                        self.center[1] + self.g_h / 2 + t + gap + gap + self.g_t)).translate(0,-coupler.sctq), 'or',
+                                        layer=self.layer_configuration.inverted)
 
                 if side == 'bottom':
                     extended = gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]-self.g_h/2),(self.center[0]-self.g_w/2+l1-gap,self.center[1]-self.g_h/2-t-gap-gap))
@@ -278,6 +296,9 @@ class PP_Transmon(DesignElement):
                     # box for inverted polygon
                     box = gdspy.boolean(box, gdspy.Rectangle(
                         (self.center[0] - self.g_w / 2 + l1 - gap - self.g_t, self.center[1] - self.g_h / 2), (self.center[0] - self.g_w / 2 + l1 + l2 + self.g_t + gap,self.center[1] - self.g_h / 2 - t - gap - gap - self.g_t)), 'or',layer=self.layer_configuration.inverted)
+                    pocket = gdspy.boolean(pocket,gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+self.g_h/2),(self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1] + self.g_h / 2 + t + gap + gap + self.g_t)).translate(0,coupler.sctq),'or')
+
+
 
                 if coupler.coupler_type == 'coupler':
                         qubit_cap_parts.append(gdspy.boolean(coupler.result_coupler, coupler.result_coupler, 'or',layer=10+id+self.secret_shift))
@@ -488,7 +509,7 @@ class PP_Transmon_Coupler:
     5) side - which side the coupler is on
     6) heightl / heightr - height as a fraction of total length
     """
-    def __init__(self, l1,l2,t,side = 'left',coupler_type = 'none',heightl = 1,heightr=1,w= None, g=None, s=None):
+    def __init__(self, l1,l2,t,side = 'left',coupler_type = 'none',heightl = 1,heightr=1,w= None, g=None, s=None,shift_to_qubit=0):
         self.l1 = l1
         self.l2 = l2
         self.t = t
@@ -503,6 +524,8 @@ class PP_Transmon_Coupler:
         self.w = w
         self.g = g
         self.s = s
+        #put coupler closer to qubit
+        self.sctq = shift_to_qubit
 
     def render(self, center, g_w,g_h):
         result = 0
@@ -516,9 +539,8 @@ class PP_Transmon_Coupler:
                 result = gdspy.boolean(result, upper, 'or')
                 result = gdspy.boolean(result, lower, 'or')
             result = gdspy.boolean(result, line, 'or')
-
-            self.connection = (center[0]-g_w/2-self.t-self.gap-self.gap,center[1])
-
+            result.translate(self.sctq,0)
+            self.connection = (center[0]-g_w/2-self.t-self.gap-self.gap+self.sctq,center[1])
 
         if self.side == "right":
             result = gdspy.Rectangle((center[0]+g_w/2+self.t+self.gap,center[1]-self.height_right*g_h/2-self.gap),(center[0]+g_w/2+self.gap,center[1]+self.height_right*g_h/2+self.gap))
@@ -531,20 +553,22 @@ class PP_Transmon_Coupler:
                 result = gdspy.boolean(result, upper, 'or')
                 result = gdspy.boolean(result, lower, 'or')
             result = gdspy.boolean(result, line, 'or')
-
-            self.connection = (center[0] + g_w / 2 + self.t + self.gap + self.gap, center[1] )
+            result.translate(-self.sctq, 0)
+            self.connection = (center[0] + g_w / 2 + self.t + self.gap + self.gap-self.sctq, center[1] )
 
         if self.side == "top":
             result = gdspy.Rectangle((center[0]-g_w/2+self.l1,center[1]+g_h/2+self.gap),(center[0]-g_w/2+self.l1+self.l2,center[1]+g_h/2+self.gap+self.t))
             line   = gdspy.Rectangle((center[0]-g_w/2+self.l1+self.l2/2-self.w/2,center[1]+g_h/2+self.gap+self.t),(center[0]-g_w/2+self.l1+self.l2/2+self.w/2,center[1]+g_h/2+self.gap+self.t+self.gap))
             result = gdspy.boolean(result, line, 'or')
-            self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]+g_h/2+self.gap+self.t+self.gap)
+            result.translate(0,-self.sctq)
+            self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]+g_h/2+self.gap+self.t+self.gap-self.sctq)
 
         if self.side == "bottom":
             result = gdspy.Rectangle((center[0]-g_w/2+self.l1,center[1]-g_h/2-self.gap),(center[0]-g_w/2+self.l1+self.l2,center[1]-g_h/2-self.gap-self.t))
             line   = gdspy.Rectangle((center[0]-g_w/2+self.l1+self.l2/2-self.w/2,center[1]-g_h/2-self.gap-self.t),(center[0]-g_w/2+self.l1+self.l2/2+self.w/2,center[1]-g_h/2-self.gap-self.t-self.gap))
             result = gdspy.boolean(result, line, 'or')
-            self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]-g_h/2-self.gap-self.t-self.gap)
+            result.translate(0,-self.sctq)
+            self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]-g_h/2-self.gap-self.t-self.gap+self.sctq)
 
         self.result_coupler = result
 
