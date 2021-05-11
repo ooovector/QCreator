@@ -25,10 +25,9 @@ class Coaxmon(DesignElement):
                  center_radius: float, inner_couplers_radius: float,
                  outer_couplers_radius: float, inner_ground_radius: float, outer_ground_radius: float,
                  layer_configuration: LayerConfiguration, Couplers, jj_params: Dict, transformations: Dict,
-                 calculate_capacitance: False, third_JJ=False, small_SQUID =False):
+                 calculate_capacitance: False, third_JJ=False):
         super().__init__(type='qubit', name=name)
         self.third_JJ = third_JJ
-        self.small_SQUID = small_SQUID
         #qubit parameters
         self.transformations = transformations# to mirror the structure
         self.center = center
@@ -165,16 +164,10 @@ class Coaxmon(DesignElement):
         return self.terminals
 
     def generate_JJ(self):
-        if self.small_SQUID == False:
-            self.JJ = squid3JJ.JJ_2(self.JJ_coordinates[0], self.JJ_coordinates[1],
-                                    self.JJ_params['a1'], self.JJ_params['a2'],
-                                    self.JJ_params['b1'], self.JJ_params['b2'],
-                                    self.JJ_params['c1'], self.JJ_params['c2'], add_JJ=self.third_JJ)
-        else:
-            self.JJ = squid3JJ.JJ_2_small(self.JJ_coordinates[0], self.JJ_coordinates[1],
-                                    self.JJ_params['a1'], self.JJ_params['a2'],
-                                    self.JJ_params['b1'], self.JJ_params['b2'],
-                                    self.JJ_params['c1'], self.JJ_params['c2'], add_JJ=self.third_JJ)
+        self.JJ = squid3JJ.JJ_2_small(self.JJ_coordinates[0], self.JJ_coordinates[1],
+                                self.JJ_params['a1'], self.JJ_params['a2'],
+                                self.JJ_params['b1'], self.JJ_params['b2'],
+                                self.JJ_params['c1'], self.JJ_params['c2'], add_JJ=self.third_JJ)
         result = self.JJ.generate_jj()
         result = gdspy.boolean(result, result, 'or', layer=self.layer_configuration.jj_layer)
         angle = self.JJ_params['angle_JJ']

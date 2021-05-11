@@ -120,7 +120,7 @@ def draw_double_resonator(sample,
                         closed_end_meander_length1, length_left1, length_right1,
                         closed_end_meander_length2, length_left2, length_right2,
                         open_end_length1, open_end_length2,
-                        min_bridge_spacing = None,
+                        min_bridge_spacing_closed_end=None, min_bridge_spacing_open_end=None,
                         airbridge = None, port_orientation='left'):
 
     return draw_double_resonator_plus_double_qubit(sample,
@@ -132,7 +132,8 @@ def draw_double_resonator(sample,
                         closed_end_meander_length2,length_left2, length_right2,
                         object1=None, port1=None, open_end_length1=open_end_length1,
                         object2=None, port2=None, open_end_length2=open_end_length2,
-                        min_bridge_spacing=min_bridge_spacing, airbridge=airbridge,
+                        min_bridge_spacing_closed_end=min_bridge_spacing_closed_end,
+                        min_bridge_spacing_open_end=min_bridge_spacing_open_end, airbridge=airbridge,
                         port_orientation=port_orientation)
 
 
@@ -146,7 +147,8 @@ def draw_double_resonator_plus_double_qubit(sample,
                         open_end_shift_length1=None, open_end_shift_length2=None,
                         object1=None, port1=None, open_end_length1=None,
                         object2=None, port2=None, open_end_length2=None,
-                        min_bridge_spacing=None, airbridge=None,
+                        min_bridge_spacing_closed_end=None, min_bridge_spacing_open_end=None,
+                        airbridge=None,
                         port_orientation='left',
                         meander_first_intend_orientation='left'):
     # 2. Create main copler:
@@ -182,7 +184,7 @@ def draw_double_resonator_plus_double_qubit(sample,
                                                  length_right=length_right1,
                                                  first_step_orientation=meander_first_intend_orientation,
                                                  meander_orientation=angle2, meander_type='round',
-                                                 min_spacing=min_bridge_spacing, airbridge=airbridge)
+                                                 min_spacing=min_bridge_spacing_closed_end, airbridge=airbridge)
     closed_end_meander2 = sample.connect_meander(name='closed end 2', o1=fanout1,
                                                  port1=fanout2_port,
                                                  meander_length=closed_end_meander_length2,
@@ -190,7 +192,7 @@ def draw_double_resonator_plus_double_qubit(sample,
                                                  length_right=length_right2,
                                                  first_step_orientation=meander_first_intend_orientation,
                                                  meander_orientation=angle1, meander_type='round',
-                                                 min_spacing=min_bridge_spacing, airbridge=airbridge)
+                                                 min_spacing=min_bridge_spacing_closed_end, airbridge=airbridge)
 
     if object1 is None:
         object1 = elements.OpenEnd(name='open end 1',
@@ -230,11 +232,11 @@ def draw_double_resonator_plus_double_qubit(sample,
 
     # 11. Connect open end with the coupler part of the resonator
     open_end_resonator1 = sample.connect_cpw(fanout2, object1, fanout2_port, port1, name='right open end',
-                                             points=open_end_shift1, min_spacing=min_bridge_spacing,
+                                             points=open_end_shift1, min_spacing=min_bridge_spacing_open_end,
                                              airbridge=airbridge)
 
     open_end_resonator2 = sample.connect_cpw(fanout2, object2, fanout1_port, port2, name='right open end',
-                                             points=open_end_shift2, min_spacing=min_bridge_spacing,
+                                             points=open_end_shift2, min_spacing=min_bridge_spacing_open_end,
                                              airbridge=airbridge)
 
     # 11. Create grounding of resonator
@@ -262,8 +264,8 @@ def search_for_resonators_qubits(f,delta,min_freq,max_freq):
     for mode_id in range(len(qs)):
         if min_Q<=qs[mode_id]<=max_Q and min_freq<=f[mode_id]/2/np.pi<=max_freq:
             res_modes.append(mode_id)
-    print('Resonance frequencies are, GHz/2pi:',f[res_modes]/(2*np.pi)/1e9)
-    print('Kappas are, MHz/2pi:',delta[res_modes]/2/np.pi/1e6)
+    print('Resonance frequencies are, GHz:',f[res_modes]/(2*np.pi)/1e9)
+    print('Kappas are, us^-1:',2*delta[res_modes]/1e6)
     print('Quality factors are:',qs[res_modes])
     return (f[res_modes]/(2*np.pi)/1e9, delta[res_modes], qs[res_modes])
 
