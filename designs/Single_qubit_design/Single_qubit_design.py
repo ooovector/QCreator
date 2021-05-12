@@ -36,6 +36,7 @@ layers_configuration = {
     'JJs':1,
     'air bridges':2,
     'air bridge pads':3,
+    'air bridge sm pads':4,
     'vertical gridlines':15,
     'horizontal gridlines':16,
     'inverted':17
@@ -96,7 +97,7 @@ p2 = pads_right[0]
 shift=-1/10
 phi1=1/5
 Couplers_qubit_alone=[elements.coaxmon.CoaxmonCoupler(arc_start=-1/6-1/100+shift,arc_finish=-3/6+1/100+shift,phi=-1/2,
-                                          coupler_type= None, w =10,g=10),
+                                          coupler_type= 'grounded', w =5,g=3),
         elements.coaxmon.CoaxmonCoupler(arc_start=3/6+1/100+shift,arc_finish=5/6-1/100+shift,phi=1/2,
                                           coupler_type=None, w =8,g=10,s=7), #one upper
           elements.coaxmon.CoaxmonCoupler(arc_start=1/6+1/100+shift+1/20,arc_finish=3/6-1/100+shift-1/10,phi=phi1,
@@ -105,48 +106,48 @@ Couplers_qubit_alone=[elements.coaxmon.CoaxmonCoupler(arc_start=-1/6-1/100+shift
                                           coupler_type=None, w =10),
           elements.coaxmon.CoaxmonCoupler(arc_start=-1/6+1/100+shift,arc_finish=1/6-1/100+shift,phi=0,
                                           coupler_type=None, w =10,g=40),
-          elements.coaxmon.CoaxmonCoupler(arc_start=-5/6+1/100+shift,arc_finish=-3/6-1/100+shift,phi=1/2,#1,
-                                          coupler_type='grounded',w=5,g=3)
+          elements.coaxmon.CoaxmonCoupler(arc_start=-5/6+1/100+shift,arc_finish=-3/6-1/100+shift,phi=0,#1,
+                                          coupler_type=None,w=10,g=40)
 ]
 
 
-jj_coaxmon_sm_SQUID = {'a1':30,
+jj_coaxmon_sm_SQUID = {'a1':20,
                'b1':0.2,
                'a2':0.45,
                'b2':0.243,
                'c1':0.45,
                'c2':10,
-               'angle_qubit':-np.pi/2-np.pi/3,#-np.pi/8,
+               'angle_qubit':-np.pi/2+np.pi/60,#-np.pi/2-np.pi/3+np.pi/16,
                'angle_JJ': 0,
                'length':10,
                'width':5,
               'ic1': 0.45 * 0.45 * jc,
-              'ic2': 0.2 * 0.243 * jc,
+              'ic2': -0.2 * 0.243 * jc,
               'ic3': 0.2 * 0.243 * jc,
               'lm': 4.2e-12
               }
-jj_coaxmon_big_rad = {'a1':65,
-               'b1':0.28,
-               'a2':0.5,
-               'b2':0.25,
+jj_coaxmon_big_rad = {'a1':20,#65,
+               'b1':0.3,
+               'a2':0.55,
+               'b2':0.3,
                'c1':0.55,
                'c2':10,
-               'angle_qubit':-np.pi+np.pi/30,
+               'angle_qubit':-np.pi/2+np.pi/15,#-np.pi+np.pi/30,
                'angle_JJ': 0,
                'length':10,
                'width':5,
-              'ic1': 0.55 * 0.5 * jc,
-              'ic2': 0.28 * 0.25 * jc,
-              'ic3': 0.28 * 0.25 * jc,
+              'ic1': 0.55 * 0.55 * jc,
+              'ic2': -0.3 * 0.3 * jc,
+              'ic3': 0.3 * 0.3 * jc,
               'lm': 4.2e-12
               }
-jj_coaxmon_2JJ = {'a1':25,
+jj_coaxmon_2JJ = {'a1':20,
                'b1':0.15,#0.16,
                'a2':0.2,#0.45,
                'b2':0.15,#0.2,
                'c1':0.3,#0.486,
                'c2':10,
-               'angle_qubit':-np.pi/2-np.pi/3,
+               'angle_qubit':-np.pi/2+np.pi/26.5,#-np.pi/2-np.pi/3,
                'angle_JJ': 0,
                'length':10,
                'width':5,
@@ -169,13 +170,14 @@ coaxmon1= elements.coaxmon.Coaxmon(name='Coaxmon1',center=(coupler_start+offset,
 
 offset = 1085
 offset1 = 1080
+
 transformations={'mirror':[(coupler_start+offset,central_line_y),(coupler_start+offset+10,central_line_y)]}
 coaxmon2= elements.coaxmon.Coaxmon(name='Coaxmon2',center=(coupler_start+offset1,central_line_y-980),
-                          center_radius = 140,
-                          inner_couplers_radius = 180,
-                          outer_couplers_radius = 240,
-                          inner_ground_radius = 270,
-                          outer_ground_radius = 290,
+                          center_radius = 170,
+                          inner_couplers_radius = 210,
+                          outer_couplers_radius = 270,
+                          inner_ground_radius = 300,
+                          outer_ground_radius = 320,
                           layer_configuration = sample.layer_configuration,
                           Couplers=Couplers_qubit_alone,jj_params= jj_coaxmon_big_rad,transformations={},
                           calculate_capacitance = True, third_JJ=True)

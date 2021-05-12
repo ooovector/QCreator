@@ -150,7 +150,7 @@ def draw_double_resonator_plus_double_qubit(sample,
                         min_bridge_spacing_closed_end=None, min_bridge_spacing_open_end=None,
                         airbridge=None,
                         port_orientation='left',
-                        meander_first_intend_orientation='left'):
+                        meander_first_intend_orientation='left', meander_r = None):
     # 2. Create main copler:
 
     main_coupler = elements.CPWCoupler('TL-resonator coupler', [(coupler_start_x, coupler_start_y),
@@ -184,7 +184,8 @@ def draw_double_resonator_plus_double_qubit(sample,
                                                  length_right=length_right1,
                                                  first_step_orientation=meander_first_intend_orientation,
                                                  meander_orientation=angle2, meander_type='round',
-                                                 min_spacing=min_bridge_spacing_closed_end, airbridge=airbridge)
+                                                 min_spacing=min_bridge_spacing_closed_end,
+                                                 airbridge=airbridge, r=meander_r)
     closed_end_meander2 = sample.connect_meander(name='closed end 2', o1=fanout1,
                                                  port1=fanout2_port,
                                                  meander_length=closed_end_meander_length2,
@@ -192,7 +193,8 @@ def draw_double_resonator_plus_double_qubit(sample,
                                                  length_right=length_right2,
                                                  first_step_orientation=meander_first_intend_orientation,
                                                  meander_orientation=angle1, meander_type='round',
-                                                 min_spacing=min_bridge_spacing_closed_end, airbridge=airbridge)
+                                                 min_spacing=min_bridge_spacing_closed_end,
+                                                 airbridge=airbridge, r=meander_r)
 
     if object1 is None:
         object1 = elements.OpenEnd(name='open end 1',
