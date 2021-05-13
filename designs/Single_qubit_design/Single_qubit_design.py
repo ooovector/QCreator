@@ -156,6 +156,9 @@ jj_coaxmon_2JJ = {'a1':20,
               'lm': 4.2e-12
               }
 
+bridge = elements.airbridge.AirBridgeGeometry(pad_width = 36,pad_length = 22,pad_distance = 62,
+                                      narrow_width = 20, narrow_length = 46, sm_pad_length = 10,
+                                      sm_pad_distance = 70, layer_configuration=sample.layer_configuration)
 offset=200
 transformations={'mirror':[(coupler_start+offset,central_line_y),(coupler_start+offset+10,central_line_y)]}
 coaxmon1= elements.coaxmon.Coaxmon(name='Coaxmon1',center=(coupler_start+offset,central_line_y-900),
@@ -311,7 +314,7 @@ xmon1 = elements.xmon.Xmon(name = 'Xmon1',
                           jj_params2 = jj3,
                           layer_configuration = sample.layer_configuration)
 xmon2 = elements.xmon.Xmon(name = 'Xmon2',
-                         center=(coupler_start+1750+coupler_length+resonator_core/2+resonator_gap, central_line_y-920),
+                         center=(coupler_start+1750+coupler_length+resonator_core/2+resonator_gap, central_line_y-925),
                           length = 130,
                           width_gap = 15,
                           center_width = 15,

@@ -70,7 +70,7 @@ class AirbridgeOverCPW(DesignElement):
 
         self.tls_cache = []
 
-        self.p = self.geometry.pad_width / 2 * np.asarray([np.cos(self.orientation), np.sin(self.orientation)])
+        self.p = self.geometry.narrow_width / 2 * np.asarray([np.cos(self.orientation), np.sin(self.orientation)])
 
         if self.geometry.pad_distance < 2 * self.s + self.w:
             raise ValueError('Distance between pads is too small!')

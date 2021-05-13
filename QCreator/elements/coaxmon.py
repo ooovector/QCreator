@@ -4,7 +4,7 @@ from .. import transmission_line_simulator as tlsim
 import gdspy
 import numpy as np
 from typing import List, Tuple, Mapping, Dict
-from . import squid3JJ #TODO make this qubit class suitable for any squid types
+from . import squid3JJ#TODO make this qubit class suitable for any squid types
 from copy import deepcopy
 
 class Coaxmon(DesignElement):
@@ -120,22 +120,20 @@ class Coaxmon(DesignElement):
                     'restrict': result_restricted,
                     'qubit': qubit.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]) if qubit is not None else None,
                     'qubit_cap': qubit_cap_parts,
-                    'JJ': JJ.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
-                    }
+                    'JJ': JJ.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1])}
+
         if 'rotate' in self.transformations:
             return {'positive': result.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
                     'restrict': result_restricted,
                     'qubit': qubit.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]) if qubit is not None else None,
                     'qubit_cap': qubit_cap_parts,
-                    'JJ': JJ.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
-                    }
+                    'JJ': JJ.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1])                    }
         elif self.transformations == {}:
             return {'positive': result,
                     'restrict': result_restricted,
                     'qubit': qubit,
                     'qubit_cap': qubit_cap_parts,
-                    'JJ': JJ,
-                    }
+                    'JJ': JJ}
 
     def set_terminals(self):
         for id, coupler in enumerate(self.couplers):
@@ -221,9 +219,11 @@ class Coaxmon(DesignElement):
             orientation=orientation+np.pi
         self.terminals['flux'] = DesignTerminal(flux_line_output_connection, orientation, g=self.grounded.w, s=self.grounded.g,
                                                      w=self.grounded.w, type='cpw')
+
         return {'positive': result,
                 'remove': remove,
                 }
+
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True,
                    cutoff: float = np.inf, epsilon: float = 11.45) -> list:

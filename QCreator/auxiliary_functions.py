@@ -150,7 +150,8 @@ def draw_double_resonator_plus_double_qubit(sample,
                         min_bridge_spacing_closed_end=None, min_bridge_spacing_open_end=None,
                         airbridge=None,
                         port_orientation='left',
-                        meander_first_intend_orientation='left', meander_r = None):
+                        meander_first_intend_orientation='left', meander_r = None,
+                        object1_airbridges=False, object2_airbridges=False):
     # 2. Create main copler:
 
     main_coupler = elements.CPWCoupler('TL-resonator coupler', [(coupler_start_x, coupler_start_y),
@@ -237,9 +238,41 @@ def draw_double_resonator_plus_double_qubit(sample,
                                              points=open_end_shift1, min_spacing=min_bridge_spacing_open_end,
                                              airbridge=airbridge)
 
+
+    if object1_airbridges:
+        coupler_terminal = open_end_resonator1[-1].get_terminals()['port2']
+        bridge = elements.airbridge.AirbridgeOverCPW(name='Airbridge over qubit coupler',
+                                                       position=(coupler_terminal.position[0]
+                                                                 +airbridge.narrow_width/2* np.cos(
+                                                           coupler_terminal.orientation),
+                                                                 coupler_terminal.position[1] +
+                                                                 airbridge.narrow_width / 2 * np.sin(
+                                                                     coupler_terminal.orientation)),
+                                                       orientation=coupler_terminal.orientation,
+                                                       w=coupler_terminal.w, s=coupler_terminal.s, g=coupler_terminal.g,
+                                                       geometry=airbridge)
+
+        sample.add(bridge)
+
     open_end_resonator2 = sample.connect_cpw(fanout2, object2, fanout1_port, port2, name='right open end',
                                              points=open_end_shift2, min_spacing=min_bridge_spacing_open_end,
                                              airbridge=airbridge)
+
+
+    if object2_airbridges:
+        coupler_terminal = open_end_resonator2[-1].get_terminals()['port2']
+        bridge = elements.airbridge.AirbridgeOverCPW(name='Airbridge over qubit coupler',
+                                                     position=(coupler_terminal.position[0]
+                                                               + airbridge.narrow_width / 2 * np.cos(
+                                                         coupler_terminal.orientation),
+                                                               coupler_terminal.position[1] +
+                                                               airbridge.narrow_width / 2 * np.sin(
+                                                                   coupler_terminal.orientation)),
+                                                     orientation=coupler_terminal.orientation,
+                                                     w=coupler_terminal.w, s=coupler_terminal.s, g=coupler_terminal.g,
+                                                     geometry=airbridge)
+
+        sample.add(bridge)
 
     # 11. Create grounding of resonator
     resonator_ground_1 = sample.ground(o=closed_end_meander1[-1], port='port2', name='resonator ground 1',
