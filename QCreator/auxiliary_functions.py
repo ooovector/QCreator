@@ -234,45 +234,31 @@ def draw_double_resonator_plus_double_qubit(sample,
         open_end_shift2 = sample.cpw_shift(fanout2, fanout1_port, open_end_shift_length2)
 
     # 11. Connect open end with the coupler part of the resonator
-    open_end_resonator1 = sample.connect_cpw(fanout2, object1, fanout2_port, port1, name='right open end',
-                                             points=open_end_shift1, min_spacing=min_bridge_spacing_open_end,
-                                             airbridge=airbridge)
-
 
     if object1_airbridges:
-        coupler_terminal = open_end_resonator1[-1].get_terminals()['port2']
-        bridge = elements.airbridge.AirbridgeOverCPW(name='Airbridge over qubit coupler',
-                                                       position=(coupler_terminal.position[0]
-                                                                 +airbridge.narrow_width/2* np.cos(
-                                                           coupler_terminal.orientation),
-                                                                 coupler_terminal.position[1] +
-                                                                 airbridge.narrow_width / 2 * np.sin(
-                                                                     coupler_terminal.orientation)),
-                                                       orientation=coupler_terminal.orientation,
-                                                       w=coupler_terminal.w, s=coupler_terminal.s, g=coupler_terminal.g,
-                                                       geometry=airbridge)
+        bridge = sample.generate_coaxmon_coupler_airbridge(airbridge, object1, port1)
+        bridge_terminal = 'port1'
+        open_end_resonator1 = sample.connect_cpw(fanout2, bridge, fanout2_port, bridge_terminal, name='right open end',
+                                                 points=open_end_shift1, min_spacing=min_bridge_spacing_open_end,
+                                                 airbridge=airbridge)
 
-        sample.add(bridge)
-
-    open_end_resonator2 = sample.connect_cpw(fanout2, object2, fanout1_port, port2, name='right open end',
-                                             points=open_end_shift2, min_spacing=min_bridge_spacing_open_end,
-                                             airbridge=airbridge)
-
+    else:
+        open_end_resonator1 = sample.connect_cpw(fanout2, object1, fanout2_port, port1, name='right open end',
+                                                 points=open_end_shift1, min_spacing=min_bridge_spacing_open_end,
+                                                 airbridge=airbridge)
 
     if object2_airbridges:
-        coupler_terminal = open_end_resonator2[-1].get_terminals()['port2']
-        bridge = elements.airbridge.AirbridgeOverCPW(name='Airbridge over qubit coupler',
-                                                     position=(coupler_terminal.position[0]
-                                                               + airbridge.narrow_width / 2 * np.cos(
-                                                         coupler_terminal.orientation),
-                                                               coupler_terminal.position[1] +
-                                                               airbridge.narrow_width / 2 * np.sin(
-                                                                   coupler_terminal.orientation)),
-                                                     orientation=coupler_terminal.orientation,
-                                                     w=coupler_terminal.w, s=coupler_terminal.s, g=coupler_terminal.g,
-                                                     geometry=airbridge)
+        bridge = sample.generate_coaxmon_coupler_airbridge(airbridge, object2, port2)
+        bridge_terminal = 'port1'
+        open_end_resonator2 = sample.connect_cpw(fanout2, bridge, fanout1_port, bridge_terminal, name='right open end',
+                                                 points=open_end_shift2, min_spacing=min_bridge_spacing_open_end,
+                                                 airbridge=airbridge)
 
-        sample.add(bridge)
+    else:
+        open_end_resonator2 = sample.connect_cpw(fanout2, object2, fanout1_port, port2, name='right open end',
+                                                 points=open_end_shift2, min_spacing=min_bridge_spacing_open_end,
+                                                 airbridge=airbridge)
+
 
     # 11. Create grounding of resonator
     resonator_ground_1 = sample.ground(o=closed_end_meander1[-1], port='port2', name='resonator ground 1',

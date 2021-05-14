@@ -106,7 +106,20 @@ Couplers_qubit_alone=[elements.coaxmon.CoaxmonCoupler(arc_start=-1/6-1/100+shift
                                           coupler_type=None, w =10),
           elements.coaxmon.CoaxmonCoupler(arc_start=-1/6+1/100+shift,arc_finish=1/6-1/100+shift,phi=0,
                                           coupler_type=None, w =10,g=40),
-          elements.coaxmon.CoaxmonCoupler(arc_start=-5/6+1/100+shift,arc_finish=-3/6-1/100+shift,phi=0,#1,
+          elements.coaxmon.CoaxmonCoupler(arc_start=-5/6+1/100+shift,arc_finish=-3/6-1/100+shift,phi=-3/4,#1,
+                                          coupler_type=None,w=10,g=40)
+]
+Couplers_qubit_alone1=[elements.coaxmon.CoaxmonCoupler(arc_start=-1/6-3/100+shift,arc_finish=-3/6-1/100+shift,phi=-1/2,
+                                          coupler_type= 'grounded', w =5,g=3),
+        elements.coaxmon.CoaxmonCoupler(arc_start=3/6+1/100+shift,arc_finish=5/6-1/100+shift,phi=1/2,
+                                          coupler_type=None, w =8,g=10,s=7), #one upper
+          elements.coaxmon.CoaxmonCoupler(arc_start=1/6+1/100+shift+1/20,arc_finish=3/6-1/100+shift-1/10,phi=phi1,
+                                          coupler_type='coupler', w =8,g=10,s=7),# for resonator
+          elements.coaxmon.CoaxmonCoupler(arc_start=-1/6+1/100+1+shift,arc_finish=1/6-1/100+1+shift,phi=1,
+                                          coupler_type=None, w =10),
+          elements.coaxmon.CoaxmonCoupler(arc_start=-1/6+1/100+shift,arc_finish=1/6-1/100+shift,phi=0,
+                                          coupler_type=None, w =10,g=40),
+          elements.coaxmon.CoaxmonCoupler(arc_start=-5/6+1/100+shift,arc_finish=-3/6-3/100+shift,phi=-3/4,#1,
                                           coupler_type=None,w=10,g=40)
 ]
 
@@ -159,7 +172,7 @@ jj_coaxmon_2JJ = {'a1':20,
 bridge = elements.airbridge.AirBridgeGeometry(pad_width = 36,pad_length = 22,pad_distance = 62,
                                       narrow_width = 20, narrow_length = 46, sm_pad_length = 10,
                                       sm_pad_distance = 70, layer_configuration=sample.layer_configuration)
-offset=200
+offset=165#200
 transformations={'mirror':[(coupler_start+offset,central_line_y),(coupler_start+offset+10,central_line_y)]}
 coaxmon1= elements.coaxmon.Coaxmon(name='Coaxmon1',center=(coupler_start+offset,central_line_y-900),
                           center_radius = 100,
@@ -168,12 +181,11 @@ coaxmon1= elements.coaxmon.Coaxmon(name='Coaxmon1',center=(coupler_start+offset,
                           inner_ground_radius = 230,
                           outer_ground_radius = 250,
                           layer_configuration = sample.layer_configuration,
-                          Couplers=Couplers_qubit_alone,jj_params= jj_coaxmon_sm_SQUID,transformations=transformations,
+                          Couplers=Couplers_qubit_alone1,jj_params= jj_coaxmon_sm_SQUID,transformations=transformations,
                           calculate_capacitance = True, third_JJ=True)
 
 offset = 1085
 offset1 = 1080
-
 transformations={'mirror':[(coupler_start+offset,central_line_y),(coupler_start+offset+10,central_line_y)]}
 coaxmon2= elements.coaxmon.Coaxmon(name='Coaxmon2',center=(coupler_start+offset1,central_line_y-980),
                           center_radius = 170,
@@ -192,11 +204,11 @@ coaxmon3= elements.coaxmon.Coaxmon(name='Coaxmon3',center=(coupler_start+offset,
                           inner_ground_radius = 230,
                           outer_ground_radius = 250,
                           layer_configuration = sample.layer_configuration,
-                          Couplers=Couplers_qubit_alone,jj_params= jj_coaxmon_sm_SQUID,transformations=transformations,
+                          Couplers=Couplers_qubit_alone1,jj_params= jj_coaxmon_sm_SQUID,transformations=transformations,
                           calculate_capacitance = True, third_JJ=True)
 
 
-offset = 2000
+offset = 1950
 transformations={'mirror':[(coupler_start+offset,central_line_y),(coupler_start+offset+10,central_line_y)]}
 coaxmon4= elements.coaxmon.Coaxmon(name='Coaxmon4',center=(coupler_start+offset,central_line_y-900),
                           center_radius = 100,
