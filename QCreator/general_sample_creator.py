@@ -212,7 +212,7 @@ class Sample:
         return open_end
 
     def connect_cpw(self, o1: elements.DesignElement, o2: elements.DesignElement, port1: str, port2: str, name: str,
-                    points: list, airbridge: elements.AirBridgeGeometry = None, min_spacing: float = None):
+                    points: list, airbridge: elements.AirBridgeGeometry = None, min_spacing: float = None, r=None):
         """
         Create and return a CPW connecting two cpw-type ports, with point inbetween defined by point
         :param o1: first object
@@ -253,8 +253,11 @@ class Sample:
         if orientation2 > np.pi:
             orientation2 -= 2 * np.pi
 
+        if r is None:
+            r = self.default_cpw_radius(w, s, g)
+
         points = [tuple(t1.position)] + points + [tuple(t2.position)]
-        cpw = elements.CPW(name, points, w, s, g, self.layer_configuration, r=self.default_cpw_radius(w, s, g),
+        cpw = elements.CPW(name, points, w, s, g, self.layer_configuration, r=r,
                            corner_type='round', orientation1=orientation1, orientation2=orientation2)
 
         if airbridge:
@@ -437,12 +440,7 @@ class Sample:
         airbridges = []
         last_port = None
         current_cpw_points = []
-        shift = 0
-        bridge_shift=0
         for segment in o.segments:
-            if segment['type'] == 'segment':
-                shift = shift + 1
-                bridge_shift = min_spacing/10 * (shift//2) ##KOSTYL (c) Lena
             if segment['type'] == 'turn':
                 current_cpw_points.append(segment['instead_point'])
                 continue
@@ -451,19 +449,19 @@ class Sample:
                 continue
 
 
-            num_bridges = int(np.floor((segment['length'] - min_spacing) / (geometry.pad_width + min_spacing)))
+            num_bridges = int(np.floor(segment['length'] / (geometry.narrow_width + min_spacing)))
             if num_bridges < 1:
                 current_cpw_points.append(segment['endpoint'])
                 continue
 
-            spacing = (segment['length'] - num_bridges * geometry.pad_width) / (num_bridges + 1)
+            spacing = (segment['length'] - num_bridges * geometry.narrow_width) / num_bridges
             direction = segment['endpoint'] - segment['startpoint']
             direction = direction/np.sqrt(np.sum(direction**2))
             orientation = np.arctan2(direction[1], direction[0])
 
-            begin = segment['startpoint'] + direction * bridge_shift
+            begin = segment['startpoint']
             for bridge_id in range(num_bridges):
-                midpoint = begin + direction * (spacing * (bridge_id+1) + geometry.narrow_width * bridge_id)
+                midpoint = begin + direction * (spacing * (bridge_id + 0.5) + geometry.narrow_width * bridge_id)
                 current_cpw_points.append(midpoint)
 
                 cpw = elements.CPW(name=name + 's{}'.format(len(cpws)),
@@ -497,6 +495,44 @@ class Sample:
 
         cpws.append(cpw)
         return cpws
+
+    def generate_coaxmon_flux_coupler_airbridges(self, airbridge_geom, qubit, n_flux_line_bridges):
+        airbridge_list =[]
+        fl_terminal = qubit.get_terminals()['flux']
+        n_bridges = (qubit.outer_ground - qubit.R2)//airbridge_geom.pad_width
+        for n_bridge in range(np.min([n_bridges,n_flux_line_bridges])):
+            bridge = elements.airbridge.AirbridgeOverCPW(name='Airbridge over %s qubit flux coupler'%qubit.name,
+                                                           position=(fl_terminal.position[0]+
+                                                                     (2*n_bridge+1)*airbridge_geom.pad_width/2*
+                                                                     np.cos(fl_terminal.orientation),
+                                                                     fl_terminal.position[1] +(2*n_bridge+1)*
+                                                                     airbridge_geom.pad_width/2 * np.sin(
+                                                               fl_terminal.orientation)),
+                                                           orientation=fl_terminal.orientation, w=fl_terminal.w,
+                                                           s=fl_terminal.s, g=fl_terminal.g,
+                                                           geometry=airbridge_geom)
+
+            self.add(bridge)
+            airbridge_list.append(bridge)
+
+        return airbridge_list
+
+    def generate_coaxmon_coupler_airbridge(self, airbridge_geom, qubit, coupler_name):
+        coupler_terminal = qubit.get_terminals()[coupler_name]
+        bridge = elements.airbridge.AirbridgeOverCPW(name='Airbridge over %s of %s qubit '%(coupler_name,qubit.name),
+                                                       position=(coupler_terminal.position[0]
+                                                                 - airbridge_geom.pad_width / 2 * np.cos(
+                                                           coupler_terminal.orientation),
+                                                                 coupler_terminal.position[1] -
+                                                                 airbridge_geom.pad_width / 2 * np.sin(
+                                                                     coupler_terminal.orientation)),
+                                                       orientation=coupler_terminal.orientation,
+                                                       w=coupler_terminal.w, s=coupler_terminal.s, g=coupler_terminal.g,
+                                                       geometry=airbridge_geom)
+
+        self.add(bridge)
+        return bridge
+
 
     def connect_meander(self, name: str, o1: elements.DesignElement, port1: str, meander_length: float,
                         length_left: float, length_right: float, first_step_orientation: float,

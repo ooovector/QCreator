@@ -139,13 +139,16 @@ class CPWCoupler(DesignElement):
 
                 assert np.all(np.isfinite(replaced_point2)) and np.all(np.isfinite(replaced_point1))
 
-                if replaced_length > length1 or replaced_length > length2:
+                if replaced_length > length1+eps or replaced_length > length2:
                     raise ValueError('Too short segment in line to round corner with given radius')
 
-                self.segments.append({'type': 'segment', 'startpoint': last_point, 'endpoint': replaced_point1,
-                                      'length': np.sqrt(np.sum((last_point - replaced_point1) ** 2))})
+                if length1 - replaced_length > eps:
+                    self.segments.append({'type': 'segment', 'startpoint': last_point, 'endpoint': replaced_point1,
+                                          'length': np.sqrt(np.sum((last_point - replaced_point1) ** 2))})
+                else:
+                    replaced_point1 = last_point
                 self.segments.append({'type': 'turn', 'turn': turn, 'startpoint': replaced_point1,
-                                      'endpoint': replaced_point2, 'length': turn*self.r,
+                                      'endpoint': replaced_point2, 'length': np.abs(turn)*self.r,
                                       'instead_point': point})
 
                 self.length += (np.sqrt(np.sum((replaced_point1 - last_point) ** 2)) + np.abs(turn) * self.r)

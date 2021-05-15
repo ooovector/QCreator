@@ -48,8 +48,8 @@ class Coaxmon(DesignElement):
         self.JJ_params = jj_params
         self.JJ = None
         self.core = self.grounded.w
-        self.gap = self.grounded.g
-        self.ground = self.grounded.w
+        self.gap = self.grounded.s
+        self.ground = self.grounded.g
         # qubit terminals
         self.terminals = {#'coupler0': None,
                           #'coupler1': None,
@@ -117,14 +117,14 @@ class Coaxmon(DesignElement):
             qubit = None
         if 'mirror' in self.transformations:
             return {'positive': result.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
-                    'restrict': result_restricted,
+                    'restrict': result_restricted.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
                     'qubit': qubit.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]) if qubit is not None else None,
                     'qubit_cap': qubit_cap_parts,
                     'JJ': JJ.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1])}
 
         if 'rotate' in self.transformations:
             return {'positive': result.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
-                    'restrict': result_restricted,
+                    'restrict': result_restricted.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
                     'qubit': qubit.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]) if qubit is not None else None,
                     'qubit_cap': qubit_cap_parts,
                     'JJ': JJ.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1])                    }
@@ -217,7 +217,7 @@ class Coaxmon(DesignElement):
             orientation = np.arctan2(flux_line_output_connection[1] - qubit_center[1],flux_line_output_connection[0] - qubit_center[0])+np.pi
         if self.transformations == {}:
             orientation=orientation+np.pi
-        self.terminals['flux'] = DesignTerminal(flux_line_output_connection, orientation, g=self.grounded.w, s=self.grounded.g,
+        self.terminals['flux'] = DesignTerminal(flux_line_output_connection, orientation, g=self.grounded.g, s=self.grounded.s,
                                                      w=self.grounded.w, type='cpw')
 
         return {'positive': result,
