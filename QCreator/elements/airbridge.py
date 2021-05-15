@@ -146,7 +146,10 @@ class AirbridgeOverCPW(DesignElement):
                                         corners='natural', ends='flush',
                                         layer=self.geometry.layer_configuration.restricted_area_layer)
 
-        return {'positive': cpw_line, 'airbridges_pads': contacts, 'airbridges_sm_pads': contacts_sm,
+        restrict_total = gdspy.boolean(restrict_total, contacts, 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
+        positive = gdspy.boolean(cpw_line, contacts, 'or', layer=self.geometry.layer_configuration.total_layer)
+
+        return {'positive': positive, 'airbridges_pads': contacts, 'airbridges_sm_pads': contacts_sm,
                 'airbridges': bridge, 'restrict': restrict_total}
 
     def get_terminals(self) -> dict:

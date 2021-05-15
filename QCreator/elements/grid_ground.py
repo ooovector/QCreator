@@ -24,17 +24,6 @@ class GridGround(DesignElement):
 
     def render(self):
 
-        # render rest of object in chip
-        rest = None
-        for object_ in self.objects:
-            if object_ is self:
-                continue
-            elif 'restrict' in object_.get():
-                rest = gdspy.boolean(rest, object_.get()['restrict'], 'or')
-            elif 'positive' in object_.get():
-                rest = gdspy.boolean(rest, object_.get()['positive'], 'or')
-
-
         result_x = None
         result_y = None
         i = 1
@@ -53,8 +42,17 @@ class GridGround(DesignElement):
             result_y = gdspy.boolean(rect_y, result_y, 'or')
         result_x = gdspy.boolean(result_x, result_y, 'not', layer=self.layer_configuration.gridline_y_layer)
 
-        result_x = gdspy.boolean(result_x, rest, 'not', layer=self.layer_configuration.gridline_x_layer)
-        result_y = gdspy.boolean(result_y, rest, 'not', layer=self.layer_configuration.gridline_y_layer)
+        # render rest of object in chip
+        for object_ in self.objects:
+            if object_ is self:
+                continue
+            object_polys = object_.get()
+            if 'restrict' in object_polys:
+                result_x = gdspy.boolean(result_x, object_polys['restrict'], 'not', layer=self.layer_configuration.gridline_x_layer)
+                result_y = gdspy.boolean(result_y, object_polys['restrict'], 'not', layer=self.layer_configuration.gridline_y_layer)
+            elif 'positive' in object_polys:
+                result_x = gdspy.boolean(result_x, object_polys['positive'], 'not', layer=self.layer_configuration.gridline_x_layer)
+                result_y = gdspy.boolean(result_y, object_polys['positive'], 'not', layer=self.layer_configuration.gridline_y_layer)
 
         return {'grid_x': result_x, 'grid_y': result_y}
 
