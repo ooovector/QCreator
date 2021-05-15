@@ -214,6 +214,22 @@ def draw_double_resonator_plus_double_qubit(sample,
         sample.add(object1)
         port1 = 'wide'
         open_end_shift1 = []
+    elif airbridge is not None:  # add an airbridge over resonator port as close as possible
+        # terminal = object1.get_terminals()[port1]
+        # airbridge_position = sample.cpw_shift(object1, port1, airbridge.pad_width / 2)[0]
+        # bridge_resonator = elements.airbridge.AirbridgeOverCPW(
+        #     name='Airbridge over %s qubit flux coupler' % object1.name,
+        #     position=airbridge_position,
+        #     orientation=terminal.orientation, w=terminal.w,
+        #     s=terminal.s, g=terminal.g,
+        #     geometry=airbridge)
+        # sample.add(bridge_resonator)
+        # sample.connect(bridge_resonator, 'port2', object1, port1)
+        # port1 = 'port1'
+        # object1 = bridge_resonator
+        object1, port1 = sample.airbridge(
+            object1, port1, name='Airbridge over %s readout resonator' % object1.name, geometry=airbridge)
+        open_end_shift1 = sample.cpw_shift(fanout2, fanout2_port, open_end_shift_length1)
     else:
         open_end_shift1 = sample.cpw_shift(fanout2, fanout2_port, open_end_shift_length1)
 
@@ -232,6 +248,10 @@ def draw_double_resonator_plus_double_qubit(sample,
         sample.add(object2)
         port2 = 'wide'
         open_end_shift2 = []
+    elif airbridge is not None:  # add an airbridge over resonator port as close as possible
+        object2, port2 = sample.airbridge(
+            object2, port2, name='Airbridge over %s readout resonator' % object2.name, geometry=airbridge)
+        open_end_shift2 = sample.cpw_shift(fanout2, fanout1_port, open_end_shift_length2)
     else:
         open_end_shift2 = sample.cpw_shift(fanout2, fanout1_port, open_end_shift_length2)
 

@@ -301,7 +301,7 @@ class Xmon(DesignElement):
 
         return {'positive': result,
                 'qubit': result,
-                'restricted': cross_restrict,
+                'restrict': cross_restrict,
                 'JJ': jj,
                 'qubit_cap': qubit_cap_parts
                 }
