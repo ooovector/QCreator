@@ -498,44 +498,6 @@ class Sample:
         cpws.append(cpw)
         return cpws
 
-    def generate_coaxmon_flux_coupler_airbridges(self, airbridge_geom, qubit, n_flux_line_bridges):
-        airbridge_list =[]
-        fl_terminal = qubit.get_terminals()['flux']
-        n_bridges = (qubit.outer_ground - qubit.R2)//airbridge_geom.pad_width
-        for n_bridge in range(np.min([n_bridges,n_flux_line_bridges])):
-            bridge = elements.airbridge.AirbridgeOverCPW(name='Airbridge over %s qubit flux coupler'%qubit.name,
-                                                           position=(fl_terminal.position[0]+
-                                                                     (2*n_bridge+1)*airbridge_geom.pad_width/2*
-                                                                     np.cos(fl_terminal.orientation),
-                                                                     fl_terminal.position[1] +(2*n_bridge+1)*
-                                                                     airbridge_geom.pad_width/2 * np.sin(
-                                                               fl_terminal.orientation)),
-                                                           orientation=fl_terminal.orientation, w=fl_terminal.w,
-                                                           s=fl_terminal.s, g=fl_terminal.g,
-                                                           geometry=airbridge_geom)
-
-            self.add(bridge)
-            airbridge_list.append(bridge)
-
-        return airbridge_list
-
-    def generate_coaxmon_coupler_airbridge(self, airbridge_geom, qubit, coupler_name):
-        coupler_terminal = qubit.get_terminals()[coupler_name]
-        bridge = elements.airbridge.AirbridgeOverCPW(name='Airbridge over %s of %s qubit '%(coupler_name,qubit.name),
-                                                       position=(coupler_terminal.position[0]
-                                                                 - airbridge_geom.pad_width / 2 * np.cos(
-                                                           coupler_terminal.orientation),
-                                                                 coupler_terminal.position[1] -
-                                                                 airbridge_geom.pad_width / 2 * np.sin(
-                                                                     coupler_terminal.orientation)),
-                                                       orientation=coupler_terminal.orientation,
-                                                       w=coupler_terminal.w, s=coupler_terminal.s, g=coupler_terminal.g,
-                                                       geometry=airbridge_geom)
-
-        self.add(bridge)
-        return bridge
-
-
     def connect_meander(self, name: str, o1: elements.DesignElement, port1: str, meander_length: float,
                         length_left: float, length_right: float, first_step_orientation: float,
                         meander_orientation: float,
