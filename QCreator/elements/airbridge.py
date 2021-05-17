@@ -12,7 +12,8 @@ from scipy.constants import epsilon_0
 class AirBridgeGeometry:
     def __init__(self, pad_width: float, pad_length: float, pad_distance: float,
                  narrow_width: float, narrow_length: float, sm_pad_length: float,
-                 sm_pad_distance: float, layer_configuration: LayerConfiguration):
+                 sm_pad_distance: float, layer_configuration: LayerConfiguration,
+                 bridge_style='mipt'):
         """
         Airbridge crossover element geometry settings, defined by technology
         :param width: crossover width
@@ -30,6 +31,7 @@ class AirBridgeGeometry:
         self.sm_pad_distance = sm_pad_distance
         self.layer_configuration = layer_configuration
         self.bridge_length = self.pad_distance + 2 * self.pad_length
+        self.bridge_style = bridge_style
 
 
 class AirbridgeOverCPW(DesignElement):
@@ -124,21 +126,28 @@ class AirbridgeOverCPW(DesignElement):
 
         # create bridge
 
+        if self.geometry.bridge_style == 'mipt':
+            bridge_points = [(self.position[0] + self.geometry.pad_width/2, self.position[1] - self.geometry.bridge_length/2),
+                             (self.position[0] + self.geometry.pad_width/2, self.position[1] - self.geometry.pad_distance/2),
+                             (self.position[0] + self.geometry.narrow_width/2, self.position[1] - self.geometry.narrow_length/2),
+                             (self.position[0] + self.geometry.narrow_width/2, self.position[1] + self.geometry.narrow_length/2),
+                             (self.position[0] + self.geometry.pad_width/2, self.position[1] + self.geometry.pad_distance/2),
+                             (self.position[0] + self.geometry.pad_width/2, self.position[1] + self.geometry.bridge_length/2),
+                             (self.position[0] - self.geometry.pad_width/2, self.position[1] + self.geometry.bridge_length/2),
+                             (self.position[0] - self.geometry.pad_width/2, self.position[1] + self.geometry.pad_distance/2),
+                             (self.position[0] - self.geometry.narrow_width/2, self.position[1] + self.geometry.narrow_length/2),
+                             (self.position[0] - self.geometry.narrow_width/2, self.position[1] - self.geometry.narrow_length/2),
+                             (self.position[0] - self.geometry.pad_width/2, self.position[1] - self.geometry.pad_distance/2),
+                             (self.position[0] - self.geometry.pad_width/2, self.position[1] - self.geometry.bridge_length/2)]
+            bridge = gdspy.Polygon(bridge_points, layer=self.geometry.layer_configuration.airbridges_layer)
+        else:
+            bridge = gdspy.Rectangle(
+                (self.position[0] + self.geometry.narrow_width / 2,
+                 self.position[1] + self.geometry.sm_pad_distance / 2 + self.geometry.sm_pad_length),
+                (self.position[0] - self.geometry.narrow_width / 2,
+                 self.position[1] - self.geometry.sm_pad_distance / 2 - self.geometry.sm_pad_length),
+                layer=self.geometry.layer_configuration.airbridges_layer)
 
-        bridge_points = [(self.position[0] + self.geometry.pad_width/2, self.position[1] - self.geometry.bridge_length/2),
-                         (self.position[0] + self.geometry.pad_width/2, self.position[1] - self.geometry.pad_distance/2),
-                         (self.position[0] + self.geometry.narrow_width/2, self.position[1] - self.geometry.narrow_length/2),
-                         (self.position[0] + self.geometry.narrow_width/2, self.position[1] + self.geometry.narrow_length/2),
-                         (self.position[0] + self.geometry.pad_width/2, self.position[1] + self.geometry.pad_distance/2),
-                         (self.position[0] + self.geometry.pad_width/2, self.position[1] + self.geometry.bridge_length/2),
-                         (self.position[0] - self.geometry.pad_width/2, self.position[1] + self.geometry.bridge_length/2),
-                         (self.position[0] - self.geometry.pad_width/2, self.position[1] + self.geometry.pad_distance/2),
-                         (self.position[0] - self.geometry.narrow_width/2, self.position[1] + self.geometry.narrow_length/2),
-                         (self.position[0] - self.geometry.narrow_width/2, self.position[1] - self.geometry.narrow_length/2),
-                         (self.position[0] - self.geometry.pad_width/2, self.position[1] - self.geometry.pad_distance/2),
-                         (self.position[0] - self.geometry.pad_width/2, self.position[1] - self.geometry.bridge_length/2)]
-
-        bridge = gdspy.Polygon(bridge_points, layer=self.geometry.layer_configuration.airbridges_layer)
         bridge.rotate(self.orientation, self.position)
 
         restrict_total = gdspy.FlexPath(points=[self.position - self.p, self.position + self.p],
