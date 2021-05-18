@@ -462,26 +462,26 @@ class Sample:
                 continue
 
 
-            num_bridges = int(np.floor(segment['length'] / (geometry.narrow_width + min_spacing)))
+            num_bridges = int(np.floor(segment['length'] / (geometry.pad_width + min_spacing)))
             if num_bridges < 1:
                 current_cpw_points.append(segment['endpoint'])
                 continue
 
-            spacing = (segment['length'] - num_bridges * geometry.narrow_width) / num_bridges
+            spacing = (segment['length'] - num_bridges * geometry.pad_width) / num_bridges
             direction = segment['endpoint'] - segment['startpoint']
             direction = direction/np.sqrt(np.sum(direction**2))
             orientation = np.arctan2(direction[1], direction[0])
 
             begin = segment['startpoint']
             for bridge_id in range(num_bridges):
-                midpoint = begin + direction * (spacing * (bridge_id + 0.5) + geometry.narrow_width * bridge_id)
+                midpoint = begin + direction * (spacing * (bridge_id + 0.5) + geometry.pad_width * bridge_id)
                 current_cpw_points.append(midpoint)
 
                 cpw = elements.CPW(name=name + 's{}'.format(len(cpws)),
                                    points=current_cpw_points, w=w, s=s, g=g,
                                    layer_configuration=self.layer_configuration, r=radius)
                 airbridge = elements.AirbridgeOverCPW(name=name + 'b{}'.format(len(cpws)),
-                                                      position=midpoint+direction * geometry.narrow_width/2,
+                                                      position=midpoint+direction * geometry.pad_width/2,
                                                       orientation=orientation, w=w, s=s, g=g,
                                                       geometry=geometry)
                 self.add(cpw)
@@ -493,7 +493,7 @@ class Sample:
 
                 cpws.append(cpw)
                 airbridges.append(airbridge)
-                current_cpw_points = [midpoint + direction * geometry.narrow_width]
+                current_cpw_points = [midpoint + direction * geometry.pad_width]
 
 
         if current_cpw_points[-1][0] != o.segments[-1]['endpoint'][0] or current_cpw_points[-1][1] != \
