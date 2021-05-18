@@ -196,8 +196,7 @@ class PP_Transmon(DesignElement):
             for id, coupler in enumerate(self.couplers):
                 coupler_parts = coupler.render(self.center, self.g_w,self.g_h)
 
-                result = gdspy.boolean(coupler_parts['positive'], result, 'or',
-                                       layer=self.layer_configuration.total_layer)
+                #result = gdspy.boolean(coupler_parts['positive'], result, 'or',layer=self.layer_configuration.total_layer)
 
                 #Extend ground around coupler
                 l1   = coupler.l1
@@ -269,6 +268,13 @@ class PP_Transmon(DesignElement):
                         extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-t-self.g_w/2+l2+self.g_t,self.center[1]-height_left*self.g_h/2),(self.center[0]-t-self.g_w/2+l2,self.center[1]-gap-height_left*self.g_h/2-t-self.g_t-gap)), 'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-t-self.g_w/2+l2,self.center[1]-gap-height_left*self.g_h/2-t-gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]-gap-height_left*self.g_h/2-t-self.g_t-gap)),'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-self.g_w/2-2*gap-t,self.center[1]-gap-height_left*self.g_h/2-t-gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]-5-gap)), 'or')
+
+                    # shift coupler to qubit and remove ground where necessary
+                    remove = gdspy.Rectangle((self.center[0] - self.g_w / 2,
+                                              self.center[1] + gap + height_left * self.g_h / 2 + t + self.g_t + gap),
+                                             (self.center[0] - self.g_w / 2-t-2*gap,
+                                              self.center[1] - gap - height_left * self.g_h / 2 - t - self.g_t - gap))
+                    result = gdspy.boolean(result, remove.translate(+coupler.sctq, 0), 'not')
 
                     extended.translate(+coupler.sctq, 0)
                     # remove/add missing overhang:
@@ -345,7 +351,7 @@ class PP_Transmon(DesignElement):
                         (self.center[0] - self.g_w / 2 + l1 - gap - self.g_t, self.center[1] - self.g_h / 2), (self.center[0] - self.g_w / 2 + l1 + l2 + self.g_t + gap,self.center[1] - self.g_h / 2 - t - gap - gap - self.g_t)).translate(0,+coupler.sctq), 'or',layer=self.layer_configuration.inverted)
                     pocket = gdspy.boolean(pocket,gdspy.Rectangle((self.center[0] - self.g_w / 2 + l1 - gap - self.g_t, self.center[1] - self.g_h / 2), (self.center[0] - self.g_w / 2 + l1 + l2 + self.g_t + gap,self.center[1] - self.g_h / 2 - t - gap - gap - self.g_t)).translate(0,coupler.sctq),'or')
 
-
+                result = gdspy.boolean(coupler_parts['positive'], result, 'or',layer=self.layer_configuration.total_layer)
 
                 if coupler.coupler_type == 'coupler':
                         qubit_cap_parts.append(gdspy.boolean(coupler.result_coupler, coupler.result_coupler, 'or',layer=10+id+self.secret_shift))
