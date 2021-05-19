@@ -23,6 +23,7 @@ layers_configuration = {
     'JJs':1,
     'air bridges': 2,
     'air bridge pads': 3,
+    'air bridge sm pads': 3,
     'vertical gridlines':15,
     'horizontal gridlines':16,
     'inverted':17
@@ -282,5 +283,10 @@ for Q in couplers:
 for i in all_inverted:
     one = gdspy.boolean(one,i,'not',layer=layers_configuration['vertical gridlines'])
 
+#Logos
+sample.logo[0] = True
+
+sample.logo[2] = (1550,4730)
+sample.logo[1] = (8580,4730)
 
 sample.total_cell.add(one)
