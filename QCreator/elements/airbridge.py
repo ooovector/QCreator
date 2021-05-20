@@ -63,9 +63,7 @@ class AirbridgeOverCPW(DesignElement):
         self.geometry = geometry
 
         h = 2 * 1e-6  # bridge height 2 mu m # TODO: CONSTANTS IN CODE OMG REMOVE THIS
-        s = 1e-12*(self.geometry.pad_width * self.geometry.bridge_length -
-        (self.geometry.pad_distance+self.geometry.narrow_length)*(self.geometry.pad_width-self.geometry.narrow_width)/2)
-
+        s = 1e-12*geometry.narrow_width*self.w
         epsilon = 1 # TODO: CONSTANTS IN CODE OMG REMOVE THIS
 
         self.bridge_capacitance = epsilon_0 * epsilon * s / h
@@ -181,17 +179,9 @@ class AirbridgeOverCPW(DesignElement):
         where S - area of the airbridge, h - height of the airbridge upon the surface of a chip
         """
 
-        h = 2*1e-6   # bridge height 2 mu m # TODO: OMG CONSTANTS IN CODE
-        s = 1e-12*(self.geometry.pad_width*self.geometry.bridge_length -
-        (self.geometry.pad_distance+self.geometry.narrow_length)*(self.geometry.pad_width-self.geometry.narrow_width)/2)
-
-        epsilon_bridge = 1 # TODO: OMG CONSTANTS IN CODE
-
-        bridge_capacitance = epsilon_0 * epsilon_bridge * s / h
-
         cl, ll = self.cm(epsilon)
 
-        c = (bridge_capacitance + cl[0, 0] * 1e-6 * self.geometry.pad_width)
+        c = (self.bridge_capacitance + cl[0, 0] * 1e-6 * self.geometry.pad_width)
         l = ll[0, 0] * 1e-6 * self.geometry.pad_width
 
         c1 = tlsim.Capacitor(c=c/2, name=self.name + '_c1')

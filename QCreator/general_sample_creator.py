@@ -71,7 +71,10 @@ class Sample:
                     ele.translate(self.logo[2][0],self.logo[2][1])
                     self.total_cell.add(ele)
 
-
+        for object_ in self.objects:
+            object_.resource = None
+        self.total_cell.remove_polygons(lambda pts, layer, datatype: True)
+        self.restricted_cell.remove_polygons(lambda pts, layer, datatype: True)
         for object_ in self.objects:
             result = object_.get()
             if 'test' in result:
