@@ -57,16 +57,13 @@ class Sample:
         #Logos
         if self.logo[0]:
             empty = gdspy.Rectangle((0,0),(0,0))
-            print('importing file')
             import os
             print(os.getcwd())
             logo_mcqst = gdspy.GdsLibrary(infile=".\\..\\..\\QCreator\\elements\\masks\\logo_mcqst.gds")
             logo_wmi = gdspy.GdsLibrary(infile=".\\..\\..\\QCreator\\elements\\masks\\logo_wmi.gds")
-            print('imported logos')
             #logo_mcqst = gdspy.boolean(logo_mcqst,empty,'or',layer = layers_configuration['vertical gridlines']
             for element in logo_mcqst:
                 for ele in element.polygons:
-                    print(ele)
                     ele.translate(self.logo[1][0],self.logo[1][1])
                     self.total_cell.add(ele)
             for element in logo_wmi:

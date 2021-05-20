@@ -137,10 +137,10 @@ class Meshing:
         table = []
 
         def convert_pico(value):
-            epsilon = (11.45 + 1) / 2
+            epsilon = (11.9 + 1) / 2
             return round(epsilon * float(value), 2) / 1e3
         def convert_nano(value):
-            epsilon = (11.45 + 1) / 2
+            epsilon = (11.9 + 1) / 2
             return epsilon * float(value)
 
         if value[:5] == 'femto':
