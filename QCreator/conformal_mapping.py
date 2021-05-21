@@ -85,7 +85,7 @@ def gauss_chebyshev(numerator_points, denumerator_points, limits, n=100):
 
 
 class ConformalMapping:
-    def __init__(self, elements, epsilon=11.9, mu=1):
+    def __init__(self, elements, epsilon=11.45, mu=1):
         self.elements = np.asarray(elements)
         self.epsilon = epsilon
         self.mu = mu
