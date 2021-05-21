@@ -43,8 +43,6 @@ class Sample:
         self.connections = []
 
         self.epsilon = epsilon
-        #In case the logo of WMI and MCQST is wanted
-        self.logo = [False,(0,0),(0,0),'path']
 
     @staticmethod
     def default_cpw_radius(w, s, g):
@@ -54,26 +52,6 @@ class Sample:
         self.objects.append(object_)
 
     def draw_design(self):
-        #Logos
-        if self.logo[0]:
-            empty = gdspy.Rectangle((0,0),(0,0))
-            print('importing file')
-            import os
-            print(os.getcwd())
-            logo_mcqst = gdspy.GdsLibrary(infile=".\\..\\..\\QCreator\\elements\\masks\\logo_mcqst.gds")
-            logo_wmi = gdspy.GdsLibrary(infile=".\\..\\..\\QCreator\\elements\\masks\\logo_wmi.gds")
-            print('imported logos')
-            #logo_mcqst = gdspy.boolean(logo_mcqst,empty,'or',layer = layers_configuration['vertical gridlines']
-            for element in logo_mcqst:
-                for ele in element.polygons:
-                    print(ele)
-                    ele.translate(self.logo[1][0],self.logo[1][1])
-                    self.total_cell.add(ele)
-            for element in logo_wmi:
-                for ele in element.polygons:
-                    ele.translate(self.logo[2][0],self.logo[2][1])
-                    self.total_cell.add(ele)
-
         for object_ in self.objects:
             object_.resource = None
         self.total_cell.remove_polygons(lambda pts, layer, datatype: True)
