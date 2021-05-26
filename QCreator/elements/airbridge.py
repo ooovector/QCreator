@@ -181,8 +181,8 @@ class AirbridgeOverCPW(DesignElement):
 
         cl, ll = self.cm(epsilon)
 
-        c = (self.bridge_capacitance + cl[0, 0] * 1e-6 * self.geometry.pad_width)
-        l = ll[0, 0] * 1e-6 * self.geometry.pad_width
+        c = (self.bridge_capacitance + cl[0, 0] * self.geometry.pad_width)
+        l = ll[0, 0] * self.geometry.pad_width
 
         c1 = tlsim.Capacitor(c=c/2, name=self.name + '_c1')
         c2 = tlsim.Capacitor(c=c/2, name=self.name + '_c2')
