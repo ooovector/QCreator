@@ -352,7 +352,8 @@ class JosephsonJunction(TLSystemElement):
             [0, 0, 1, 0],
             [0, 0, 0, 0]
         ])
-        v = - (2 * e / hbar) ** 4 * self.E_J / 24 * self.L_lin ** 4 * np.kron(p, p)
+        Phi_0 = self.phi_0 * (2 * np.pi)
+        v = - self.E_J / 4 * ((2 * np.pi / Phi_0) * self.L_lin) ** 4 * np.kron(p, p)
 
         # np.conj(np.kron(mode1, mode2)) @ v @ (np.kron(mode1, mode2))
 
@@ -361,8 +362,9 @@ class JosephsonJunction(TLSystemElement):
     def __init__(self, e_j=None, name=''):
         super().__init__('JJ', name)
         self.E_J = e_j
-        phi_0 = hbar / (2 * e)  # reduced flux quantum
-        self.L_lin = phi_0 ** 2 / self.E_J  # linear part of JJ
+
+        self.phi_0 = hbar / (2 * e)  # reduced flux quantum
+        self.L_lin = self.phi_0 ** 2 / self.E_J  # linear part of JJ
 
 
 class TLSystem:
@@ -595,17 +597,19 @@ class TLSystem:
         voltages, currents, degrees_of_freedom = self.get_element_dofs(element)
 
         submode = []
+
+        vector_dim = len(voltages + currents + degrees_of_freedom)
         for i in voltages + currents + degrees_of_freedom:
             submode.append(mode[i])
 
-        return np.asarray(submode)
+        return np.reshape(np.asarray(submode), (vector_dim, 1))
 
     def element_energy(self, element: TLSystemElement, mode):
         submode_element = self.get_element_submode(element, mode)
 
-        submode_energy = np.dot(np.conj(submode_element.transpose()), np.dot(element.energy_matrix(), submode_element))
+        submode_energy = np.dot(np.conj(submode_element.T), np.dot(element.energy_matrix(), submode_element))
 
-        return submode_energy
+        return submode_energy.real
 
     def get_total_energy(self):
         omega, kappa, modes = self.get_modes()
@@ -630,11 +634,70 @@ class TLSystem:
 
                         submode_ij = np.kron(mode_i, mode_j)
 
-                        perturbation_matrix[i][j] = np.dot(np.conj(submode_ij.transpose()), np.dot(JJ_.nonlinear_perturbation(), submode_ij))
+                        perturbation_matrix[i][j] = np.dot(np.conj(submode_ij.T),
+                                                           np.dot(JJ_.nonlinear_perturbation(), submode_ij)).real
 
                 JJs_perturbation.append(perturbation_matrix)
 
         return modes_energies, JJs_perturbation
+
+    def normalization_of_modes(self):
+
+        omega, kappa, modes = self.get_modes()
+
+        modes_energies, JJs_perturbation = self.get_total_energy()
+
+        normalized_modes = np.zeros(modes.shape, dtype=complex)
+
+        for m in range(len(modes)):
+            energy_quantum = hbar * omega[m]
+            print(energy_quantum)
+            mode_energy = modes_energies[m]
+
+            normalization_coeff = mode_energy / energy_quantum
+
+            normalized_mode = modes[m] / np.sqrt(normalization_coeff)
+
+            normalized_modes[m:] = normalized_mode
+
+        return normalized_modes
+
+    def get_energies_and_perturbation(self):
+
+        modes_ = self.normalization_of_modes()  # here modes are normalized
+        number_of_modes = len(modes_)
+
+        modes_energies = []
+        for mode_ in modes_:
+            total_circuit_energy = 0
+            for elem in self.energy_stored_elements:
+                total_circuit_energy += self.element_energy(elem, mode_)
+
+            modes_energies.append(total_circuit_energy)
+
+
+        if self.JJs:
+            JJs_perturbation = []
+            JJ_kerr = []
+            for JJ_ in self.JJs:
+                perturbation_matrix = np.zeros((number_of_modes, number_of_modes))
+                for i in range(number_of_modes):
+                    for j in range(number_of_modes):
+                        mode_i = self.get_element_submode(JJ_, modes_[i])
+                        mode_j = self.get_element_submode(JJ_, modes_[j])
+
+                        submode_ij = np.kron(mode_i, mode_j)
+
+                        perturbation_matrix[i][j] = np.dot(np.conj(submode_ij.T),
+                                                           np.dot(JJ_.nonlinear_perturbation(), submode_ij)).real
+
+                kerr_coefficients_matrix = perturbation_matrix / (hbar*2*np.pi)
+
+                JJs_perturbation.append(perturbation_matrix)
+                JJ_kerr.append(kerr_coefficients_matrix)
+
+
+        return modes_energies, JJs_perturbation, JJ_kerr
 
 
 """
