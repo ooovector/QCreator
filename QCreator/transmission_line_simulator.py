@@ -397,12 +397,17 @@ class TLSystem:
     def map_dofs(self):
         # count nodes
         self.dof_mapping = [n for n in self.nodes]  # nodal voltages
+        self.dof_mapping_dynamic = [n for n in self.nodes]  # nodal voltages
+        # currents incident into each terminal
         self.dof_mapping.extend(
             [(e_id, p_id) for e_id, e in enumerate(self.elements) for p_id in range(e.num_terminals())])
-        # currents incident into each terminal
+        self.dof_mapping_dynamic.extend(
+            [(e_id, p_id) for e_id, e in enumerate(self.elements) for p_id in range(e.num_terminals())])
+        # number of element-internal degrees of freedom
         self.dof_mapping.extend([(e_id, int_dof_id) for e_id, e in enumerate(self.elements) for int_dof_id in
                                  range(e.num_degrees_of_freedom())])
-        # number of element-internal degrees of freedom
+        self.dof_mapping_dynamic.extend([(e_id, int_dof_id) for e_id, e in enumerate(self.elements) for int_dof_id in
+                                 range(e.num_degrees_of_freedom_dynamic())])
 
     def get_modes(self):
         """
@@ -571,7 +576,7 @@ class TLSystem:
                 full_terminal_id += 1
         return boundary_condition_matrix
 
-    def get_element_dofs(self, element: TLSystemElement):
+    def get_element_dofs(self, element: TLSystemElement, dynamic=True):
         self.map_dofs()
         e_id = self.elements.index(element)
         voltages = [self.dof_mapping[:len(self.nodes)].index(t) for t in self.terminal_node_mapping[e_id]]
@@ -579,11 +584,15 @@ class TLSystem:
         terminal_no = np.sum(e.num_terminals() for e in self.elements)
 
         current_variables = self.dof_mapping[len(self.nodes):len(self.nodes) + terminal_no]
-        internal_dof_variables = self.dof_mapping[len(self.nodes) + terminal_no:]
+        internal_dof_variables = self.dof_mapping_dynamic[len(self.nodes) + terminal_no:]
 
         currents = [current_variables.index((e_id, p_id)) + len(self.nodes) for p_id in range(element.num_terminals())]
-        degrees_of_freedom = [internal_dof_variables.index((e_id, dof_id)) + len(self.nodes) + terminal_no \
-                              for dof_id in range(element.num_degrees_of_freedom())]
+        if not dynamic:
+            degrees_of_freedom = [internal_dof_variables.index((e_id, dof_id)) + len(self.nodes) + terminal_no \
+                                  for dof_id in range(element.num_degrees_of_freedom())]
+        else:
+            degrees_of_freedom = [internal_dof_variables.index((e_id, dof_id)) + len(self.nodes) + terminal_no \
+                                  for dof_id in range(element.num_degrees_of_freedom())]
 
         return voltages, currents, degrees_of_freedom
 
