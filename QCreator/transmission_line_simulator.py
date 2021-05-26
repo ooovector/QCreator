@@ -592,7 +592,7 @@ class TLSystem:
                                   for dof_id in range(element.num_degrees_of_freedom())]
         else:
             degrees_of_freedom = [internal_dof_variables.index((e_id, dof_id)) + len(self.nodes) + terminal_no \
-                                  for dof_id in range(element.num_degrees_of_freedom())]
+                                  for dof_id in range(element.num_degrees_of_freedom_dynamic())]
 
         return voltages, currents, degrees_of_freedom
 
