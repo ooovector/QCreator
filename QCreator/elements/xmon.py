@@ -263,7 +263,7 @@ class Xmon(DesignElement):
             cross_gnd = self.delete_ground(cross_gnd)
 
         # create a pad for jj
-        jpad, cross_gnd, jrestrict = self.create_jpad(cross_gnd)
+        jpad, cross_gnd, jrestrict, cross_restrict = self.create_jpad(cross_gnd, cross_restrict)
         if self.jj['type'] == 2:
             jj = self.generate_jj()
         else:
@@ -306,7 +306,7 @@ class Xmon(DesignElement):
                 'qubit_cap': qubit_cap_parts
                 }
 
-    def create_jpad(self, cross_gnd):
+    def create_jpad(self, cross_gnd, cross_restrict):
         # variables
         a = self.jgeom['gwidth']
         b = self.jgeom['gheight']
@@ -352,22 +352,25 @@ class Xmon(DesignElement):
             cross_gnd = gdspy.boolean(cross_gnd, ignd_u, "not", layer=self.layer_configuration.total_layer)
             jpad = jpad.rotate(np.pi, self.center)
             jrestrict = jrestrict.rotate(np.pi, self.center)
+            cross_restrict = gdspy.boolean(cross_restrict, ignd_u, "not", layer=self.layer_configuration.restricted_area_layer)
         elif self.jjpos == 'down':
             ignd_d = ignd_u.rotate(np.pi, self.center)
             cross_gnd = gdspy.boolean(cross_gnd, ignd_d, "not", layer=self.layer_configuration.total_layer)
 
-
+            cross_restrict = gdspy.boolean(cross_restrict, ignd_d, "not", layer=self.layer_configuration.restricted_area_layer)
         elif self.jjpos == 'left':
             ignd_l = ignd_u.rotate(np.pi/2, self.center)
             cross_gnd = gdspy.boolean(cross_gnd, ignd_l, "not", layer=self.layer_configuration.total_layer)
             jpad = jpad.rotate(-np.pi/2, self.center)
             jrestrict = jrestrict.rotate(-np.pi/2, self.center)
+            cross_restrict = gdspy.boolean(cross_restrict, ignd_l, "not", layer=self.layer_configuration.restricted_area_layer)
         elif self.jjpos == 'right':
             ignd_r = ignd_u.rotate(-np.pi/2, self.center)
             cross_gnd = gdspy.boolean(cross_gnd, ignd_r, "not", layer=self.layer_configuration.total_layer)
             jpad = jpad.rotate(np.pi/2, self.center)
             jrestrict = jrestrict.rotate(np.pi/2, self.center)
-        return jpad, cross_gnd, jrestrict
+            cross_restrict = gdspy.boolean(cross_restrict, ignd_r, "not", layer=self.layer_configuration.restricted_area_layer)
+        return jpad, cross_gnd, jrestrict, cross_restrict
 
 
     def delete_ground(self, cross_gnd):
