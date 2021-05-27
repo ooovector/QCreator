@@ -14,7 +14,8 @@ from shapely.geometry.polygon import Polygon
 fastcap_paths = [r'C:\Program Files (x86)\layout\fastcap.exe',
                  r'C:\Program Files (x86)\LayoutEditor\bin\fastcap.exe',
                  r'C:\layout\bin\fastcap.exe',
-                 r'fastcap.exe']
+                 r'fastcap.exe',
+                 r'/opt/layout/bin/fastcap']
 
 class Meshing:
     def __init__(self, path, cell_name, layers):
@@ -137,10 +138,10 @@ class Meshing:
         table = []
 
         def convert_pico(value):
-            epsilon = (11.45 + 1) / 2
+            epsilon = (11.9 + 1) / 2
             return round(epsilon * float(value), 2) / 1e3
         def convert_nano(value):
-            epsilon = (11.45 + 1) / 2
+            epsilon = (11.9 + 1) / 2 # TODO: NO
             return epsilon * float(value)
 
         if value[:5] == 'femto':

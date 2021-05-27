@@ -43,6 +43,8 @@ class Sample:
         self.connections = []
 
         self.epsilon = epsilon
+        #In case the logo of WMI and MCQST is wanted
+        self.logo = [False,(0,0),(0,0),'path']
 
     @staticmethod
     def default_cpw_radius(w, s, g):
@@ -52,6 +54,23 @@ class Sample:
         self.objects.append(object_)
 
     def draw_design(self):
+        #Logos
+        if self.logo[0]:
+            empty = gdspy.Rectangle((0,0),(0,0))
+            import os
+            print(os.getcwd())
+            logo_mcqst = gdspy.GdsLibrary(infile=".\\..\\..\\QCreator\\elements\\masks\\logo_mcqst.gds")
+            logo_wmi = gdspy.GdsLibrary(infile=".\\..\\..\\QCreator\\elements\\masks\\logo_wmi.gds")
+            #logo_mcqst = gdspy.boolean(logo_mcqst,empty,'or',layer = layers_configuration['vertical gridlines']
+            for element in logo_mcqst:
+                for ele in element.polygons:
+                    ele.translate(self.logo[1][0],self.logo[1][1])
+                    self.total_cell.add(ele)
+            for element in logo_wmi:
+                for ele in element.polygons:
+                    ele.translate(self.logo[2][0],self.logo[2][1])
+                    self.total_cell.add(ele)
+
         for object_ in self.objects:
             object_.resource = None
         self.total_cell.remove_polygons(lambda pts, layer, datatype: True)
@@ -315,12 +334,12 @@ class Sample:
         if name is not None:
             self.lib.write_gds(name + '.gds', cells=None, timestamp=None,
                                binary_cells=None)
-            self.path = os.getcwd() + '\\' + name + '.gds'
+            self.path = os.getcwd() + '/' + name + '.gds'
         else:
             self.lib.write_gds(self.name + '.gds', cells=None,
                                timestamp=None,
                                binary_cells=None)
-            self.path = os.getcwd() + '\\' + self.name + '.gds'
+            self.path = os.getcwd() + '/' + self.name + '.gds'
         print("Gds file has been writen here: ", self.path)
 
     def calculate_qubit_capacitance(self, cell, qubit, mesh_volume, name=None):
@@ -331,9 +350,9 @@ class Sample:
         mesh.read_data_from_gds_file()
         mesh.prepare_for_meshing()
         mesh.run_meshing(mesh_volume=mesh_volume)
-        mesh.write_into_file(os.getcwd() + '\\' + 'mesh_4k_data')
-        mesh.run_fastcap(os.getcwd() + '\\' + 'mesh_4k_results')
-        print("Capacitance results have been writen here: ", os.getcwd() + '\\' + 'mesh_4k_results')
+        mesh.write_into_file(os.getcwd() + '/' + 'mesh_4k_data')
+        mesh.run_fastcap(os.getcwd() + '/' + 'mesh_4k_results')
+        print("Capacitance results have been writen here: ", os.getcwd() + '/' + 'mesh_4k_results')
         caps = np.round(mesh.get_capacitances(), 1)
         self.fill_cap_matrix_grounded(qubit, caps)  # TODO: can we improve this way?
         self.caps_list.append(caps)
@@ -549,5 +568,3 @@ class Sample:
             self.connect(meander, 'port1', o1, port1)
 
             return [meander]
-
-
