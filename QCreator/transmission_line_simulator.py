@@ -24,6 +24,10 @@ class TLSystemElement:
     def energy(self, mode):
         return 0
 
+    @abstractmethod
+    def energy_matrix(self):
+        return 0
+
     def __init__(self, type_, name=''):
         self.name = name
         self.type_ = type_
@@ -231,19 +235,30 @@ class TLCoupler(TLSystemElement):
         return boundary_condition_matrix
 
     def energy(self, state):
+        energy_matrix = self.energy_matrix()
+
+        # emat = np.vstack([np.hstack([ll, np.zeros_like(ll)]), np.hstack([np.zeros_like(cl), cl])])
+
+        return np.conj(state) @ energy_matrix @ state  # TODO: energy stored in transmission line system
+
+    def energy_matrix(self):
         m = self.n * self.num_modes
-        v = state[-2 * m:-m]
-        i = state[-m:]
+
         s = (-0.5) ** np.arange(self.num_modes)
         e = 0.5 * s * s.reshape((-1, 1)) * self.l
         e += np.abs(e)
 
+        integral = 1/(np.arange(self.num_modes).reshape(-1,1) + np.arange(self.num_modes) + 1)
+        e = e * integral
+
         ll = np.kron(self.Ll, e)
         cl = np.kron(self.Cl, e)
 
-        # emat = np.vstack([np.hstack([ll, np.zeros_like(ll)]), np.hstack([np.zeros_like(cl), cl])])
+        energy_matrix = np.zeros((self.num_terminals() * 2 + m * 2, self.num_terminals() * 2 + m * 2))
+        energy_matrix[-2*m:-m, -2*m:-m] = cl/2
+        energy_matrix[-m:, -m:] = ll/2
 
-        return 0.5 * np.conj(v) @ cl @ v + 0.5 * np.conj(i) @ ll @ i  # TODO: energy stored in transmission line system
+        return energy_matrix
 
     def dynamic_equations(self):
         m = self.n * self.num_modes
@@ -407,7 +422,7 @@ class TLSystem:
         self.dof_mapping.extend([(e_id, int_dof_id) for e_id, e in enumerate(self.elements) for int_dof_id in
                                  range(e.num_degrees_of_freedom())])
         self.dof_mapping_dynamic.extend([(e_id, int_dof_id) for e_id, e in enumerate(self.elements) for int_dof_id in
-                                 range(e.num_degrees_of_freedom_dynamic())])
+                                         range(e.num_degrees_of_freedom_dynamic())])
 
     def get_modes(self):
         """
@@ -615,53 +630,57 @@ class TLSystem:
 
     def element_energy(self, element: TLSystemElement, mode):
         submode_element = self.get_element_submode(element, mode)
-
         submode_energy = np.dot(np.conj(submode_element.T), np.dot(element.energy_matrix(), submode_element))
 
         return submode_energy.real
 
-    def get_total_energy(self):
+    def get_total_linear_energy(self, list_of_modes_numbers: list):
+        """
+        :param list_of_modes_numbers: list of integer numbers corresponding to mode number
+        """
         omega, kappa, modes = self.get_modes()
-        number_of_modes = len(modes)
 
-        modes_energies = []
-        for mode_ in modes:
+        modes_ = [modes[m] for m in list_of_modes_numbers]
+
+        modes_energies = []  # list of energies for different modes
+
+        for mode_ in modes_:
             total_circuit_energy = 0
             for elem in self.energy_stored_elements:
                 total_circuit_energy += self.element_energy(elem, mode_)
 
             modes_energies.append(total_circuit_energy)
 
-        if self.JJs:
-            JJs_perturbation = []
-            for JJ_ in self.JJs:
-                perturbation_matrix = np.zeros((number_of_modes, number_of_modes), dtype=complex)
-                for i in range(number_of_modes):
-                    for j in range(number_of_modes):
-                        mode_i = self.get_element_submode(JJ_, modes[i])
-                        mode_j = self.get_element_submode(JJ_, modes[j])
+        return modes_energies
 
-                        submode_ij = np.kron(mode_i, mode_j)
-
-                        perturbation_matrix[i][j] = np.dot(np.conj(submode_ij.T),
-                                                           np.dot(JJ_.nonlinear_perturbation(), submode_ij)).real
-
-                JJs_perturbation.append(perturbation_matrix)
-
-        return modes_energies, JJs_perturbation
-
-    def normalization_of_modes(self):
-
+    def normalization_of_modes(self, list_of_modes_numbers: list):
+        """
+        Calculate normalized modes to satisfy normalization condition: total energy of a mode equals to energy quantum
+        of this mode.
+        """
         omega, kappa, modes = self.get_modes()
 
-        modes_energies, JJs_perturbation = self.get_total_energy()
+        modes_ = [modes[m] for m in list_of_modes_numbers]
 
-        normalized_modes = np.zeros(modes.shape, dtype=complex)
+        modes_energies = []
 
-        for m in range(len(modes)):
+        # for mode_ in modes_:
+        #     total_circuit_energy = 0
+        #     for elem in self.energy_stored_elements:
+        #         total_circuit_energy += self.element_energy(elem, mode_)
+        #
+        #     modes_energies.append(total_circuit_energy)
+
+        normalized_modes = np.zeros((len(modes_), modes.shape[1]), dtype=complex)
+
+        for m in list_of_modes_numbers:
             energy_quantum = hbar * omega[m]
-            print(energy_quantum)
-            mode_energy = modes_energies[m]
+
+            total_circuit_energy = 0
+            for elem in self.energy_stored_elements:
+                total_circuit_energy += self.element_energy(elem, modes[m])
+
+            mode_energy = total_circuit_energy
 
             normalization_coeff = mode_energy / energy_quantum
 
@@ -671,23 +690,16 @@ class TLSystem:
 
         return normalized_modes
 
-    def get_energies_and_perturbation(self):
+    def get_perturbation(self, list_of_modes_numbers: list):
+        """
+        Calculate Kerr matrix
+        """
+        modes_ = self.normalization_of_modes(list_of_modes_numbers)  # here modes are normalized
 
-        modes_ = self.normalization_of_modes()  # here modes are normalized
         number_of_modes = len(modes_)
 
-        modes_energies = []
-        for mode_ in modes_:
-            total_circuit_energy = 0
-            for elem in self.energy_stored_elements:
-                total_circuit_energy += self.element_energy(elem, mode_)
-
-            modes_energies.append(total_circuit_energy)
-
-
         if self.JJs:
-            JJs_perturbation = []
-            JJ_kerr = []
+            JJ_kerr = np.zeros((number_of_modes, number_of_modes))
             for JJ_ in self.JJs:
                 perturbation_matrix = np.zeros((number_of_modes, number_of_modes))
                 for i in range(number_of_modes):
@@ -697,16 +709,19 @@ class TLSystem:
 
                         submode_ij = np.kron(mode_i, mode_j)
 
-                        perturbation_matrix[i][j] = np.dot(np.conj(submode_ij.T),
-                                                           np.dot(JJ_.nonlinear_perturbation(), submode_ij)).real
+                        if j == i:
+
+                            perturbation_matrix[i][j] = np.dot(np.conj(submode_ij.T),
+                                                           np.dot(JJ_.nonlinear_perturbation(), submode_ij)).real / 2
+                        else:
+                            perturbation_matrix[i][j] = np.dot(np.conj(submode_ij.T),
+                                                               np.dot(JJ_.nonlinear_perturbation(),
+                                                                      submode_ij)).real
 
                 kerr_coefficients_matrix = perturbation_matrix / (hbar*2*np.pi)
+                JJ_kerr += kerr_coefficients_matrix
 
-                JJs_perturbation.append(perturbation_matrix)
-                JJ_kerr.append(kerr_coefficients_matrix)
-
-
-        return modes_energies, JJs_perturbation, JJ_kerr
+        return JJ_kerr
 
 
 """
