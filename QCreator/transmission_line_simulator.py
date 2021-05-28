@@ -235,29 +235,30 @@ class TLCoupler(TLSystemElement):
         return boundary_condition_matrix
 
     def energy(self, state):
-        m = self.n * self.num_modes
-        v = state[-2 * m:-m]
-        i = state[-m:]
-        s = (-0.5) ** np.arange(self.num_modes)
-        e = 0.5 * s * s.reshape((-1, 1)) * self.l
-        e += np.abs(e)
-
-        ll = np.kron(self.Ll, e)
-        cl = np.kron(self.Cl, e)
+        energy_matrix = self.energy_matrix()
 
         # emat = np.vstack([np.hstack([ll, np.zeros_like(ll)]), np.hstack([np.zeros_like(cl), cl])])
 
-        return 0.5 * np.conj(v) @ cl @ v + 0.5 * np.conj(i) @ ll @ i  # TODO: energy stored in transmission line system
+        return np.conj(state) @ energy_matrix @ state  # TODO: energy stored in transmission line system
 
     def energy_matrix(self):
+        m = self.n * self.num_modes
+
         s = (-0.5) ** np.arange(self.num_modes)
         e = 0.5 * s * s.reshape((-1, 1)) * self.l
         e += np.abs(e)
 
+        integral = 1/(np.arange(self.num_modes).reshape(-1,1) + np.arange(self.num_modes) + 1)
+        e = e * integral
+
         ll = np.kron(self.Ll, e)
         cl = np.kron(self.Cl, e)
 
-        return cl / 2, ll / 2
+        energy_matrix = np.zeros((self.num_terminals() * 2 + m * 2, self.num_terminals() * 2 + m * 2))
+        energy_matrix[-2*m:-m, -2*m:-m] = cl/2
+        energy_matrix[-m:, -m:] = ll/2
+
+        return energy_matrix
 
     def dynamic_equations(self):
         m = self.n * self.num_modes
@@ -629,20 +630,7 @@ class TLSystem:
 
     def element_energy(self, element: TLSystemElement, mode):
         submode_element = self.get_element_submode(element, mode)
-
-        if element.type_ == 'TL':
-            m = element.n * element.num_modes
-            v = submode_element[-2 * m:-m]
-            i = submode_element[-m:]
-
-            e_c_matrix, e_l_matrix = element.energy_matrix()
-            e_c = np.dot(np.conj(v.T), np.dot(e_c_matrix, v))
-            e_l = np.dot(np.conj(i.T), np.dot(e_l_matrix, i))
-
-            submode_energy = e_c + e_l
-
-        else:
-            submode_energy = np.dot(np.conj(submode_element.T), np.dot(element.energy_matrix(), submode_element))
+        submode_energy = np.dot(np.conj(submode_element.T), np.dot(element.energy_matrix(), submode_element))
 
         return submode_energy.real
 
