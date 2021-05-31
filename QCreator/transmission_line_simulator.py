@@ -22,7 +22,10 @@ class TLSystemElement:
 
     @abstractmethod
     def energy(self, mode):
-        return 0
+        try:
+            return np.conj(mode).squeeze()@self.energy_matrix()@mode.squeeze()
+        except:
+            return 0
 
     @abstractmethod
     def energy_matrix(self):
@@ -239,7 +242,7 @@ class TLCoupler(TLSystemElement):
 
         # emat = np.vstack([np.hstack([ll, np.zeros_like(ll)]), np.hstack([np.zeros_like(cl), cl])])
 
-        return np.conj(state) @ energy_matrix @ state  # TODO: energy stored in transmission line system
+        return np.conj(state.squeeze()) @ energy_matrix @ state.squeeze()  # TODO: energy stored in transmission line system
 
     def energy_matrix(self):
         m = self.n * self.num_modes
@@ -390,7 +393,6 @@ class TLSystem:
         self.terminal_node_mapping = []  # list of terminals's nodes [terminal1's nodes=[], node2's multiplicity=[], ...]
         self.dof_mapping = []  # ???
 
-        self.energy_stored_elements = []  # all elements with stored energy
         self.JJs = []  # all nonlinear elements
 
     def add_element(self, element, nodes):
@@ -398,8 +400,6 @@ class TLSystem:
 
         if element.type_ == 'JJ':
             self.JJs.append(element)
-        if element.type_ in ['C', 'L', 'JJ']:
-            self.energy_stored_elements.append(element)
 
         for node in nodes:
             if node not in self.nodes:
@@ -646,7 +646,7 @@ class TLSystem:
 
         for mode_ in modes_:
             total_circuit_energy = 0
-            for elem in self.energy_stored_elements:
+            for elem in self.elements:
                 total_circuit_energy += self.element_energy(elem, mode_)
 
             modes_energies.append(total_circuit_energy)
@@ -664,20 +664,13 @@ class TLSystem:
 
         modes_energies = []
 
-        # for mode_ in modes_:
-        #     total_circuit_energy = 0
-        #     for elem in self.energy_stored_elements:
-        #         total_circuit_energy += self.element_energy(elem, mode_)
-        #
-        #     modes_energies.append(total_circuit_energy)
-
         normalized_modes = np.zeros((len(modes_), modes.shape[1]), dtype=complex)
 
         for m in list_of_modes_numbers:
             energy_quantum = hbar * omega[m]
 
             total_circuit_energy = 0
-            for elem in self.energy_stored_elements:
+            for elem in self.elements:
                 total_circuit_energy += self.element_energy(elem, modes[m])
 
             mode_energy = total_circuit_energy
@@ -699,9 +692,9 @@ class TLSystem:
         number_of_modes = len(modes_)
 
         if self.JJs:
-            JJ_kerr = np.zeros((number_of_modes, number_of_modes))
+            JJ_kerr = np.zeros((number_of_modes, number_of_modes), dtype=np.complex)
             for JJ_ in self.JJs:
-                perturbation_matrix = np.zeros((number_of_modes, number_of_modes))
+                perturbation_matrix = np.zeros((number_of_modes, number_of_modes), dtype=np.complex)
                 for i in range(number_of_modes):
                     for j in range(number_of_modes):
                         mode_i = self.get_element_submode(JJ_, modes_[i])
