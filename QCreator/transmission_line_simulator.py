@@ -692,9 +692,9 @@ class TLSystem:
         number_of_modes = len(modes_)
 
         if self.JJs:
-            JJ_kerr = np.zeros((number_of_modes, number_of_modes), dtype=np.complex)
+            JJ_kerr = np.zeros((number_of_modes, number_of_modes))
             for JJ_ in self.JJs:
-                perturbation_matrix = np.zeros((number_of_modes, number_of_modes), dtype=np.complex)
+                perturbation_matrix = np.zeros((number_of_modes, number_of_modes))
                 for i in range(number_of_modes):
                     for j in range(number_of_modes):
                         mode_i = self.get_element_submode(JJ_, modes_[i])
