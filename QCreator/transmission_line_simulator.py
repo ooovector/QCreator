@@ -347,10 +347,10 @@ class JosephsonJunction(TLSystemElement):
         return 0
 
     def boundary_condition(self, omega):
-        return np.asarray([[1, -1, 1j * omega * self.L_lin, 0], [0, 0, 1, 1]], dtype=complex)
+        return np.asarray([[1, -1, 1j * omega * self.L_lin(), 0], [0, 0, 1, 1]], dtype=complex)
 
     def dynamic_equations(self):
-        b = np.asarray([[0, 0, -self.L_lin, 0], [0, 0, 0, 0]])  # derivatives
+        b = np.asarray([[0, 0, -self.L_lin(), 0], [0, 0, 0, 0]])  # derivatives
         a = np.asarray([[1, -1, 0, 0], [0, 0, 1, 1]])  # current values
         return a, b
 
@@ -358,7 +358,7 @@ class JosephsonJunction(TLSystemElement):
         energy = np.asarray([
             [0, 0, 0, 0],
             [0, 0, 0, 0],
-            [0, 0, self.L_lin, 0],
+            [0, 0, self.L_lin(), 0],
             [0, 0, 0, 0]
         ]) / 2
         return energy
@@ -371,7 +371,7 @@ class JosephsonJunction(TLSystemElement):
             [0, 0, 0, 0]
         ])
         Phi_0 = self.phi_0 * (2 * np.pi)
-        v = - self.E_J / 4 * ((2 * np.pi / Phi_0) * self.L_lin) ** 4 * np.kron(p, p)
+        v = - self.E_J / 4 * ((2 * np.pi / Phi_0) * self.L_lin()) ** 4 * np.kron(p, p)
 
         # np.conj(np.kron(mode1, mode2)) @ v @ (np.kron(mode1, mode2))
 
@@ -382,7 +382,9 @@ class JosephsonJunction(TLSystemElement):
         self.E_J = e_j
 
         self.phi_0 = hbar / (2 * e)  # reduced flux quantum
-        self.L_lin = self.phi_0 ** 2 / self.E_J  # linear part of JJ
+
+    def L_lin(self):
+        return self.phi_0 ** 2 / self.E_J  # linear part of JJ
 
 
 class TLSystem:
