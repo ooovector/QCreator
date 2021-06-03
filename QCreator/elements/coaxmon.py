@@ -25,7 +25,8 @@ class Coaxmon(DesignElement):
                  center_radius: float, inner_couplers_radius: float,
                  outer_couplers_radius: float, inner_ground_radius: float, outer_ground_radius: float,
                  layer_configuration: LayerConfiguration, Couplers, jj_params: Dict, transformations: Dict,
-                 calculate_capacitance: False, third_JJ=False):
+                 calculate_capacitance: False, third_JJ=False, hole_in_squid_pad=True,
+                 JJ_pad_connection_shift=False, draw_bandages=False):
         super().__init__(type='qubit', name=name)
         self.third_JJ = third_JJ
         #qubit parameters
@@ -68,6 +69,9 @@ class Coaxmon(DesignElement):
                   'coupler4': None,
                   'qubit': None}
         self.layers = []
+        self.hole_in_squid_pad = hole_in_squid_pad
+        self.JJ_pad_connection_shift = JJ_pad_connection_shift
+        self.draw_bandages = draw_bandages
 
     def render(self):
         """
@@ -105,9 +109,15 @@ class Coaxmon(DesignElement):
             JJ, rect = self.generate_JJ() #TODO change it in a new manner, probably one day
             result = gdspy.boolean(result, rect, 'or')
             # add flux line
-            flux_line = self.connection_to_ground(self.JJ_params['length'], self.JJ_params['width'])
+            flux_line = self.connection_to_ground(self.JJ_params['length'], self.JJ_params['width'],
+                                                  JJ_pad_connection_shift=self.JJ_pad_connection_shift)
             result = gdspy.boolean(result, flux_line['remove'], 'not')
             result = gdspy.boolean(result, flux_line['positive'], 'or', layer=self.layer_configuration.total_layer)
+        if self.draw_bandages:
+            bandages = self.add_bandages()
+        else:
+            bandages = None
+
 
         # set terminals for couplers
         self.set_terminals()
@@ -116,24 +126,34 @@ class Coaxmon(DesignElement):
             qubit_cap_parts = None
             qubit = None
         if 'mirror' in self.transformations:
-            return {'positive': result.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
+            render_result = {'positive': result.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
                     'restrict': result_restricted.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
                     'qubit': qubit.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]) if qubit is not None else None,
                     'qubit_cap': qubit_cap_parts,
                     'JJ': JJ.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1])}
+            if self.draw_bandages:
+                render_result.update({'bandages':bandages.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1])})
+            return render_result
 
         if 'rotate' in self.transformations:
-            return {'positive': result.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
+            render_result =  {'positive': result.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
                     'restrict': result_restricted.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
                     'qubit': qubit.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]) if qubit is not None else None,
                     'qubit_cap': qubit_cap_parts,
-                    'JJ': JJ.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1])                    }
+                    'JJ': JJ.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1])}
+            if self.draw_bandages:
+                render_result.update(
+                    {'bandages': bandages.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1])})
+            return render_result
         elif self.transformations == {}:
-            return {'positive': result,
+            render_result =  {'positive': result,
                     'restrict': result_restricted,
                     'qubit': qubit,
                     'qubit_cap': qubit_cap_parts,
                     'JJ': JJ}
+            if self.draw_bandages:
+                render_result.update({'bandages':bandages})
+            return render_result
 
     def set_terminals(self):
         for id, coupler in enumerate(self.couplers):
@@ -165,20 +185,25 @@ class Coaxmon(DesignElement):
         self.JJ = squid3JJ.JJ_2_small(self.JJ_coordinates[0], self.JJ_coordinates[1],
                                 self.JJ_params['a1'], self.JJ_params['a2'],
                                 self.JJ_params['b1'], self.JJ_params['b2'],
-                                self.JJ_params['c1'], self.JJ_params['c2'], add_JJ=self.third_JJ)
+                                self.JJ_params['c1'], self.JJ_params['c2'], add_JJ=self.third_JJ,
+                                      hole_in_squid_pad=self.hole_in_squid_pad)
         result = self.JJ.generate_jj()
         result = gdspy.boolean(result, result, 'or', layer=self.layer_configuration.jj_layer)
         angle = self.JJ_params['angle_JJ']
+        if self.JJ_pad_connection_shift:
+            connection_shift = self.JJ.contact_pad_b_outer/2
+        else:
+            connection_shift = 0
         result.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
         rect = gdspy.Rectangle((self.JJ_coordinates[0] - self.JJ.contact_pad_a_outer / 2,
-                                self.JJ_coordinates[1] + self.JJ.contact_pad_b_outer),
+                                self.JJ_coordinates[1]+connection_shift + self.JJ.contact_pad_b_outer),
                                (self.JJ_coordinates[0] + self.JJ.contact_pad_a_outer / 2,
-                                self.JJ_coordinates[1] - self.JJ.contact_pad_b_outer),
+                                self.JJ_coordinates[1]+connection_shift - self.JJ.contact_pad_b_outer),
                                layer=self.layer_configuration.total_layer)
         rect.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
         return result, rect
 
-    def connection_to_ground(self, length, width):
+    def connection_to_ground(self, length, width, JJ_pad_connection_shift=False):
         """
         This function generate a connection from JJ rectangulars to a flux line output. Should be changed if you want
         to use another type of JJ or a flux line
@@ -186,7 +211,11 @@ class Coaxmon(DesignElement):
         result = None
         for point in [self.JJ.rect1, self.JJ.rect2]:
             orientation = np.arctan2(-(self.center[1] - (point[1]-length)), -(self.center[0] - point[0]))
-            points =[point, (point[0], point[1] - length),
+            if JJ_pad_connection_shift:
+                connection_shift = self.JJ.rect_size_b/2
+            else:
+                connection_shift=0
+            points =[(point[0], point[1]-connection_shift), (point[0], point[1] - length),
                  (self.center[0]+self.R2*np.cos(orientation), self.center[1]+self.R2*np.sin(orientation))]
             path = gdspy.FlexPath(deepcopy(points), width, offset=0, layer=self.layer_configuration.total_layer)
             result = gdspy.boolean(path, result, 'or', layer=self.layer_configuration.total_layer)
@@ -223,6 +252,26 @@ class Coaxmon(DesignElement):
         return {'positive': result,
                 'remove': remove,
                 }
+
+    def add_bandages(self):
+        bandage_to_island = gdspy.Rectangle((self.JJ_coordinates[0] - self.JJ.contact_pad_a_outer / 4,
+                                self.JJ_coordinates[1] + self.JJ.contact_pad_b_outer/4),
+                               (self.JJ_coordinates[0] + self.JJ.contact_pad_a_outer / 4,
+                                self.JJ_coordinates[1] - 3*self.JJ.contact_pad_b_outer/4),
+                               layer=self.layer_configuration.bandage_layer)
+        bandage_to_ground = gdspy.Rectangle((self.JJ.rect2[0] - self.JJ.rect_size_a/4,
+                                               self.JJ.rect2[1] - self.JJ.rect_size_b/4),
+                                              (self.JJ.rect2[0] + self.JJ.rect_size_a / 4,
+                                               self.JJ.rect2[1] - 5*self.JJ.rect_size_b/4),
+                               layer=self.layer_configuration.bandage_layer)
+
+        bandage_to_fluxline = gdspy.Rectangle((self.JJ.rect1[0] - self.JJ.rect_size_a/4,
+                                               self.JJ.rect1[1] - self.JJ.rect_size_b/4),
+                                              (self.JJ.rect1[0] + self.JJ.rect_size_a / 4,
+                                               self.JJ.rect1[1] - 5*self.JJ.rect_size_b/4),
+                               layer=self.layer_configuration.bandage_layer)
+        bandages = gdspy.boolean(bandage_to_island, [bandage_to_fluxline, bandage_to_ground], 'or', layer=self.layer_configuration.bandage_layer)
+        return bandages
 
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True,

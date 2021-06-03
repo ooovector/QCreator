@@ -2,7 +2,8 @@ import gdspy
 
 
 class JJ_2_small:
-    def __init__(self, x0, y0, Hb, parametr2, parametr3, parametr4, parametr5, parametr6, add_JJ=False):
+    def __init__(self, x0, y0, Hb, parametr2, parametr3, parametr4, parametr5, parametr6, add_JJ=False,
+                 hole_in_squid_pad=True):
         self._x0 = x0
         self._y0 = y0
 
@@ -13,14 +14,19 @@ class JJ_2_small:
         self._parametr5 = parametr5
         self._parametr6 = parametr6
         self.add_JJ = add_JJ
+        self.hole_in_squid_pad = hole_in_squid_pad
 
     def generate_jj(self):
         contact_pad_a_outer = 10.5
         contact_pad_b_outer = 3
         self.contact_pad_b_outer = contact_pad_b_outer
         self.contact_pad_a_outer = contact_pad_a_outer
-        contact_pad_a_inner = 7.5
-        contact_pad_b_inner = 1
+        if self.hole_in_squid_pad==True:
+            contact_pad_a_inner = 7.5
+            contact_pad_b_inner = 1
+        else:
+            contact_pad_a_inner = 0
+            contact_pad_b_inner = 0
 
         # Add contact pad1
         points0 = [(self._x0 - contact_pad_a_outer / 2, self._y0 - contact_pad_b_outer),
@@ -137,8 +143,8 @@ class JJ_2_small:
 
         contact_pad1_a_outer = L_a+2#6#13
         contact_pad1_b_outer = 2.5#6.4
-        contact_pad1_a_inner = L_a+1#12
-        contact_pad1_b_inner = 2#5.8
+        contact_pad1_a_inner = L_a+1
+        contact_pad1_b_inner = 2
 
         x7 = x2#self._x0
         y7 = self._y0 - contact_pad_b_outer - H_b - L_b - H1_b - pad1_b - h - contact_pad1_b_outer
@@ -195,10 +201,10 @@ class JJ_2_small:
 
         delta = contact_pad1_b_outer
 
-        L1_a = 2.1
+        L1_a = 3.4
         L1_b = 0.5#1
 
-        L2_a = 2.1
+        L2_a = 3.4
         L2_b = 0.5#1
 
         x10 = x7 - contact_pad1_a_outer / 2
@@ -210,8 +216,12 @@ class JJ_2_small:
         rec1_a_outer = 4.8
         rec1_b_outer = 2.8
 
-        rec1_a_inner = 2
-        rec1_b_inner = 1
+        if self.hole_in_squid_pad == True:
+            rec1_a_inner = 2
+            rec1_b_inner = 1
+        else:
+            rec1_a_inner = 0
+            rec1_b_inner = 0
 
         rec2_a_outer = rec1_a_outer
         rec2_b_outer = rec1_b_outer

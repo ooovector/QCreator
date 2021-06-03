@@ -13,8 +13,9 @@ class Xmon(DesignElement):
     def __init__(self, name: str, center: Tuple[float, float],
                  length: float, width_gap: float, center_width: float,
                  crab_position: Tuple[str, str, str, str], crab_shoulder: float,
-                 crab_thickness: float, crab_terminals: Dict,ground_thickness: float, delete_ground: str, jj_position: str, jj_params1: Dict, jj_params2: Dict, aux_jj_params : Dict,
-                 layer_configuration: LayerConfiguration):
+                 crab_thickness: float, crab_terminals: Dict,ground_thickness: float, delete_ground: str,
+                 jj_position: str, jj_params1: Dict, jj_params2: Dict, aux_jj_params : Dict,
+                 layer_configuration: LayerConfiguration, hole_in_squid_pad=True):
         super().__init__(type='qubit', name=name)
         # qubit parameters
         self.center = center
@@ -33,6 +34,7 @@ class Xmon(DesignElement):
         self.auxjj = aux_jj_params
         # layers
         self.layer_configuration = layer_configuration
+        self.hole_in_squid_pad = hole_in_squid_pad
 
         self.terminals = {'crab_left': None,
                           'crab_right': None,
@@ -497,8 +499,12 @@ class Xmon(DesignElement):
         contact_pad_b_outer = 3
         self.contact_pad_b_outer = contact_pad_b_outer
         self.contact_pad_a_outer = contact_pad_a_outer
-        contact_pad_a_inner = 7.5
-        contact_pad_b_inner = 1
+        if self.hole_in_squid_pad==True:
+            contact_pad_a_inner = 7.5
+            contact_pad_b_inner = 1
+        else:
+            contact_pad_a_inner = 0
+            contact_pad_b_inner = 0
 
         self._x0 = self.center[0]
         self._y0 = self.center[1]-self.length-self.s/2+ self.contact_pad_b_outer
@@ -671,8 +677,12 @@ class Xmon(DesignElement):
         rec1_a_outer = 4.8
         rec1_b_outer = 3.8
 
-        rec1_a_inner = 2
-        rec1_b_inner = 1
+        if self.hole_in_squid_pad == True:
+            rec1_a_inner = 2
+            rec1_b_inner = 1
+        else:
+            rec1_a_inner = 0
+            rec1_b_inner = 0
 
         rec2_a_outer = rec1_a_outer
         rec2_b_outer = rec1_b_outer

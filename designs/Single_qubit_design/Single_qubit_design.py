@@ -183,7 +183,8 @@ coaxmon1= elements.coaxmon.Coaxmon(name='Coaxmon1',center=(coupler_start+offset,
                           outer_ground_radius = 250,
                           layer_configuration = sample.layer_configuration,
                           Couplers=Couplers_qubit_alone1,jj_params= jj_coaxmon_sm_SQUID,transformations=transformations,
-                          calculate_capacitance = True, third_JJ=True)
+                          calculate_capacitance = True, third_JJ=True, hole_in_squid_pad=False,
+                                   JJ_pad_connection_shift=True, draw_bandages=True)
 
 offset = 1085
 offset1 = 1080
@@ -196,7 +197,9 @@ coaxmon2= elements.coaxmon.Coaxmon(name='Coaxmon2',center=(coupler_start+offset1
                           outer_ground_radius = 320,
                           layer_configuration = sample.layer_configuration,
                           Couplers=Couplers_qubit_alone,jj_params= jj_coaxmon_big_rad,transformations={},
-                          calculate_capacitance = True, third_JJ=True)
+                          calculate_capacitance = True, third_JJ=True,
+                                   hole_in_squid_pad=False,
+                                   JJ_pad_connection_shift=True, draw_bandages=True)
 
 coaxmon3= elements.coaxmon.Coaxmon(name='Coaxmon3',center=(coupler_start+offset,central_line_y-1000),
                           center_radius = 100,
@@ -206,7 +209,8 @@ coaxmon3= elements.coaxmon.Coaxmon(name='Coaxmon3',center=(coupler_start+offset,
                           outer_ground_radius = 250,
                           layer_configuration = sample.layer_configuration,
                           Couplers=Couplers_qubit_alone1,jj_params= jj_coaxmon_sm_SQUID,transformations=transformations,
-                          calculate_capacitance = True, third_JJ=True)
+                          calculate_capacitance = True, third_JJ=True, hole_in_squid_pad=False,
+                                   JJ_pad_connection_shift=True, draw_bandages = True)
 
 
 offset = 1950
@@ -219,7 +223,8 @@ coaxmon4= elements.coaxmon.Coaxmon(name='Coaxmon4',center=(coupler_start+offset,
                           outer_ground_radius = 250,
                           layer_configuration = sample.layer_configuration,
                           Couplers=Couplers_qubit_alone,jj_params= jj_coaxmon_2JJ,transformations=transformations,
-                          calculate_capacitance = True, third_JJ=False)
+                          calculate_capacitance = True, third_JJ=False, hole_in_squid_pad=False,
+                                   JJ_pad_connection_shift=True, draw_bandages = True)
 
 #############################################add xmons
 jj_geometry3 = {
@@ -228,7 +233,7 @@ jj_geometry3 = {
     'iwidth': 32,#52,
     'iheight': 9.5,
     'ithick': 4,
-    'iopen': 17,#20,
+    'iopen': 21,#20,
     'fheight1': 20,
     'fheight2': 40,
     'hdist': 4,
@@ -338,7 +343,7 @@ xmon1 = elements.xmon.Xmon(name = 'Xmon1',
                           jj_params1 = jj_geometry3,
                           jj_params2 = jj3,
                           aux_jj_params = {},
-                          layer_configuration = sample.layer_configuration)
+                          layer_configuration = sample.layer_configuration, hole_in_squid_pad=False)
 xmon2 = elements.xmon.Xmon(name = 'Xmon2',
                            center=(coupler_start+1750+coupler_length+resonator_core/2+resonator_gap, central_line_y-1050),
                            length = 130,
