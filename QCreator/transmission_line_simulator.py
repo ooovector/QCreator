@@ -628,11 +628,21 @@ class TLSystem:
 
         return np.reshape(np.asarray(submode), (vector_dim, 1))
 
-    def element_energy(self, element: TLSystemElement, mode):
+    def element_energy(self, element: TLSystemElement, mode, mode2=None):
         submode_element = self.get_element_submode(element, mode)
-        submode_energy = np.dot(np.conj(submode_element.T), np.dot(element.energy_matrix(), submode_element))
+        if mode2 is None:
+            submode_element2 = submode_element
+        else:
+            submode_element2 = self.get_element_submode(element, mode2)
+        submode_energy = np.dot(np.conj(submode_element.T), np.dot(element.energy_matrix(), submode_element2))
 
-        return submode_energy.real
+        return submode_energy
+
+    def cross_energy(self, mode1, mode2):
+        energy = 0
+        for elem in self.elements:
+            energy += self.element_energy(elem, mode1, mode2)
+        return energy
 
     def get_total_linear_energy(self, list_of_modes_numbers: list):
         """
