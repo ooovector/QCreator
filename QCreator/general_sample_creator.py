@@ -97,6 +97,8 @@ class Sample:
                 self.total_cell.add(result['airbridges'])
             if 'inverted' in result:
                 self.total_cell.add(result['inverted'])
+            if 'bandages' in result:
+                self.total_cell.add(result['bandages'])
 
         self.fill_object_arrays()
 

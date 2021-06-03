@@ -39,7 +39,8 @@ layers_configuration = {
     'air bridge sm pads':4,
     'vertical gridlines':15,
     'horizontal gridlines':16,
-    'inverted':17
+    'inverted':17,
+    'bandages': 20
 }
 
 sample = creator.Sample('1Q_test',layers_configuration)
@@ -239,11 +240,11 @@ jj_geometry3 = {
         }
 jj_geometry = {
     'gwidth': 40,#60,
-    'gheight': 18,
+    'gheight': 24,
     'iwidth': 32,#52,
     'iheight': 10,
     'ithick': 4,
-    'iopen': 10,#20,
+    'iopen': 22,#20,
     'fheight1': 20,
     'fheight2': 40,
     'hdist': 4,
@@ -251,8 +252,18 @@ jj_geometry = {
     'fcore': 4,
     'fgap': 4,
     'gter': 4,
+    'bandages': True,
     'lm': 4e-12
         }
+
+bandage_geometry = {
+    'bandage_side_height': 3,
+    'bandage_side_width': 5,
+    'bandage_up_height': 10,
+    'bandage_up_width': 5,
+    'up_shift': 5,
+    'side_shift': 0
+}
 
 
 jj = {
@@ -269,6 +280,8 @@ jj = {
     'side_r_length': 4,#9,
     'up_l_length': 7 - 0.16,
     'up_r_length': 7 - 0.16,
+    'up_rect_shift': 6,
+    'side_rect_shift': 6,
     'ic_l': 0.15*0.15*jc,
     'ic_r': 0.2*0.3*jc
 }
@@ -324,22 +337,24 @@ xmon1 = elements.xmon.Xmon(name = 'Xmon1',
                           jj_position = 'down',
                           jj_params1 = jj_geometry3,
                           jj_params2 = jj3,
+                          aux_jj_params = {},
                           layer_configuration = sample.layer_configuration)
 xmon2 = elements.xmon.Xmon(name = 'Xmon2',
-                         center=(coupler_start+1750+coupler_length+resonator_core/2+resonator_gap, central_line_y-1050),
-                          length = 130,
-                          width_gap = 15,
-                          center_width = 15,
-                          crab_position = ('up',),
-                          crab_shoulder = 40,
-                          crab_thickness = 40,
-                          crab_terminals = crab_terminals,
-                          ground_thickness = 20,
-                          delete_ground = '',
-                          jj_position = 'down',
-                          jj_params1 = jj_geometry,
-                          jj_params2 = jj,
-                          layer_configuration = sample.layer_configuration)
+                           center=(coupler_start+1750+coupler_length+resonator_core/2+resonator_gap, central_line_y-1050),
+                           length = 130,
+                           width_gap = 15,
+                           center_width = 15,
+                           crab_position = ('up',),
+                           crab_shoulder = 40,
+                           crab_thickness = 40,
+                           crab_terminals = crab_terminals,
+                           ground_thickness = 20,
+                           delete_ground = '',
+                           jj_position = 'down',
+                           jj_params1 = jj_geometry,
+                           jj_params2 = jj,
+                           aux_jj_params = bandage_geometry,
+                           layer_configuration = sample.layer_configuration)
 
 
 

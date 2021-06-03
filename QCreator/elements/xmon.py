@@ -13,7 +13,7 @@ class Xmon(DesignElement):
     def __init__(self, name: str, center: Tuple[float, float],
                  length: float, width_gap: float, center_width: float,
                  crab_position: Tuple[str, str, str, str], crab_shoulder: float,
-                 crab_thickness: float, crab_terminals: Dict,ground_thickness: float, delete_ground: str, jj_position: str, jj_params1: Dict, jj_params2: Dict,
+                 crab_thickness: float, crab_terminals: Dict,ground_thickness: float, delete_ground: str, jj_position: str, jj_params1: Dict, jj_params2: Dict, aux_jj_params : Dict,
                  layer_configuration: LayerConfiguration):
         super().__init__(type='qubit', name=name)
         # qubit parameters
@@ -30,6 +30,7 @@ class Xmon(DesignElement):
         self.ct = crab_terminals
         self.jgeom = jj_params1
         self.jj = jj_params2
+        self.auxjj = aux_jj_params
         # layers
         self.layer_configuration = layer_configuration
 
@@ -264,10 +265,15 @@ class Xmon(DesignElement):
 
         # create a pad for jj
         jpad, cross_gnd, jrestrict, cross_restrict = self.create_jpad(cross_gnd, cross_restrict)
-        if self.jj['type'] == 2:
-            jj = self.generate_jj()
-        else:
-            jj = self.generate_3jj()
+        # if self.jj['type'] == 2:
+        #         if self.jgeom['bandages'] == True:
+        #             jj, band = self.generate_jj()
+        #         else:
+        #             jj = self.generate_jj()
+        #             band = None
+        # else:
+        #     jj = self.generate_3jj()
+        #     band = None
         cross_gnd = gdspy.boolean(cross_gnd, jpad, "or", layer=self.layer_configuration.total_layer)
 
         # create a fluxline near jj pad
@@ -299,12 +305,52 @@ class Xmon(DesignElement):
         if self.jj['type'] == 3:
             self.terminals['squid_intermediate'] = None
 
-        return {'positive': result,
-                'qubit': result,
-                'restrict': cross_restrict,
-                'JJ': jj,
-                'qubit_cap': qubit_cap_parts
-                }
+
+        if self.jj['type'] == 2:
+                if self.jgeom['bandages'] == True:
+                    jj, band = self.generate_jj()
+                    return {'positive': result,
+                             'qubit': result,
+                             'restrict': cross_restrict,
+                             'JJ': jj,
+                             'qubit_cap': qubit_cap_parts,
+                             'bandages': band
+                             }
+                else:
+                    jj = self.generate_jj()
+                    return {'positive': result,
+                            'qubit': result,
+                            'restrict': cross_restrict,
+                            'JJ': jj,
+                            'qubit_cap': qubit_cap_parts,
+                            }
+
+        else:
+            jj = self.generate_3jj()
+            return {'positive': result,
+                    'qubit': result,
+                    'restrict': cross_restrict,
+                    'JJ': jj,
+                    'qubit_cap': qubit_cap_parts,
+                    }
+
+        # result_dict = {'positive': result,
+        #             'qubit': result,
+        #             'restrict': cross_restrict,
+        #             'JJ': jj,
+        #             'qubit_cap': qubit_cap_parts,
+        #             }
+        #
+        # if self.jgeom['bandages'] == True:
+        #      result_dict = {'positive': result,
+        #                     'qubit': result,
+        #                     'restrict': cross_restrict,
+        #                     'JJ': jj,
+        #                     'qubit_cap': qubit_cap_parts,
+        #                     'bandages': band
+        #                     }
+        #
+        # return result_dict
 
     def create_jpad(self, cross_gnd, cross_restrict):
         # variables
@@ -713,57 +759,94 @@ class Xmon(DesignElement):
         l_s2 = self.jj['side_r_length']
         l_u1 = self.jj['up_l_length']
         l_u2 = self.jj['up_r_length']
+        sh_u = self.jj['up_rect_shift']
+        sh_s = self.jj['side_rect_shift']
 
         b = self.jgeom['gheight']
         h = self.jgeom['iheight']
         t = self.jgeom['ithick']
         op = self.jgeom['iopen']
 
-        up_rect = gdspy.Rectangle((self.center[0] - uw / 2, self.center[1] - self.s / 2 - self.length),
-                                  (self.center[0] + uw / 2, self.center[1] - self.s / 2 - self.length + uh))
+        bandage = self.jgeom['bandages']
+
+
+
+        up_rect = gdspy.Rectangle((self.center[0] - uw / 2, self.center[1] - self.s / 2 - self.length - sh_u),
+                                  (self.center[0] + uw / 2, self.center[1] - self.s / 2 - self.length + uh - sh_u))
         if type == 2:
             # aux_3 = gdspy.Rectangle((self.center[0] - self.s/2 - self.w, self.center[1] - self.s/2 - self.length - (b - h)),
             #                   (self.center[0] + self.s/2 + self.w, self.center[1] - self.s/2 - self.length - (b - h - t)))
             side_rect1 = gdspy.Rectangle(
-                (self.center[0] - op / 2 - sw, self.center[1] - self.s / 2 - self.length - b + h + t / 2 - sh / 2),
-                (self.center[0] - op / 2, self.center[1] - self.s / 2 - self.length - b + h + t / 2 + sh / 2))
+                (self.center[0] - op / 2 - sw + sh_s, self.center[1] - self.s / 2 - self.length - b + h + t / 2 - sh / 2),
+                (self.center[0] - op / 2 + sh_s, self.center[1] - self.s / 2 - self.length - b + h + t / 2 + sh / 2))
 
-            ju1 = gdspy.Rectangle((self.center[0] - uw / 2 + uw / 3 - th_u1, self.center[1] - self.s / 2 - self.length),
-                                  (self.center[0] - uw / 2 + uw / 3, self.center[1] - self.s / 2 - self.length - l_u1))
+            ju1 = gdspy.Rectangle((self.center[0] - uw / 2 + uw / 3 - th_u1, self.center[1] - self.s / 2 - self.length - sh_u),
+                                  (self.center[0] - uw / 2 + uw / 3, self.center[1] - self.s / 2 - self.length - l_u1 - sh_u))
 
-            ju2 = gdspy.Rectangle((self.center[0] + uw / 2 - uw / 3, self.center[1] - self.s / 2 - self.length),
+            ju2 = gdspy.Rectangle((self.center[0] + uw / 2 - uw / 3, self.center[1] - self.s / 2 - self.length - sh_u),
                                   (self.center[0] + uw / 2 - uw / 3 + th_u2,
-                                   self.center[1] - self.s / 2 - self.length - l_u2))
+                                   self.center[1] - self.s / 2 - self.length - l_u2 - sh_u))
             ju = gdspy.boolean(ju1, ju2, "or", layer=self.layer_configuration.jj_layer)
 
-            js1 = gdspy.Rectangle((self.center[0] - op / 2,
+            js1 = gdspy.Rectangle((self.center[0] - op / 2 + sh_s,
                                    self.center[1] - self.s / 2 - self.length - b + h + t / 2 - sh / 2 + sh / 3 - th_s1),
-                                  (self.center[0] - op / 2 + l_s1,
+                                  (self.center[0] - op / 2 + l_s1 + sh_s,
                                    self.center[1] - self.s / 2 - self.length - b + h + t / 2 - sh / 2 + sh / 3))
 
-            js2 = gdspy.Rectangle((self.center[0] + op / 2,
+            js2 = gdspy.Rectangle((self.center[0] + op / 2 - sh_s,
                                    self.center[1] - self.s / 2 - self.length - b + h + t / 2 - sh / 2 + sh / 3 - th_s2),
-                                  (self.center[0] + op / 2 - l_s2,
+                                  (self.center[0] + op / 2 - l_s2 - sh_s,
                                    self.center[1] - self.s / 2 - self.length - b + h + t / 2 - sh / 2 + sh / 3))
             js = gdspy.boolean(js1, js2, "or", layer=self.layer_configuration.jj_layer)
 
             jfull = gdspy.boolean(ju, js, "or", layer=self.layer_configuration.jj_layer)
             side_rect2 = gdspy.Rectangle(
-                (self.center[0] + op / 2, self.center[1] - self.s / 2 - self.length - b + h + t / 2 - sh / 2),
-                (self.center[0] + op / 2 + sw, self.center[1] - self.s / 2 - self.length - b + h + t / 2 + sh / 2))
+                (self.center[0] + op / 2 - sh_s, self.center[1] - self.s / 2 - self.length - b + h + t / 2 - sh / 2),
+                (self.center[0] + op / 2 + sw - sh_s, self.center[1] - self.s / 2 - self.length - b + h + t / 2 + sh / 2))
 
             side = gdspy.boolean(side_rect1, side_rect2, "or", layer=self.layer_configuration.jj_layer)
 
         rect = gdspy.boolean(side, up_rect, "or", layer=self.layer_configuration.jj_layer)
         jj = gdspy.boolean(rect, jfull, "or", layer=self.layer_configuration.jj_layer)
-        if self.jjpos == 'up':
-            jj = jj.rotate(np.pi, self.center)
-        elif self.jjpos == 'left':
-            jj = jj.rotate(-np.pi / 2, self.center)
-        elif self.jjpos == 'right':
-            jj = jj.rotate(np.pi / 2, self.center)
 
-        return jj
+        if bandage == True:
+            ubh = self.auxjj['bandage_up_height']
+            ubw = self.auxjj['bandage_up_width']
+            sbh = self.auxjj['bandage_side_height']
+            sbw = self.auxjj['bandage_side_width']
+            shift_bu = self.auxjj['up_shift']
+            shift_bs = self.auxjj['side_shift']
+
+            band_up = gdspy.Rectangle((self.center[0] - ubw/2, self.center[1] - self.s / 2 - self.length - sh_u + uh / 2 - shift_bu),
+                                      (self.center[0] + ubw/2, self.center[1] - self.s / 2 - self.length - sh_u + uh / 2 + ubh - shift_bu))
+
+            band_side_1 = gdspy.Rectangle((self.center[0] - op / 2 + sh_s - sw/2 + shift_bs, self.center[1] - self.s / 2 - self.length - b + h + t / 2 - sbh/2),
+                                          (self.center[0] - op / 2 + sh_s - sw/2 - sbw + shift_bs, self.center[1] - self.s / 2 - self.length - b + h + t / 2 + sbh/2))
+
+            band_side_2 = gdspy.Rectangle((self.center[0] + op / 2 - sh_s + sw/2 - shift_bs, self.center[1] - self.s / 2 - self.length - b + h + t / 2 - sbh/2),
+                                          (self.center[0] + op / 2 - sh_s + sw/2 + sbw - shift_bs, self.center[1] - self.s / 2 - self.length - b + h + t / 2 + sbh/2))
+
+            band_side = gdspy.boolean(band_side_1, band_side_2, "or", layer=self.layer_configuration.bandages_layer)
+            band = gdspy.boolean(band_up, band_side, "or", layer=self.layer_configuration.bandages_layer)
+            if self.jjpos == 'up':
+                band = band.rotate(np.pi, self.center)
+                jj = jj.rotate(np.pi, self.center)
+            elif self.jjpos == 'left':
+                band = band.rotate(-np.pi / 2, self.center)
+                jj = jj.rotate(-np.pi / 2, self.center)
+            elif self.jjpos == 'right':
+                band = band.rotate(np.pi / 2, self.center)
+                jj = jj.rotate(np.pi / 2, self.center)
+            return jj, band
+        else:
+            if self.jjpos == 'up':
+                jj = jj.rotate(np.pi, self.center)
+            elif self.jjpos == 'left':
+                jj = jj.rotate(-np.pi / 2, self.center)
+            elif self.jjpos == 'right':
+                jj = jj.rotate(np.pi / 2, self.center)
+
+            return jj
 
     def get_terminals(self):
         return self.terminals
