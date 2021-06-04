@@ -18,7 +18,7 @@ class JJ_2_small:
 
     def generate_jj(self):
         contact_pad_a_outer = 10.5
-        contact_pad_b_outer = 3
+        contact_pad_b_outer = 6
         self.contact_pad_b_outer = contact_pad_b_outer
         self.contact_pad_a_outer = contact_pad_a_outer
         if self.hole_in_squid_pad==True:
@@ -213,8 +213,8 @@ class JJ_2_small:
         x11 = x7 + contact_pad1_a_outer / 2
         y11 = y7 + L2_b
 
-        rec1_a_outer = 4.8
-        rec1_b_outer = 2.8
+        rec1_a_outer = 5
+        rec1_b_outer = 5
 
         if self.hole_in_squid_pad == True:
             rec1_a_inner = 2

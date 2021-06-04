@@ -231,7 +231,7 @@ jj_geometry3 = {
     'gwidth': 40,#60,
     'gheight': 28,
     'iwidth': 32,#52,
-    'iheight': 9.5,
+    'iheight': 6.5,
     'ithick': 4,
     'iopen': 21,#20,
     'fheight1': 20,
@@ -264,29 +264,29 @@ jj_geometry = {
 bandage_geometry = {
     'bandage_side_height': 3,
     'bandage_side_width': 5,
-    'bandage_up_height': 10,
+    'bandage_up_height': 8,
     'bandage_up_width': 5,
-    'up_shift': 5,
-    'side_shift': 0
+    'up_shift': 2,
+    'side_shift': 1
 }
 
 
 jj = {
     'type': 2,
-    'up_rect_h': 12,
-    'up_rect_w': 12,
-    'side_rect_h': 6,
-    'side_rect_w': 6,
+    'up_rect_h': 8,
+    'up_rect_w': 8,
+    'side_rect_h': 5,
+    'side_rect_w': 5,
     'side_l_thick': 0.15,#0.2,
     'side_r_thick': 0.2,#0.486,
     'up_l_thick': 0.15,#0.16,
     'up_r_thick': 0.3,#0.45,
-    'side_l_length': 4,#9,
-    'side_r_length': 4,#9,
-    'up_l_length': 7 - 0.16,
-    'up_r_length': 7 - 0.16,
-    'up_rect_shift': 6,
-    'side_rect_shift': 6,
+    'side_l_length': 7,#9,
+    'side_r_length': 7,#9,
+    'up_l_length': 9 - 0.32,
+    'up_r_length': 9 - 0.32,
+    'up_rect_shift': 4,
+    'side_rect_shift': 3,
     'ic_l': 0.15*0.15*jc,
     'ic_r': 0.2*0.3*jc
 }

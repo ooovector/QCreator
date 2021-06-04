@@ -328,12 +328,13 @@ class Xmon(DesignElement):
                             }
 
         else:
-            jj = self.generate_3jj()
+            jj, band = self.generate_3jj()
             return {'positive': result,
                     'qubit': result,
                     'restrict': cross_restrict,
                     'JJ': jj,
                     'qubit_cap': qubit_cap_parts,
+                    'bandages': band
                     }
 
         # result_dict = {'positive': result,
@@ -496,7 +497,7 @@ class Xmon(DesignElement):
 
     def generate_3jj(self):
         contact_pad_a_outer = 10.5
-        contact_pad_b_outer = 3
+        contact_pad_b_outer = 6
         self.contact_pad_b_outer = contact_pad_b_outer
         self.contact_pad_a_outer = contact_pad_a_outer
         if self.hole_in_squid_pad==True:
@@ -507,7 +508,7 @@ class Xmon(DesignElement):
             contact_pad_b_inner = 0
 
         self._x0 = self.center[0]
-        self._y0 = self.center[1]-self.length-self.s/2+ self.contact_pad_b_outer
+        self._y0 = self.center[1]-self.length-self.s/2+ self.contact_pad_b_outer-contact_pad_b_outer/2
 
         self._parametr1 = 10#Hb
         self._parametr2 = self.jj['side_r_thick']
@@ -635,9 +636,6 @@ class Xmon(DesignElement):
         x9 = self._x0 + contact_pad1_a_inner / 2
         y9 = self._y0 - contact_pad_b_outer - H_b - L_b - H1_b - pad1_b - h
 
-        # parametr4=pad3_b
-        # parametr5=pad4_b
-
         pad3_a = 4.5  # 2.5
         pad3_b = self._parametr4
 
@@ -675,7 +673,7 @@ class Xmon(DesignElement):
         L2_b = 1
 
         rec1_a_outer = 4.8
-        rec1_b_outer = 3.8
+        rec1_b_outer = 5.8
 
         if self.hole_in_squid_pad == True:
             rec1_a_inner = 2
@@ -742,17 +740,40 @@ class Xmon(DesignElement):
                     (x13 - rec2_a_inner / 2, y13 - (rec2_b_outer - rec2_b_inner) / 2 - rec2_b_inner),
                     ]
 
+        bandage_to_island = gdspy.Rectangle((self._x0 - self.contact_pad_a_outer / 4,
+                                self._y0 + self.contact_pad_b_outer/4),
+                               (self._x0 + self.contact_pad_a_outer / 4,
+                                self._y0 - 3*self.contact_pad_b_outer/4),
+                               layer=self.layer_configuration.bandages_layer)
+
+        bandage_right = gdspy.Rectangle((self.rect2[0] - self.rect_size_a/4,
+                                               self.rect2[1] - self.rect_size_b/4),
+                                              (self.rect2[0] + 3*self.rect_size_a / 4,
+                                               self.rect2[1] - 3*self.rect_size_b/4),
+                               layer=self.layer_configuration.bandages_layer)
+
+        bandage_left = gdspy.Rectangle((self.rect1[0] - 3*self.rect_size_a/4,
+                                               self.rect1[1] - self.rect_size_b/4),
+                                              (self.rect1[0] + self.rect_size_a / 4,
+                                               self.rect1[1] - 3*self.rect_size_b/4),
+                               layer=self.layer_configuration.bandages_layer)
+        bandages = gdspy.boolean(bandage_to_island, [bandage_left, bandage_right], 'or',
+                                 layer=self.layer_configuration.bandages_layer)
+
         squid = gdspy.PolygonSet(
             [points0, points1, points1_1, points2, points3, points4, points5_for_pad1, points6_for_pad2,
              points8_for_pad3, points9_for_pad4, points10, points11, points12, points13])
         jj = gdspy.boolean(squid, squid, "or", layer=self.layer_configuration.jj_layer)
         if self.jjpos == 'up':
             jj = jj.rotate(np.pi, self.center)
+            bandages = bandages.rotate(np.pi, self.center)
         elif self.jjpos == 'left':
             jj = jj.rotate(-np.pi / 2, self.center)
+            bandages = bandages.rotate(-np.pi / 2, self.center)
         elif self.jjpos == 'right':
             jj = jj.rotate(np.pi / 2, self.center)
-        return jj
+            bandages = bandages.rotate(np.pi / 2, self.center)
+        return jj, bandages
 
 
     def generate_jj(self):

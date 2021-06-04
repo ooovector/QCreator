@@ -255,22 +255,23 @@ class Coaxmon(DesignElement):
 
     def add_bandages(self):
         bandage_to_island = gdspy.Rectangle((self.JJ_coordinates[0] - self.JJ.contact_pad_a_outer / 4,
-                                self.JJ_coordinates[1] + self.JJ.contact_pad_b_outer/4),
+                                self.JJ_coordinates[1] + self.JJ.contact_pad_b_outer/2),
                                (self.JJ_coordinates[0] + self.JJ.contact_pad_a_outer / 4,
                                 self.JJ_coordinates[1] - 3*self.JJ.contact_pad_b_outer/4),
-                               layer=self.layer_configuration.bandage_layer)
+                               layer=self.layer_configuration.bandages_layer)
         bandage_to_ground = gdspy.Rectangle((self.JJ.rect2[0] - self.JJ.rect_size_a/4,
                                                self.JJ.rect2[1] - self.JJ.rect_size_b/4),
                                               (self.JJ.rect2[0] + self.JJ.rect_size_a / 4,
                                                self.JJ.rect2[1] - 5*self.JJ.rect_size_b/4),
-                               layer=self.layer_configuration.bandage_layer)
+                               layer=self.layer_configuration.bandages_layer)
 
         bandage_to_fluxline = gdspy.Rectangle((self.JJ.rect1[0] - self.JJ.rect_size_a/4,
                                                self.JJ.rect1[1] - self.JJ.rect_size_b/4),
                                               (self.JJ.rect1[0] + self.JJ.rect_size_a / 4,
                                                self.JJ.rect1[1] - 5*self.JJ.rect_size_b/4),
-                               layer=self.layer_configuration.bandage_layer)
-        bandages = gdspy.boolean(bandage_to_island, [bandage_to_fluxline, bandage_to_ground], 'or', layer=self.layer_configuration.bandage_layer)
+                               layer=self.layer_configuration.bandages_layer)
+        bandages = gdspy.boolean(bandage_to_island, [bandage_to_fluxline, bandage_to_ground], 'or',
+                                 layer=self.layer_configuration.bandages_layer)
         return bandages
 
 
