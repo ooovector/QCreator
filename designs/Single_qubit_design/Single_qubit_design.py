@@ -39,7 +39,8 @@ layers_configuration = {
     'air bridge sm pads':4,
     'vertical gridlines':15,
     'horizontal gridlines':16,
-    'inverted':17
+    'inverted':17,
+    'bandages': 20
 }
 
 sample = creator.Sample('1Q_test',layers_configuration)
@@ -182,7 +183,8 @@ coaxmon1= elements.coaxmon.Coaxmon(name='Coaxmon1',center=(coupler_start+offset,
                           outer_ground_radius = 250,
                           layer_configuration = sample.layer_configuration,
                           Couplers=Couplers_qubit_alone1,jj_params= jj_coaxmon_sm_SQUID,transformations=transformations,
-                          calculate_capacitance = True, third_JJ=True)
+                          calculate_capacitance = True, third_JJ=True, hole_in_squid_pad=False,
+                                   JJ_pad_connection_shift=True, draw_bandages=True)
 
 offset = 1085
 offset1 = 1080
@@ -195,7 +197,9 @@ coaxmon2= elements.coaxmon.Coaxmon(name='Coaxmon2',center=(coupler_start+offset1
                           outer_ground_radius = 320,
                           layer_configuration = sample.layer_configuration,
                           Couplers=Couplers_qubit_alone,jj_params= jj_coaxmon_big_rad,transformations={},
-                          calculate_capacitance = True, third_JJ=True)
+                          calculate_capacitance = True, third_JJ=True,
+                                   hole_in_squid_pad=False,
+                                   JJ_pad_connection_shift=True, draw_bandages=True)
 
 coaxmon3= elements.coaxmon.Coaxmon(name='Coaxmon3',center=(coupler_start+offset,central_line_y-1000),
                           center_radius = 100,
@@ -205,7 +209,8 @@ coaxmon3= elements.coaxmon.Coaxmon(name='Coaxmon3',center=(coupler_start+offset,
                           outer_ground_radius = 250,
                           layer_configuration = sample.layer_configuration,
                           Couplers=Couplers_qubit_alone1,jj_params= jj_coaxmon_sm_SQUID,transformations=transformations,
-                          calculate_capacitance = True, third_JJ=True)
+                          calculate_capacitance = True, third_JJ=True, hole_in_squid_pad=False,
+                                   JJ_pad_connection_shift=True, draw_bandages = True)
 
 
 offset = 1950
@@ -218,16 +223,17 @@ coaxmon4= elements.coaxmon.Coaxmon(name='Coaxmon4',center=(coupler_start+offset,
                           outer_ground_radius = 250,
                           layer_configuration = sample.layer_configuration,
                           Couplers=Couplers_qubit_alone,jj_params= jj_coaxmon_2JJ,transformations=transformations,
-                          calculate_capacitance = True, third_JJ=False)
+                          calculate_capacitance = True, third_JJ=False, hole_in_squid_pad=False,
+                                   JJ_pad_connection_shift=True, draw_bandages = True)
 
 #############################################add xmons
 jj_geometry3 = {
     'gwidth': 40,#60,
     'gheight': 28,
     'iwidth': 32,#52,
-    'iheight': 9.5,
+    'iheight': 6.5,
     'ithick': 4,
-    'iopen': 17,#20,
+    'iopen': 21,#20,
     'fheight1': 20,
     'fheight2': 40,
     'hdist': 4,
@@ -239,11 +245,11 @@ jj_geometry3 = {
         }
 jj_geometry = {
     'gwidth': 40,#60,
-    'gheight': 18,
+    'gheight': 24,
     'iwidth': 32,#52,
     'iheight': 10,
     'ithick': 4,
-    'iopen': 10,#20,
+    'iopen': 22,#20,
     'fheight1': 20,
     'fheight2': 40,
     'hdist': 4,
@@ -251,24 +257,36 @@ jj_geometry = {
     'fcore': 4,
     'fgap': 4,
     'gter': 4,
+    'bandages': True,
     'lm': 4e-12
         }
+
+bandage_geometry = {
+    'bandage_side_height': 3,
+    'bandage_side_width': 5,
+    'bandage_up_height': 8,
+    'bandage_up_width': 5,
+    'up_shift': 2,
+    'side_shift': 1
+}
 
 
 jj = {
     'type': 2,
-    'up_rect_h': 12,
-    'up_rect_w': 12,
-    'side_rect_h': 6,
-    'side_rect_w': 6,
+    'up_rect_h': 8,
+    'up_rect_w': 8,
+    'side_rect_h': 5,
+    'side_rect_w': 5,
     'side_l_thick': 0.15,#0.2,
     'side_r_thick': 0.2,#0.486,
     'up_l_thick': 0.15,#0.16,
     'up_r_thick': 0.3,#0.45,
-    'side_l_length': 4,#9,
-    'side_r_length': 4,#9,
-    'up_l_length': 7 - 0.16,
-    'up_r_length': 7 - 0.16,
+    'side_l_length': 7,#9,
+    'side_r_length': 7,#9,
+    'up_l_length': 9 - 0.32,
+    'up_r_length': 9 - 0.32,
+    'up_rect_shift': 4,
+    'side_rect_shift': 3,
     'ic_l': 0.15*0.15*jc,
     'ic_r': 0.2*0.3*jc
 }
@@ -324,22 +342,24 @@ xmon1 = elements.xmon.Xmon(name = 'Xmon1',
                           jj_position = 'down',
                           jj_params1 = jj_geometry3,
                           jj_params2 = jj3,
-                          layer_configuration = sample.layer_configuration)
+                          aux_jj_params = {},
+                          layer_configuration = sample.layer_configuration, hole_in_squid_pad=False)
 xmon2 = elements.xmon.Xmon(name = 'Xmon2',
-                         center=(coupler_start+1750+coupler_length+resonator_core/2+resonator_gap, central_line_y-1050),
-                          length = 130,
-                          width_gap = 15,
-                          center_width = 15,
-                          crab_position = ('up',),
-                          crab_shoulder = 40,
-                          crab_thickness = 40,
-                          crab_terminals = crab_terminals,
-                          ground_thickness = 20,
-                          delete_ground = '',
-                          jj_position = 'down',
-                          jj_params1 = jj_geometry,
-                          jj_params2 = jj,
-                          layer_configuration = sample.layer_configuration)
+                           center=(coupler_start+1750+coupler_length+resonator_core/2+resonator_gap, central_line_y-1050),
+                           length = 130,
+                           width_gap = 15,
+                           center_width = 15,
+                           crab_position = ('up',),
+                           crab_shoulder = 40,
+                           crab_thickness = 40,
+                           crab_terminals = crab_terminals,
+                           ground_thickness = 20,
+                           delete_ground = '',
+                           jj_position = 'down',
+                           jj_params1 = jj_geometry,
+                           jj_params2 = jj,
+                           aux_jj_params = bandage_geometry,
+                           layer_configuration = sample.layer_configuration)
 
 
 

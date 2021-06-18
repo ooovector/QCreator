@@ -102,6 +102,8 @@ class Sample:
                                          'not', layer=self.layer_configuration.inverted)
                 if inverted is not None:
                     self.total_cell.add(inverted)
+            if 'bandages' in result:
+                self.total_cell.add(result['bandages'])
 
         self.fill_object_arrays()
 

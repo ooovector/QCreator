@@ -99,6 +99,7 @@ class LayerConfiguration:
         self.gridline_x_layer = layer_configurations['vertical gridlines']
         self.gridline_y_layer = layer_configurations['horizontal gridlines']
         self.inverted = layer_configurations['inverted']
+        self.bandages_layer = layer_configurations['bandages']
 
 class ChipGeometry:
     """
