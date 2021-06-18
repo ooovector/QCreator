@@ -97,6 +97,11 @@ class Sample:
                 self.total_cell.add(result['airbridges'])
             if 'inverted' in result:
                 self.total_cell.add(result['inverted'])
+            elif 'positive' in result and 'restrict' in result:
+                inverted = gdspy.boolean(result['restrict'], result['positive'],
+                                         'not', layer=self.layer_configuration.inverted)
+                if inverted is not None:
+                    self.total_cell.add(inverted)
 
         self.fill_object_arrays()
 

@@ -26,6 +26,9 @@ class GridGround(DesignElement):
 
         result_x = None
         result_y = None
+        inverted_result = gdspy.Rectangle((0, 0),
+                                     (self.chip_geometry.sample_horizontal_size, self.chip_geometry.sample_vertical_size),
+                                     layer=self.layer_configuration.inverted)
         i = 1
         while self.period * i + self.width/2 < self.chip_geometry.sample_horizontal_size:
             rect_x = gdspy.Rectangle((self.period * i - self.width/2, 0),
@@ -33,6 +36,7 @@ class GridGround(DesignElement):
                                      layer=self.layer_configuration.gridline_x_layer)
             i += 1
             result_x = gdspy.boolean(rect_x, result_x, 'or')
+            inverted_result = gdspy.boolean(inverted_result, rect_x, 'not', layer=self.layer_configuration.inverted)
         i = 1
         while self.period * i + self.width/2 < self.chip_geometry.sample_vertical_size:
             rect_y = gdspy.Rectangle((0, self.period * i - self.width/2),
@@ -40,6 +44,7 @@ class GridGround(DesignElement):
                                      layer=self.layer_configuration.gridline_y_layer)
             i += 1
             result_y = gdspy.boolean(rect_y, result_y, 'or')
+            inverted_result = gdspy.boolean(inverted_result, rect_y, 'not', layer=self.layer_configuration.inverted)
         result_x = gdspy.boolean(result_x, result_y, 'not', layer=self.layer_configuration.gridline_y_layer)
 
         # render rest of object in chip
@@ -50,11 +55,14 @@ class GridGround(DesignElement):
             if 'restrict' in object_polys:
                 result_x = gdspy.boolean(result_x, object_polys['restrict'], 'not', layer=self.layer_configuration.gridline_x_layer)
                 result_y = gdspy.boolean(result_y, object_polys['restrict'], 'not', layer=self.layer_configuration.gridline_y_layer)
+                inverted_result = gdspy.boolean(inverted_result, object_polys['restrict'], 'not', layer=self.layer_configuration.inverted)
             elif 'positive' in object_polys:
                 result_x = gdspy.boolean(result_x, object_polys['positive'], 'not', layer=self.layer_configuration.gridline_x_layer)
                 result_y = gdspy.boolean(result_y, object_polys['positive'], 'not', layer=self.layer_configuration.gridline_y_layer)
+                inverted_result = gdspy.boolean(inverted_result, object_polys['positive'], 'not',
+                                                layer=self.layer_configuration.inverted)
 
-        return {'grid_x': result_x, 'grid_y': result_y}
+        return {'grid_x': result_x, 'grid_y': result_y, 'inverted':inverted_result}
 
     def get_terminals(self) -> dict:
         return {}
