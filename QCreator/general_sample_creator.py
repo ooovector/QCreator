@@ -45,6 +45,7 @@ class Sample:
         self.epsilon = epsilon
         #In case the logo of WMI and MCQST is wanted
         self.logo = [False,(0,0),(0,0),'path']
+        self.negative_layer_polygons = []
 
     @staticmethod
     def default_cpw_radius(w, s, g):
@@ -101,11 +102,20 @@ class Sample:
                 inverted = gdspy.boolean(result['restrict'], result['positive'],
                                          'not', layer=self.layer_configuration.inverted)
                 if inverted is not None:
+                    for polygon in inverted.polygons:
+                        self.negative_layer_polygons.append(polygon)
                     self.total_cell.add(inverted)
             if 'bandages' in result:
                 self.total_cell.add(result['bandages'])
 
         self.fill_object_arrays()
+
+    def layer_expansion(self, shift, N_shifts, layer_polygons, layer):
+        polygonset = gdspy.PolygonSet(layer_polygons, layer=layer)
+        for i in np.linspace(-np.pi, np.pi, N_shifts):
+            dx, dy = shift * np.cos(i), shift * np.sin(i)
+            new_polygonset = gdspy.copy(polygonset, dx, dy)
+            self.total_cell.add(new_polygonset)
 
     def draw_terminals(self):
         #draws all terminals as an arrow
