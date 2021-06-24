@@ -23,10 +23,11 @@ layers_configuration = {
     'JJs':1,
     'air bridges': 2,
     'air bridge pads': 3,
-    'air bridge sm pads': 3,
+    'air bridge sm pads': 18,
     'vertical gridlines':15,
     'horizontal gridlines':16,
-    'inverted':17
+    'inverted':17,
+    'bandages':19,
 }
 
 sample = creator.Sample('Two-qubits-PP',layers_configuration)
@@ -62,26 +63,26 @@ pads_top = []
 pads_bottom = []
 huns_offset=2470
 pad_bottom_1 = elements.Pad('pad-bottom-' + str(1),
-                   (sample.chip_geometry.sample_horizontal_size / 2+ huns_offset *(- 1), pad_offset),
-                   -np.pi / 2, tl_core, tl_gap, tl_ground,
+                   (sample.chip_geometry.sample_horizontal_size / 2+ huns_offset *(- 1), sample.chip_geometry.sample_vertical_size -pad_offset),
+                   np.pi / 2, tl_core, tl_gap, tl_ground,
                    layer_configuration=sample.layer_configuration, chip_geometry=sample.chip_geometry,
                    **elements.default_pad_geometry())
 pad_bottom_2 = elements.Pad('pad-bottom-' + str(2),
-                   (sample.chip_geometry.sample_horizontal_size / 2+ huns_offset, pad_offset),
-                   -np.pi / 2, tl_core, tl_gap, tl_ground,
+                   (sample.chip_geometry.sample_horizontal_size / 2+ huns_offset, sample.chip_geometry.sample_vertical_size -pad_offset),
+                   np.pi / 2, tl_core, tl_gap, tl_ground,
                    layer_configuration=sample.layer_configuration, chip_geometry=sample.chip_geometry,
                    **elements.default_pad_geometry())
-pads_bottom.append(pad_bottom_1)
-pads_bottom.append(pad_bottom_2)
+pads_top.append(pad_bottom_1)
+pads_top.append(pad_bottom_2)
 sample.add(pad_bottom_1)
 sample.add(pad_bottom_2)
 pad = elements.Pad('pad-top-' + str(pad_side_id),
                    (sample.chip_geometry.sample_horizontal_size / 2,
-                    sample.chip_geometry.sample_vertical_size - pad_offset),
-                   np.pi / 2, tl_core, tl_gap, tl_ground,
+                     pad_offset),
+                   -np.pi / 2, tl_core, tl_gap, tl_ground,
                    layer_configuration=sample.layer_configuration, chip_geometry=sample.chip_geometry,
                    **elements.default_pad_geometry())
-pads_top.append(pad)
+pads_bottom.append(pad)
 sample.add(pad)
 
 p1 = pads_left[0]
@@ -159,14 +160,16 @@ a = -250
 air = [-20,40,100]
 
 
-CC1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground),
-      elements.pp_transmon.PP_Transmon_Coupler(400,60,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground),
+CC1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=120),
+       elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.02*0,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
       ]
 
-CC2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground),
-      elements.pp_transmon.PP_Transmon_Coupler(400,60,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground),
+CC2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'bottom',coupler_type = 'coupler',heightr = 0.06*0,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
+      elements.pp_transmon.PP_Transmon_Coupler(450,160,25,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
       ]
 
+CCc = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'top',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
+      ]
 
 l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 3, 5, 20, 50, resonator_gap
 flux_distance = 20
@@ -218,7 +221,7 @@ for i in range(Y):
                           jj_params= jj_pp,
                           fluxline_params =flux,
                           layer_configuration = sample.layer_configuration,
-                          Couplers = [],
+                          Couplers = CCc,
                           calculate_capacitance = False,
                           transformations = {'rotate':(-np.pi/2,center1)},
                           remove_ground = {'left':1,'top':1,'bottom':1,'right':1},

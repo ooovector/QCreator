@@ -1,0 +1,20 @@
+Solution : Setup1 : LastAdaptive
+Parameter : Matrix1
+Capacitance Unit: pF
+
+Capacitance
+		Charge	Ground	Q_bottom	Q_top	Resonator
+	Charge	         0.018	        -0.017	        -0.000	        -0.000	        -0.000
+	Ground	        -0.017	         0.218	        -0.095	        -0.087	        -0.019
+	Q_bottom	        -0.000	        -0.095	         0.142	        -0.045	        -0.001
+	Q_top	        -0.000	        -0.087	        -0.045	         0.145	        -0.013
+	Resonator	        -0.000	        -0.019	        -0.001	        -0.013	         0.033
+
+Capacitive Coupling Coefficient
+		Charge	Ground	Q_bottom	Q_top	Resonator
+	Charge	         1.000	        -0.277	        -0.006	        -0.002	        -0.000
+	Ground	        -0.277	         1.000	        -0.542	        -0.487	        -0.223
+	Q_bottom	        -0.006	        -0.542	         1.000	        -0.315	        -0.011
+	Q_top	        -0.002	        -0.487	        -0.315	         1.000	        -0.192
+	Resonator	        -0.000	        -0.223	        -0.011	        -0.192	         1.000
+
