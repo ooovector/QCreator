@@ -85,14 +85,14 @@ pad = elements.Pad('pad-top-' + str(pad_side_id),
 pads_bottom.append(pad)
 sample.add(pad)
 
-p1 = pads_left[0]
-p2 = pads_top[0]
+p1 = pads_top[0]
+p2 = pads_top[1]
 
 ################################
 # resonator parameters:
 resonator_core = 8
 resonator_gap = 7
-resonator_ground = 5
+resonator_ground = 10
 
 ############### Qubits and Coupler
 
@@ -101,16 +101,12 @@ resonator_ground = 5
 origin = [4000,2200]
 
 
-width = 250
-height= 400
-
 gap   = 50
-
 width  = 200
 height = 2*width+gap
 
 
-ground_t = 20
+ground_t = 50
 ground_w = 660+ground_t*2
 ground_h = 660+ground_t*2
 
@@ -128,6 +124,7 @@ JJ_pad_offset_y = 16 # JJ design
 sh = (70,20)
 shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4}
 shoes2 = {}#{1:(70,50)}
+# how to place qubits
 spacing = 900
 center1 = (origin[0],origin[1])
 center2 = (origin[0]+spacing+ground_w,origin[1])
@@ -160,15 +157,15 @@ a = -250
 air = [-20,40,100]
 
 
-CC1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=120),
-       elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.02*0,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
-      ]
 
 CC2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'bottom',coupler_type = 'coupler',heightr = 0.06*0,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
-      elements.pp_transmon.PP_Transmon_Coupler(450,160,25,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
+      elements.pp_transmon.PP_Transmon_Coupler(10,10,25,'right',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=100),
       ]
 
-CCc = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'top',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
+CC1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = 'coupler',heightr = 0.06*0,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
+      elements.pp_transmon.PP_Transmon_Coupler(450,160,25,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=100),
+      ]
+CCc = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
       ]
 
 l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 3, 5, 20, 50, resonator_gap
@@ -198,7 +195,7 @@ for i in range(Y):
                                            layer_configuration=sample.layer_configuration,
                                            Couplers=CC[j],
                                            calculate_capacitance=False,
-                                           remove_ground={'left': 1, 'right': 1, 'top': 1, 'bottom': 1},
+                                           remove_ground={'left': 0, 'right': 0, 'top': 0, 'bottom': 0},
                                            shoes=shoes1,
                                            transformations={'rotate': (np.pi / 4, center)},
                                            )
