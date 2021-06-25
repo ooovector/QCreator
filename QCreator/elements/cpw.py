@@ -544,7 +544,7 @@ class RectGrounding(DesignElement):
 
         positive_total = ground
         restrict_total = ground_restricted
-        return {'positive': positive_total, 'restrict': restrict_total}
+        return {'positive': positive_total.to_polygonset(), 'restrict': restrict_total.to_polygonset()}
 
     def get_terminals(self):
         return self.terminals
@@ -1240,7 +1240,7 @@ class OpenEnd(DesignElement):
 
         positive_total = gdspy.boolean(operand1=continue_ground, operand2=add_connection, operation='or')
 
-        return {'positive': positive_total, 'restrict': restrict_total}
+        return {'positive': positive_total, 'restrict': restrict_total.to_polygonset()}
 
     def get_terminals(self) -> Mapping[str, DesignTerminal]:
         return self.terminals

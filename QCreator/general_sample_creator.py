@@ -98,23 +98,59 @@ class Sample:
                 self.total_cell.add(result['airbridges'])
             if 'inverted' in result:
                 self.total_cell.add(result['inverted'])
-            elif 'positive' in result and 'restrict' in result:
-                inverted = gdspy.boolean(result['restrict'], result['positive'],
-                                         'not', layer=self.layer_configuration.inverted)
-                if inverted is not None:
-                    for polygon in inverted.polygons:
-                        self.negative_layer_polygons.append(polygon)
-                    self.total_cell.add(inverted)
+            #elif 'positive' in result and 'restrict' in result:
+            #    inverted = gdspy.boolean(result['restrict'], result['positive'],
+            #                             'not', layer=self.layer_configuration.inverted)
+            #    if inverted is not None:
+            #        for polygon in inverted.polygons:
+            #            self.negative_layer_polygons.append(polygon)
+            #        self.total_cell.add(inverted)
             if 'bandages' in result:
                 self.total_cell.add(result['bandages'])
 
         self.fill_object_arrays()
 
-    def layer_expansion(self, shift, N_shifts, layer_polygons, layer):
-        polygonset = gdspy.PolygonSet(layer_polygons, layer=layer)
-        for i in np.linspace(-np.pi, np.pi, N_shifts):
+    def render_negative(self, positive_layers, negative_layer, slices = 20, apply_restrict = True):
+        box = self.total_cell.get_bounding_box()
+
+        slices_x = np.linspace(box[0][0], box[1][0], slices, endpoint=False)[1:].tolist()
+        slices_y = np.linspace(box[0][1], box[1][1], slices, endpoint=False)[1:].tolist()
+
+        polygons = {layer_id: gdspy.slice(self.total_cell.get_polygons((layer_id, 0)), slices_x, 0)
+                    for layer_id in positive_layers}
+        if apply_restrict:
+            polygons_restrict = gdspy.slice(self.restricted_cell.get_polygons((self.layer_configuration.restricted_area_layer, 0)), slices_x, 0)
+
+        for i in range(slices):
+            polygons_slice = {layer_id: gdspy.slice(polygons[layer_id][i], slices_y, 1)
+                    for layer_id in positive_layers}
+            if apply_restrict:
+                polygons_restrict_slice = gdspy.slice(polygons_restrict[i], slices_y, 1)
+            for j in range(slices):
+                if apply_restrict:
+                    negative = polygons_restrict_slice[j]
+                else:
+                    negative = gdspy.Rectangle((box[0][0] + (box[1][0] - box[0][0]) * i / slices,
+                                                box[0][1] + (box[1][0] - box[0][0]) * j / slices),
+                                               (box[0][0] + (box[1][0] - box[0][0]) * (i + 1) / slices,
+                                                box[0][1] + (box[1][0] - box[0][0]) * (j + 1) / slices))
+                for layer_id, polygons_slice_y in polygons_slice.items():
+                    negative = gdspy.boolean(negative, polygons_slice_y[j], 'not', layer = negative_layer)
+                negative_filtered = []
+                if negative is not None:
+                    for poly in negative.polygons:
+                        if gdspy.Polygon(poly).area() > 0.05:
+                            negative_filtered.append(poly)
+                if negative_filtered is not None:
+                    self.total_cell.add(gdspy.PolygonSet(negative_filtered, layer = negative_layer))
+
+    def layer_expansion(self, shift, old_layer, new_layer, N_shifts = 8):
+        total = None
+        polygonset = gdspy.PolygonSet(self.total_cell.get_polygons((old_layer, 0)), layer=new_layer)
+        for i in np.linspace(-np.pi, np.pi, N_shifts, endpoint=False):
             dx, dy = shift * np.cos(i), shift * np.sin(i)
             new_polygonset = gdspy.copy(polygonset, dx, dy)
+            #total = gdspy.boolean(total, new_polygonset, 'or', layer=new_layer)
             self.total_cell.add(new_polygonset)
 
     def draw_terminals(self):

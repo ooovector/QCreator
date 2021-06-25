@@ -50,6 +50,7 @@ sample.chip_geometry.sample_vertical_size=4.7e3
 sample.chip_geometry.sample_horizontal_size=4.7e3
 central_line_y = sample.chip_geometry.sample_vertical_size/2
 chip_edge_ground = elements.ChipEdgeGround(sample.chip_geometry, sample.layer_configuration, sample.pads)
+chip_edge_ground.render_direct = True
 sample.add(chip_edge_ground)
 
 # 1. Create contact pads:
