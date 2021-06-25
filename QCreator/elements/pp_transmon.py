@@ -182,9 +182,19 @@ class PP_Transmon(DesignElement):
 
 
             f = self.fluxline_params
-            l, t_m, t_r, gap, l_arm, h_arm, s_gap = f['l'], f['t_m'], f['t_r'], f['gap'], f['l_arm'], f['h_arm'], f['s_gap']
-            flux = PP_Squid_Fluxline(l, t_m, t_r, gap, l_arm, h_arm, s_gap)
-            fluxline = flux.render(self.center, self.w, self.h)['positive']
+            l, t_m, t_r, gap, l_arm, h_arm, s_gap = f['l'],f['t_m'],f['t_r'],f['gap'],f['l_arm'],f['h_arm'],f['s_gap']
+            flux_distance = f['flux_distance']
+            #result_restricted, to ct off hanging parts from the fluxline, None for no cutoff
+            flux = PP_Squid_Fluxline(l, t_m, t_r, gap, l_arm, h_arm, s_gap,flux_distance,self.w,self.h,self.gap,self.b_w,self.b_g,ground = None,asymmetry = 0,g = f.get('g'),w = f.get('w'),s = f.get('s'),extend = f.get('extend_to_ground'))
+
+            fluxline = flux.render(self.center, self.w, self.h,self.g_h,self.g_t)['positive']
+
+            r_flux = flux.render(self.center, self.w, self.h,self.g_h,self.g_t)['restricted']
+            #adding fluxline restricted area
+            result_restricted = gdspy.boolean(result_restricted,r_flux,'or', layer=self.layer_configuration.restricted_area_layer)
+
+            self.couplers.append(flux)
+            result = gdspy.boolean(result, fluxline, 'or', layer=self.layer_configuration.total_layer)
 
             # removing ground where the fluxline is
             ground_fluxline = True
@@ -220,6 +230,8 @@ class PP_Transmon(DesignElement):
         if len(self.couplers) != 0:
 
             for id, coupler in enumerate(self.couplers):
+                if coupler.side == 'fluxline':
+                    continue
                 coupler_parts = coupler.render(self.center, self.g_w,self.g_h)
 
                 #result = gdspy.boolean(coupler_parts['positive'], result, 'or',layer=self.layer_configuration.total_layer)
@@ -493,6 +505,8 @@ class PP_Transmon(DesignElement):
                         coupler_phi = -np.pi / 2
                     if coupler.side == "bottom":
                         coupler_phi = np.pi / 2
+                    if coupler.side == 'fluxline':
+                        coupler_phi = -np.pi / 2
 
             if 'rotate' in self.transformations:
                 if coupler.connection is not None:
@@ -506,6 +520,8 @@ class PP_Transmon(DesignElement):
                         coupler_phi = -np.pi / 2+self.transformations['rotate'][0]
                     if coupler.side == "bottom":
                         coupler_phi = np.pi / 2+self.transformations['rotate'][0]
+                    if coupler.side == "fluxline":
+                        coupler_phi =  -np.pi / 2+self.transformations['rotate'][0]
 
             if self.transformations == {}:
                 coupler_connection = coupler.connection
@@ -517,6 +533,8 @@ class PP_Transmon(DesignElement):
                     coupler_phi = -np.pi/2
                 if coupler.side == "bottom":
                     coupler_phi = np.pi/2
+                if coupler.side == "fluxline":
+                    coupler_phi = -np.pi/2
             if coupler.connection is not None:
                 self.terminals['coupler'+str(id)] = DesignTerminal(tuple(coupler_connection),
                                                                    coupler_phi, g=coupler.g, s=coupler.s,
@@ -715,9 +733,8 @@ class PP_Squid_Fluxline:
     5) l_arm - length of one sidearm
     6) h_arm - height of the return arm
     7) s_gap - gap between main and return fluxline
-    --> not yet defined with a terminal, To Do
     """
-    def __init__(self, l,t_m,t_r,gap,l_arm,h_arm,s_gap):
+    def __init__(self, l,t_m,t_r,gap,l_arm,h_arm,s_gap,flux_distance,pad_w,pad_h,pad_g,b_w,b_g,ground,asymmetry = 0,w= None, g=None, s=None,extend = None):
         self.l      = l
         self.t_m    = t_m
         self.t_r    = t_r
@@ -725,9 +742,27 @@ class PP_Squid_Fluxline:
         self.l_arm  = l_arm
         self.h_arm  = h_arm
         self.s_gap  = s_gap
+        self.asymmetry = asymmetry
+        self.flux_distance = flux_distance
+        self.side   = 'fluxline'
+        self.connection = None
+        #for the terminals:
+        self.g = g
+        self.w = w
+        self.s = s
+        self.extend = extend
+        #pad parameters
+        self.pad_w = pad_w
+        self.pad_h = pad_h
+        self.b_w = b_w
+        self.b_g = b_g
+        self.pad_g = pad_g
+        self.ground = ground
+    def render(self, center, width,height,ground_height,ground_t):
+        if not self.extend:
+            ground_t = ground_height/2
 
-    def render(self, center, width,height):
-        start = [center[0]+self.l_arm/2,center[1]+self.t_r+self.l+height/2+self.gap]
+        start  = [0,0]
         points = [start+[0,0],start+[self.t_m,0],start+[self.t_m,-self.l],start+[self.t_m+self.l_arm,-self.l]]
         points.append(start+[self.t_m+self.s_gap,-self.l+self.h_arm])
         points.append(start+[self.t_m+self.s_gap,0])
@@ -745,6 +780,51 @@ class PP_Squid_Fluxline:
         points.append(start + [0, -self.l])
         points = [(i[0]+i[2],i[1]+i[3]) for i in points]
         result = gdspy.Polygon(points)
+
+        #restricted area:
+        points2 = [points[13],points[6],points[7],points[8],points[9],points[10],points[11],points[12],points[13]]
+
+        restrict = gdspy.Polygon(points2)
+
+
+
+        #cutouts of the ground
+        cutout1 = gdspy.Rectangle(
+                (0,ground_height / 2 - ground_t),
+                (self.l_arm + self.t_m,ground_height / 2 + 250))
+        cutout2 = gdspy.Rectangle(
+                (-2*self.l_arm, center[1] + ground_height / 2 ),
+                (+2*self.l_arm, center[1] + ground_height / 2 +100))
+
+        result = gdspy.boolean(result,cutout1,'not')
+
+        result = gdspy.boolean(result,cutout2,'not')
+
+        result.translate(-self.t_m/2,+self.l+self.t_r)
+        #result.rotate(-np.pi/2)
+
+        restrict.translate(-self.t_m/2,+self.l+self.t_r)
+        #restrict.rotate(-np.pi / 2)
+
+        # move fluxline to correct position
+        result.translate(center[0], center[1])
+        result.translate(0+(self.l_arm + self.t_m)/2,self.pad_h/2+self.flux_distance)#self.pad_g/2+self.pad_w-self.b_w/2+self.flux_distance,self.asymmetry+self.pad_h/2+3.5*self.b_w)
+
+        restrict.translate(center[0], center[1])
+
+        #restrict.translate(self.pad_g/2+self.pad_w-self.b_w/2+self.flux_distance,self.asymmetry+self.pad_h/2+3.5*self.b_w)
+        restrict.translate(0+(self.l_arm + self.t_m)/2, self.pad_h / 2 + self.flux_distance)
+        #cuttng off the hanging rest:
+        if self.ground != None:
+            result = gdspy.boolean(result,self.ground,'and')
+
+        self.result_coupler = result
+
+        #point = (center[0]+self.pad_g/2+self.pad_w-self.b_w/2+self.flux_distance+self.t_r+self.l,center[1]+self.asymmetry+self.pad_h/2+3.5*self.b_w)
+        point = (center[0]+(self.l_arm + self.t_m)/2,center[1]+self.pad_h / 2+self.flux_distance+self.t_r+self.l)
+        self.connection = point
+
         return {
-            'positive': result
+            'positive': result,
+            'restricted':restrict,
                         }
