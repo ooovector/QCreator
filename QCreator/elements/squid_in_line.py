@@ -84,7 +84,7 @@ class Squid_in_line(DesignElement):
     def generate_squid(self, point):
         self.squid_params['x'] = point[0]
         self.squid_params['y'] = point[1]
-        self.squid = squid3JJ.JJ_2_small(self.squid_params['x'],
+        self.squid = squid3JJ.JJ_2(self.squid_params['x'],
                                          self.squid_params['y'],
                                          self.squid_params['a1'], self.squid_params['a2'],
                                          self.squid_params['b1'], self.squid_params['b2'],
