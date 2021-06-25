@@ -4,6 +4,7 @@ import numpy as np
 from . import squid3JJ
 from typing import List, Tuple, Mapping, Dict, AnyStr
 from copy import deepcopy
+from .. import transmission_line_simulator as tlsim
 
 class Squid_in_line(DesignElement):
     def __init__(self, name: str,  center : tuple, core: float, gap: float, ground: float,
@@ -66,12 +67,12 @@ class Squid_in_line(DesignElement):
         positive = gdspy.boolean(positive, fluxline['positive'], 'or', layer=self.layer_configuration.total_layer)
         positive = gdspy.boolean(positive, fluxline['remove'], 'not', layer=self.layer_configuration.total_layer)
 
-        self.terminals['port1'] = DesignTerminal(position=self.port1_position, orientation=self.orientation,
+        self.terminals['port1'] = DesignTerminal(position=self.port1_position, orientation=self.orientation+np.pi,
                                                   type='cpw', w=self.core, s=self.gap, g=self.ground,
                                                  disconnected='short')
         self.terminals['port2'] = DesignTerminal(
                               position=self.port2_position,
-                              orientation=self.orientation-np.pi,
+                              orientation=self.orientation,
                                                   type='cpw', w=self.core, s=self.gap, g=self.ground,
                                 disconnected='short')
 
@@ -176,6 +177,9 @@ class Squid_in_line(DesignElement):
         return {'positive': result,
                 'remove': remove,
                 }
+
+    def get_terminals(self):
+        return self.terminals
 
     def cm(self, epsilon):
         cross_section = [self.gap, self.core, self.gap]

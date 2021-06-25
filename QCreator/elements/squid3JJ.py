@@ -1,7 +1,7 @@
 import gdspy
 
 
-class JJ_2_small:
+class JJ_2:
     def __init__(self, x0, y0, Hb, parametr2, parametr3, parametr4, parametr5, parametr6, add_JJ=False,
                  hole_in_squid_pad=True):
         self._x0 = x0

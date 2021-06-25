@@ -2,16 +2,17 @@ import gdspy
 from . import JJ4q
 from .core import DesignElement, LayerConfiguration, DesignTerminal
 import numpy as np
+from .. import transmission_line_simulator as tlsim
+from scipy.constants import epsilon_0
 
 class JJ_in_line(DesignElement):
-    def __init__(self, cpw, cpw_port, length, jj_params, layer_configuration):
-        super().__init__(type='JJ in line', name='JJ in line')
-        self.w = cpw.w[0]
-        self.g = cpw.g
-        self.s = cpw.s[0]
-        self.cpw = cpw
-        self.cpw_port = cpw.get_terminals()[cpw_port]
-        self.orientation = cpw.get_terminals()[cpw_port].orientation
+    def __init__(self,name, cpw_port,w, g, s, length, jj_params, layer_configuration):
+        super().__init__(type='JJ in line', name=name)
+        self.cpw_port = cpw_port
+        self.orientation = cpw_port.orientation + np.pi
+        self.w = w
+        self.g = g
+        self.s = s
         self.length = length
         self.jj_params = jj_params
         self.layer_configuration = layer_configuration
@@ -19,18 +20,18 @@ class JJ_in_line(DesignElement):
         s = 1e-18*self.jj_params['a1']*self.jj_params['a2']
         epsilon = 1
         self.jj_capacitance = epsilon_0 * epsilon * s / h
-        self.terminals = {'port1': DesignTerminal(position=self.cpw_port.position, orientation=self.orientation-np.pi,
+        self.terminals = {'port1': DesignTerminal(position=self.cpw_port.position, orientation=self.orientation,
                                                   type='cpw', w=self.w, s=self.s, g=self.g, disconnected='short'),
                           'port2': DesignTerminal(
                               position=[self.cpw_port.position[0]+np.cos(self.orientation)*self.length,
                                         self.cpw_port.position[1]+np.sin(self.orientation)*self.length],
-                              orientation=self.orientation,
+                              orientation=self.orientation-np.pi,
                                                   type='cpw', w=self.w, s=self.s, g=self.g, disconnected='short')}
 
     def render(self):
         self.jj_params['x'] = self.cpw_port.position[0] + np.cos(self.orientation)*self.length/2
         self.jj_params['y'] = self.cpw_port.position[1] + np.abs(np.cos(self.orientation))*self.jj_params['indent']/2 +\
-                              np.sin(self.orientation)*((1+np.sin(self.orientation))/2*self.length+self.jj_params['indent'])/2
+                              np.abs(np.sin(self.orientation))*(np.sin(self.orientation)*self.length+self.jj_params['indent'])/2
         JJ = JJ4q.JJ_1(self.jj_params['x'], self.jj_params['y'],
                             self.jj_params['a1'], self.jj_params['a2'])
         jj = JJ.generate_jj()
@@ -50,23 +51,31 @@ class JJ_in_line(DesignElement):
                                 layer=self.layer_configuration.total_layer)
 
 
-        if np.round(np.sin(self.orientation),2)==0: # for horizontal based couplers
+        if np.round(np.sin(self.orientation),3)==0: # for horizontal based couplers
             poly1 = gdspy.Polygon([(self.jj_params['x'] - JJ.contact_pad_a / 2,
                                     self.jj_params['y'] + indent),
                                    (self.jj_params['x'] - JJ.contact_pad_a / 2,
                                     self.jj_params['y'] + indent - JJ.contact_pad_b),
+                                   (self.jj_params['x'] - 3*JJ.contact_pad_a / 2,
+                                    self.cpw_port.position[1] - self.w / 2),
                                    (self.jj_params['x'] - self.length/2,
                                     self.cpw_port.position[1] - self.w / 2),
                                    (self.jj_params['x'] - self.length/2,
+                                    self.cpw_port.position[1] + self.w / 2),
+                                   (self.jj_params['x'] - 3 * JJ.contact_pad_a / 2,
                                     self.cpw_port.position[1] + self.w / 2)],
                                   layer=self.layer_configuration.total_layer)
             poly2 = gdspy.Polygon([(JJ.x_end + JJ.contact_pad_a / 2,
                                     JJ.y_end - indent - JJ.contact_pad_b),
                                    (JJ.x_end + JJ.contact_pad_a / 2,
                                     JJ.y_end - indent),
+                                   (JJ.x_end + 3*JJ.contact_pad_a / 2,
+                                    self.cpw_port.position[1] + self.w / 2),
                                    (JJ.x_end + self.length/2,
                                     self.cpw_port.position[1] + self.w / 2),
                                    (JJ.x_end + self.length/2,
+                                    self.cpw_port.position[1] - self.w / 2),
+                                   (JJ.x_end + 3 * JJ.contact_pad_a / 2,
                                     self.cpw_port.position[1] - self.w / 2)],
                                   layer=self.layer_configuration.total_layer)
         elif np.round(np.cos(self.orientation),3)==0:
@@ -78,8 +87,9 @@ class JJ_in_line(DesignElement):
             poly2 = gdspy.Rectangle((JJ.x_end + self.w/ 2,
                                     JJ.y_end - JJ.contact_pad_b),
                                    (JJ.x_end - self.w/ 2,
-                                    JJ.y_end - JJ.contact_pad_b - (self.length -self.jj_params['indent'])/2),
+                                    JJ.y_end - JJ.contact_pad_b - (self.length -self.jj_params['indent'])/2-indent),
                                     layer=self.layer_configuration.total_layer)
+
 
         ground_x1 = self.cpw_port.position[0]+np.sin(self.orientation)*(self.w/2+self.g+self.s)
         ground_y1 = self.cpw_port.position[1] + np.cos(self.orientation) * (self.w /2 + self.g + self.s)
@@ -98,6 +108,9 @@ class JJ_in_line(DesignElement):
         line.rotate(angle, (self.jj_params['x'], self.jj_params['y']))
         return {'positive': line, 'JJ':jj}
 
+    def get_terminals(self):
+        return self.terminals
+
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True,
                    cutoff: float = np.inf, epsilon: float = 11.45) -> list:
         from scipy.constants import hbar, e
@@ -110,3 +123,4 @@ class JJ_in_line(DesignElement):
         tls_instance.add_element(c, [terminal_mapping['port1'], terminal_mapping['port2']])
 
         return cache
+

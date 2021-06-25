@@ -182,7 +182,7 @@ class Coaxmon(DesignElement):
         return self.terminals
 
     def generate_JJ(self):
-        self.JJ = squid3JJ.JJ_2_small(self.JJ_coordinates[0], self.JJ_coordinates[1],
+        self.JJ = squid3JJ.JJ_2(self.JJ_coordinates[0], self.JJ_coordinates[1],
                                 self.JJ_params['a1'], self.JJ_params['a2'],
                                 self.JJ_params['b1'], self.JJ_params['b2'],
                                 self.JJ_params['c1'], self.JJ_params['c2'], add_JJ=self.third_JJ,
