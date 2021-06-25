@@ -58,11 +58,11 @@ class Fungus_Squid_C(DesignElement):
         self.tls_cache = []
         self.L = 15e-9  # 20nHr
         self.C = {   'coupler0': None,
-            'coupler1': None,
+             'coupler1': None,
              'coupler2': None,
              'coupler3': None,
              'coupler4': None,
-            'qubit': None}
+             'qubit': None}
 
         #terminals
         self.terminals = {  # 'coupler0': None,
