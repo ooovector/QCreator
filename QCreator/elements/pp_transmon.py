@@ -31,6 +31,7 @@ class PP_Transmon(DesignElement):
                  remove_ground = {},
                  shoes = {},
                  holes = False,
+                 fluxline_params = [],
                  secret_shift = 0):
         super().__init__(type='qubit', name=name)
         #qubit parameters
@@ -60,6 +61,7 @@ class PP_Transmon(DesignElement):
         self.JJ_params = jj_params
         self.JJ = None
         self.layers = []
+        self.fluxline_params = fluxline_params
 
         #terminals
         self.terminals = {  # 'coupler0': None,
@@ -163,20 +165,44 @@ class PP_Transmon(DesignElement):
         result = gdspy.boolean(result, P2, 'or', layer=self.layer_configuration.total_layer)
 
         #change here if case to allow Manhatten-style junctions
-        if self.JJ_params['manhatten']:
+        if self.JJ_params['manhatten'] and self.JJ_params['squid'] == False:
             P1_bridge = gdspy.Rectangle((self.center[0]-self.gap/2,self.center[1]),(self.center[0]-self.b_g/2,self.center[1]+self.b_w))
             P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2, self.center[1] ),(self.center[0] + self.b_g / 2, self.center[1] - self.b_w))
             hole1     = gdspy.Rectangle((self.center[0]-self.b_g/2-self.JJ_params['h_w']-self.b_w/2,self.center[1]),(self.center[0]-self.b_g/2-self.b_w/2,self.center[1]+self.JJ_params['h_d']))
             hole2     = gdspy.Rectangle((self.center[0] + self.b_g / 2, self.center[1]-self.JJ_params['h_w']-self.b_w/2),(self.center[0] + self.b_g / 2 + self.JJ_params['h_d'], self.center[1] - self.b_w/2))
             P1_bridge = gdspy.boolean(P1_bridge, hole1, 'not', layer=8)
             P2_bridge = gdspy.boolean(P2_bridge, hole2, 'not', layer=8)
-        else:
-            P1_bridge = gdspy.Rectangle((self.center[0]-self.gap/2,self.center[1]-self.b_w/2),(self.center[0]-self.b_g/2,self.center[1]+self.b_w/2))
-            P2_bridge = gdspy.Rectangle((self.center[0]+self.gap/2,self.center[1]-self.b_w/2),(self.center[0]+self.b_g/2,self.center[1]+self.b_w/2))
+
+        if self.JJ_params['manhatten'] and self.JJ_params['squid'] == True:
+            P1_bridge = gdspy.Rectangle((self.center[0] - self.gap / 2, self.center[1] + self.h / 2),
+                                        (self.center[0] - self.b_g / 2, self.center[1] + self.h / 2 - self.b_w))
+            P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2, self.center[1] + self.h / 2 - 2 * self.b_w),
+                                        (self.center[0] + self.b_g / 2, self.center[1] + self.h / 2 - 3 * self.b_w))
 
 
-        qubit_cap_parts.append(gdspy.boolean(P1, P1_bridge, 'or', layer=8+self.secret_shift))
-        qubit_cap_parts.append(gdspy.boolean(P2, P2_bridge, 'or', layer=9+self.secret_shift))
+
+            f = self.fluxline_params
+            l, t_m, t_r, gap, l_arm, h_arm, s_gap = f['l'], f['t_m'], f['t_r'], f['gap'], f['l_arm'], f['h_arm'], f['s_gap']
+            flux = PP_Squid_Fluxline(l, t_m, t_r, gap, l_arm, h_arm, s_gap)
+            fluxline = flux.render(self.center, self.w, self.h)['positive']
+
+            # removing ground where the fluxline is
+            ground_fluxline = True
+            if ground_fluxline == False:
+                result = gdspy.boolean(result, gdspy.Rectangle(
+                    (self.center[0] - l_arm / 2 - t_r - self.g_t, self.center[1] + self.h / 2 + 0.01),
+                    (self.center[0] + 3 * l_arm / 2 + t_r + t_m + self.g_t, self.center[1] + self.h / 2 + 250)), 'not',
+                                       layer=self.layer_configuration.total_layer)
+            else:
+                result = gdspy.boolean(result, gdspy.Rectangle(
+                    (self.center[0], self.center[1] + self.h / 2 + 0.01),
+                    (self.center[0] + l_arm + t_m, self.center[1] + self.h / 2 + 250)), 'not',
+                                       layer=self.layer_configuration.total_layer)
+
+            result = gdspy.boolean(result, fluxline, 'or', layer=self.layer_configuration.total_layer)
+
+        qubit_cap_parts.append(gdspy.boolean(P1, P1_bridge, 'or', layer=8 + self.secret_shift))
+        qubit_cap_parts.append(gdspy.boolean(P2, P2_bridge, 'or', layer=9 + self.secret_shift))
 
         result = gdspy.boolean(result, P1_bridge, 'or', layer=self.layer_configuration.total_layer)
         result = gdspy.boolean(result, P2_bridge, 'or', layer=self.layer_configuration.total_layer)
@@ -506,16 +532,35 @@ class PP_Transmon(DesignElement):
     def generate_JJ(self):
         #change here to allow Manhatten style junctions
         if self.JJ_params['manhatten']:
-            #JJ_2 is the manhatten junction style
-            ##############################################################################
-            self.JJ = JJ4q.JJ_2(self.JJ_coordinates[0], self.JJ_coordinates[1],
-                                self.JJ_params['a1'], self.JJ_params['a2'],self.JJ_params['h_w'],self.JJ_params['h_d'])
-            #############################################################################
+            if self.JJ_params['squid']:
+                reachy = 5
+                reachx = 15
+                result = gdspy.Rectangle((self.center[0] - self.b_g / 2,
+                                          self.center[1] + self.h / 2 - self.b_w / 3 + self.JJ_params['a1'] / 2), (
+                                         self.center[0] +reachx,
+                                         self.center[1] + self.h / 2 - self.b_w / 3 - self.JJ_params['a1'] / 2))
+
+                result = gdspy.boolean(result, gdspy.Rectangle((self.center[0] - self.b_g / 2,
+                                                                self.center[1] + self.h / 2 - 2 * self.b_w / 3 +
+                                                                self.JJ_params['a1'] / 2), (
+                                                               self.center[0] + reachx,
+                                                               self.center[1] + self.h / 2 - 2 * self.b_w / 3 -
+                                                               self.JJ_params['a1'] / 2)), 'or')
+                result = gdspy.boolean(result, gdspy.Rectangle(
+                    (self.center[0] + self.b_g / 2, self.center[1] + self.h / 2 - 2 * self.b_w), (
+                    self.center[0] + self.b_g / 2 + self.JJ_params['a2'],self.center[1] + self.h / 2 - self.b_w / 3 + self.JJ_params['a1'] / 2+reachy
+                    )), 'or')
+            else:
+                #JJ_2 is the manhatten junction style
+                ##############################################################################
+                self.JJ = JJ4q.JJ_2(self.JJ_coordinates[0], self.JJ_coordinates[1],
+                                    self.JJ_params['a1'], self.JJ_params['a2'],self.JJ_params['h_w'],self.JJ_params['h_d'])
+                result = self.JJ.generate_jj()
+                #############################################################################
         else:
             self.JJ = JJ4q.JJ_1(self.JJ_coordinates[0], self.JJ_coordinates[1],
                                     self.JJ_params['a1'], self.JJ_params['a2'])
-
-        result = self.JJ.generate_jj()
+            result = self.JJ.generate_jj()
 
         result = gdspy.boolean(result, result, 'or', layer=self.layer_configuration.jj_layer)
 
@@ -657,3 +702,49 @@ def mirror_point(point,ref1,ref2):
     x2 = round(a * (point[0] - x1) + b * (point[1] - y1) + x1)
     y2 = round(b * (point[0] - x1) - a * (point[1] - y1) + y1)
     return x2, y2
+
+
+class PP_Squid_Fluxline:
+    """
+    This class represents a Flux_line for a PP_Squid. Design inspired from  Vivien Schmitt. Design, fabrication and test of a four superconducting quantum-bit processor. Physics[physics]
+    There are several parameters:
+    1) l     - total length of the flux line to the Squid
+    2) t_m   - main line thickness, standard is 2*t_r
+    3) t_r   - return line thickness
+    4) gap   - gap between Squid and line
+    5) l_arm - length of one sidearm
+    6) h_arm - height of the return arm
+    7) s_gap - gap between main and return fluxline
+    --> not yet defined with a terminal, To Do
+    """
+    def __init__(self, l,t_m,t_r,gap,l_arm,h_arm,s_gap):
+        self.l      = l
+        self.t_m    = t_m
+        self.t_r    = t_r
+        self.gap    = gap
+        self.l_arm  = l_arm
+        self.h_arm  = h_arm
+        self.s_gap  = s_gap
+
+    def render(self, center, width,height):
+        start = [center[0]+self.l_arm/2,center[1]+self.t_r+self.l+height/2+self.gap]
+        points = [start+[0,0],start+[self.t_m,0],start+[self.t_m,-self.l],start+[self.t_m+self.l_arm,-self.l]]
+        points.append(start+[self.t_m+self.s_gap,-self.l+self.h_arm])
+        points.append(start+[self.t_m+self.s_gap,0])
+        points.append(start + [self.t_m + self.s_gap+self.t_r, 0])
+        points.append(start + [self.t_m + self.s_gap + self.t_r, -self.l+self.h_arm])
+        points.append(start + [self.t_m + self.l_arm+ self.t_r, -self.l])
+        points.append(start + [self.t_m + self.l_arm+ self.t_r, -self.l-self.t_r])
+        points.append(start + [- self.l_arm- self.t_r, -self.l-self.t_r])
+        points.append(start + [- self.l_arm - self.t_r, -self.l])
+        points.append(start + [-self.t_r-self.s_gap, -self.l+self.h_arm])
+        points.append(start + [-self.t_r - self.s_gap, 0])
+        points.append(start + [- self.s_gap, 0])
+        points.append(start + [- self.s_gap, -self.l+self.h_arm])
+        points.append(start + [- self.l_arm, -self.l])
+        points.append(start + [0, -self.l])
+        points = [(i[0]+i[2],i[1]+i[3]) for i in points]
+        result = gdspy.Polygon(points)
+        return {
+            'positive': result
+                        }
