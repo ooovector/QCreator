@@ -127,6 +127,7 @@ shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4}
 shoes2 = {}#{1:(70,50)}
 # how to place qubits
 spacing = 1000
+
 center1 = (origin[0],origin[1])
 center2 = (origin[0]+spacing+ground_w,origin[1])
 center3 = (origin[0],origin[1]-spacing-ground_h)
@@ -150,7 +151,7 @@ ground_h_tc = 950+2*ground_t
 # ground_h_tc = 950
 # ground_t_tc = 10
 
-claw_tc = [10,50]
+claw_tc = [10,80]
 
 shift_y =gap_tc/2+width_tc[0]/2
 
@@ -168,7 +169,7 @@ air = [-20,40,100]
 
 
 
-CC2 = [elements.pp_transmon.PP_Transmon_Coupler(170,14,16,'top',coupler_type = 'coupler',heightr = -0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
+CC2 = [elements.pp_transmon.PP_Transmon_Coupler(250,14,16,'top',coupler_type = 'coupler',heightr = -0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
       elements.pp_transmon.PP_Transmon_Coupler(10,10,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175),
       ]
 
@@ -232,8 +233,10 @@ for i in range(Y):
 
 for i in range(Y):
     for j in range(X):
-        center1 = (origin[0] + (spacing / 2 + ground_w / 2)*(2*j+1), origin[1] - shift_y+(spacing+ground_w)*i)
-        center2 = (origin[0] - shift_y+j*(spacing+ground_w), origin[1] + (spacing / 2 + ground_w / 2)*(2*i+1))
+        additional_y_coupler_shift = -90
+        shit_shift=0.124
+        center1 = (origin[0] + (spacing / 2 + ground_w / 2)*(2*j+1), origin[1] - shift_y+(spacing+ground_w)*i+additional_y_coupler_shift)
+        center2 = (origin[0] - shift_y+j*(spacing+ground_w), origin[1] + (spacing / 2 + ground_w / 2)*(2*i+1)+additional_y_coupler_shift)
         T1 = elements.fungus_squid_coupler.Fungus_Squid_C(name='PP_Coupler1',center=center1,
                           width = width_tc,
                           height = height_tc,
