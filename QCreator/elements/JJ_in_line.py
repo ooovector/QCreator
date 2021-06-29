@@ -17,8 +17,8 @@ class JJ_in_line(DesignElement):
         self.jj_params = jj_params
         self.layer_configuration = layer_configuration
         h = 2 * 1e-9
-        s = 1e-18*self.jj_params['a1']*self.jj_params['a2']
-        epsilon = 1
+        s = 1e-12*self.jj_params['a1']*self.jj_params['a2']
+        epsilon = 10
         self.jj_capacitance = epsilon_0 * epsilon * s / h
         self.terminals = {'port1': DesignTerminal(position=self.cpw_port.position, orientation=self.orientation,
                                                   type='cpw', w=self.w, s=self.s, g=self.g, disconnected='short'),

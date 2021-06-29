@@ -369,9 +369,9 @@ class Narrowing(DesignElement):
         cl1, ll1 = cm.ConformalMapping([self.s1, self.w1, self.s1], epsilon=epsilon).cl_and_Ll()
         cl2, ll2 = cm.ConformalMapping([self.s2, self.w2, self.s2], epsilon=epsilon).cl_and_Ll()
 
-        l = tlsim.Inductor(l=(ll1 + ll2) / 2 * self.length)
-        c1 = tlsim.Capacitor(c=cl1 / 2 * self.length)
-        c2 = tlsim.Capacitor(c=cl2 / 2 * self.length)
+        l = tlsim.Inductor(l=(ll1[0,0] + ll2[0,0]) / 2 * self.length, name='CPW Narrowing {} L'.format(self.name))
+        c1 = tlsim.Capacitor(c=cl1[0,0] / 2 * self.length, name='CPW Narrowing {} C1'.format(self.name))
+        c2 = tlsim.Capacitor(c=cl2[0,0] / 2 * self.length, name='CPW Narrowing {} C2'.format(self.name))
 
         if track_changes:
             self.tls_cache.append([l, c1, c2])

@@ -4,6 +4,7 @@ import numpy as np
 from . import squid3JJ
 from typing import List, Tuple, Mapping, Dict, AnyStr
 from copy import deepcopy
+from .. import conformal_mapping as cm
 from .. import transmission_line_simulator as tlsim
 
 class Squid_in_line(DesignElement):
@@ -26,7 +27,7 @@ class Squid_in_line(DesignElement):
         self.terminals = {'port1': None,
                           'port2': None,
                           'flux': None}
-        self.layers = []
+        self.tls_cache = []
 
     def render(self):
         if 'side' in self.squid_params:
@@ -199,17 +200,16 @@ class Squid_in_line(DesignElement):
         m = tlsim.Inductor(self.squid_params['lm'], name=self.name + ' flux-wire')
 
         cl, ll = self.cm(epsilon)
-        c = tlsim.Capacitor(c=cl[0, 0] * self.line_length, name=self.name + ' qubit-ground')
+        c = cl[0, 0] * self.line_length
         l = ll[0, 0] * self.line_length
         c1 = tlsim.Capacitor(c=c/2, name=self.name + '_c1')
         c2 = tlsim.Capacitor(c=c/2, name=self.name + '_c2')
         l = tlsim.Inductor(l=l, name=self.name + '_l')
 
         cache = [jj1, jj2, m, l, c1, c2]
-        squid_top = terminal_mapping['port1']
 
-        tls_instance.add_element(jj1, [0, squid_top])
-        tls_instance.add_element(jj2, [terminal_mapping['flux'], squid_top])
+        tls_instance.add_element(jj1, [0, terminal_mapping['port1']])
+        tls_instance.add_element(jj2, [terminal_mapping['flux'], terminal_mapping['port2']])
         tls_instance.add_element(m, [0, terminal_mapping['flux']])
         tls_instance.add_element(l, [terminal_mapping['port1'], terminal_mapping['port2']])
         tls_instance.add_element(c1, [terminal_mapping['port1'], 0])
