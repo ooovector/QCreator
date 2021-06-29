@@ -143,7 +143,7 @@ height_tc2 = [860+3*28,280,1200+3*28]
 
 gap_tc      = 70
 ground_w_tc = 325+2*ground_t
-ground_h_tc = 950+2*ground_t
+ground_h_tc = 950+2*ground_t+200 #buffer for the claws is the +200
 # width_tc    = [60,75]
 # height_tc   = [800,165]
 # gap_tc      = 70
