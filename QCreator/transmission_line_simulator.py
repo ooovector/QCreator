@@ -31,6 +31,12 @@ class TLSystemElement:
     def energy_matrix(self):
         return 0
 
+    def scdc(self, submode):
+        return None
+
+    def is_scdc(self):
+        return False
+
     def __init__(self, type_, name=''):
         self.name = name
         self.type_ = type_
@@ -130,6 +136,13 @@ class Inductor(TLSystemElement):
         ]) / 2
         return np.conj(mode) @ emat @ mode
 
+    def scdc(self, submode):
+        return [(submode[1] - submode[0] + submode[2] * 1e-6 * np.real(self.L) / (hbar / (2 * e))),
+                (submode[2] + submode[3])]
+
+    def is_scdc(self):
+        return True
+
     def energy_matrix(self):
         emat = np.asarray([
             [0, 0, 0, 0],
@@ -160,6 +173,13 @@ class Short(TLSystemElement):
         a = np.asarray([[1, 0]])  # current values
         return a, b
 
+    def scdc(self, submode):
+        return [submode[0]]
+        #return []
+
+    def is_scdc(self):
+        return True
+
     def energy(self, mode):
         return 0
 
@@ -183,13 +203,19 @@ class Port(TLSystemElement):
         a = np.asarray([[1, self.Z0, 0], [1, -self.Z0, 1]])  # current values
         return a, b
 
+    def scdc(self, submode):
+        return [(submode[1] - self.idc)]
+
+    def is_scdc(self):
+        return True
+
     def energy(self, mode):
         return 0
 
     def __init__(self, z0=None, name=''):
         super().__init__('Port', name)
         self.Z0 = z0
-
+        self.idc = 0
 
 class TLCoupler(TLSystemElement):
     '''
@@ -311,6 +337,15 @@ class TLCoupler(TLSystemElement):
             a[2 * n_eq_internal + self.n * 3 + k, -m:] = np.kron(c, mode_right)
         return a, b
 
+    def scdc(self, submode):
+        dphi = submode[self.n:2*self.n] - submode[:self.n]
+        phi = self.l * (self.Ll @ submode[2*self.n:3*self.n]) / (hbar/(2*e)) * 1e-6
+        di = submode[2*self.n:3*self.n] + submode[3*self.n:4*self.n]
+        return np.hstack([(phi + dphi), di]).tolist()
+
+    def is_scdc(self):
+        return True
+
     def __init__(self, n=2, l=None, ll=None, cl=None, rl=None, gl=None, name='', num_modes=10, cutoff=None):
         super().__init__('TL', name)
         self.n = n
@@ -363,6 +398,13 @@ class JosephsonJunction(TLSystemElement):
         ]) / 2
         return energy
 
+    def scdc(self, submode):
+        return [self.E_J / self.phi_0 * np.sin((submode[1] - submode[0])) * 1e6 + submode[2],
+                (submode[2] + submode[3])]
+
+    def is_scdc(self):
+        return True
+
     def nonlinear_perturbation(self):
         p = np.asarray([
             [0, 0, 0, 0],
@@ -382,9 +424,13 @@ class JosephsonJunction(TLSystemElement):
         self.E_J = e_j
 
         self.phi_0 = hbar / (2 * e)  # reduced flux quantum
+        self.stationary_phase = 0
 
     def L_lin(self):
-        return self.phi_0 ** 2 / self.E_J  # linear part of JJ
+        return self.phi_0 ** 2 / (self.E_J * np.cos(self.stationary_phase))  # linear part of JJ
+
+    def set_stationary_phase(self, phase):
+        self.stationary_phase = phase
 
 
 class TLSystem:
@@ -452,6 +498,66 @@ class TLSystem:
 
         order = np.argsort(frequencies)
         return np.asarray(frequencies)[order], np.asarray(gammas)[order], np.asarray(modes)[order]
+
+    def get_scdc_nodes(self):
+        nodes = []
+        for element, connections in zip(self.elements, self.terminal_node_mapping):
+            if element.is_scdc():
+                nodes.extend(connections)
+        return list(set(nodes))
+
+    def get_scdc_elements(self):
+        return [e for e in self.elements if e.is_scdc()]
+
+    def set_phases(self, state):
+        scdc_nodes = self.get_scdc_nodes()
+        for e_id, e in enumerate(self.elements):
+            if not e.is_scdc():
+                continue
+            if hasattr(e, 'set_stationary_phase'):
+                phase = state[scdc_nodes.index(self.terminal_node_mapping[e_id][1])] - \
+                        state[scdc_nodes.index(self.terminal_node_mapping[e_id][0])]
+                e.set_stationary_phase(phase)
+
+    def nonlinear_scdc_equations(self, state):
+        from collections import defaultdict
+        # number of nodes
+        scdc_nodes = self.get_scdc_nodes()
+        node_no = len(scdc_nodes)
+        # number of terminals
+        terminal_no = np.sum([e.num_terminals() for e in self.get_scdc_elements()])
+
+        dynamic_equation_no = terminal_no
+        # kinetic equations are Kirchhof's law that the sum of nodal currents is zero
+        kinetic_equation_no = node_no
+        num_equations = dynamic_equation_no + kinetic_equation_no
+
+        current_offset = 0
+        equations = []
+        node_currents = defaultdict(lambda: 0)
+        #scdc_elements = self.get_scdc_elements()
+        for e_id, e in enumerate(self.elements):
+            if not e.is_scdc():
+                continue
+            element_state_size = 2 * e.num_terminals()
+            element_state = np.zeros((element_state_size,))
+            for terminal_id, terminal_node in enumerate(self.terminal_node_mapping[e_id]):
+                node_id = scdc_nodes.index(terminal_node)
+                element_state[terminal_id] = state[node_id]
+                element_state[terminal_id + e.num_terminals()] = state[node_no + current_offset + terminal_id]
+                node_currents[node_id] += state[node_no + current_offset + terminal_id]
+
+            element_equations = e.scdc(element_state)
+            if element_equations is not None:
+                #print(e, element_state, element_equations)
+                equations.extend(element_equations)
+                current_offset += e.num_terminals()
+
+        #print (node_currents)
+        for node, current in node_currents.items():
+            equations.append(current)
+
+        return equations
 
     def get_element_energies_from_dynamic(self, state):
         # number of nodes
@@ -636,7 +742,12 @@ class TLSystem:
             submode_element2 = submode_element
         else:
             submode_element2 = self.get_element_submode(element, mode2)
-        submode_energy = np.dot(np.conj(submode_element.T), np.dot(element.energy_matrix(), submode_element2))
+
+        e = element.energy_matrix()
+        if type(e) is not int:
+            submode_energy = np.conj(submode_element.T).squeeze()@element.energy_matrix()@submode_element2.squeeze()
+        else:
+            submode_energy = 0
 
         return submode_energy
 
