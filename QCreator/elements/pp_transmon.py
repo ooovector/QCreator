@@ -337,7 +337,7 @@ class PP_Transmon(DesignElement):
                                                              (self.center[0] - self.g_w / 2 + l1 - t, self.center[
                                                                  1] + height_left * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(coupler.sctq,0),'or')
                     if coupler.sctq > self.g_t:
-                        pocket = gdspy.boolean(pocket,gdspy.Rectangle((self.center[0],self.center[1]+coupler.gap/2+coupler.w),(self.center[0]-self.g_w/2+1,self.center[1]-coupler.w-coupler.gap/2)),'or')
+                        pocket = gdspy.boolean(pocket,gdspy.Rectangle((self.center[0],self.center[1]+coupler.gap/2+coupler.w),(self.center[0]-self.g_w/2-1,self.center[1]-coupler.w-coupler.gap/2)),'or')
 
 
 
