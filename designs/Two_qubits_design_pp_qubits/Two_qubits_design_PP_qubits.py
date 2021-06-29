@@ -100,15 +100,15 @@ resonator_ground = 10
 #origin of left qubit
 origin = [4000,2200]
 
-
+# parameters for Stefan's two-qubit setup
 gap   = 50
-width  = 200
-height = 2*width+gap
+width  = 150
+height = 600
 
 
 ground_t = 50
-ground_w = 660+ground_t*2
-ground_h = 660+ground_t*2
+ground_w = 710+ground_t*2
+ground_h = 750+ground_t*2
 
 #square junctions
 a1    = np.sqrt(0.15*0.3) #Junction height in um
