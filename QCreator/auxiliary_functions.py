@@ -472,8 +472,8 @@ def draw_double_resonator_plus_double_qubit(sample,
 def search_for_resonators_qubits(f,delta,min_freq,max_freq):
     res_modes = []
     qs=f/delta/2
-    min_freq=min_freq*1e9
-    max_freq=max_freq*1e9
+    min_freq=min_freq*1e9*2*np.pi
+    max_freq=max_freq*1e9*2*np.pi
     min_Q=1e3
     max_Q=1e9
     for mode_id in range(len(qs)):
