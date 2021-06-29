@@ -115,7 +115,8 @@ a1    = np.sqrt(0.15*0.3) #Junction height in um
 a2    = a1 # Junction width in um
 
 #jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':np.pi/2}
-jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True }# hole sizes for the JJs
+jj_pp2 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True }# hole sizes for the JJs
+jj_pp1 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False }# hole sizes for the JJs
 
 JJ_pad_offset_x = 10 # for JJ_manhatten
 JJ_pad_offset_y = 16 # JJ design
@@ -134,13 +135,20 @@ center4 = (origin[0]+spacing+ground_w,origin[1]-spacing-ground_h)
 
 #Coupler
 arms = {}
-
 width_tc    = [60,75]
-height_tc   = [800,165]
+height_tc   = [910-20,500]
+
+height_tc2 = [860+3*28,280,1200+3*28]
+
 gap_tc      = 70
-ground_w_tc = 325
-ground_h_tc = 950
-ground_t_tc = 10
+ground_w_tc = 325+2*ground_t
+ground_h_tc = 950+2*ground_t
+# width_tc    = [60,75]
+# height_tc   = [800,165]
+# gap_tc      = 70
+# ground_w_tc = 325
+# ground_h_tc = 950
+# ground_t_tc = 10
 
 claw_tc = [10,50]
 
@@ -158,9 +166,6 @@ air = [-20,40,100]
 
 
 
-#CC2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'bottom',coupler_type = 'coupler',heightr = 0.06*0,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
-#      elements.pp_transmon.PP_Transmon_Coupler(10,10,25,'right',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=100),
-#      ]
 
 
 CC2 = [elements.pp_transmon.PP_Transmon_Coupler(170,14,16,'bottom',coupler_type = 'coupler',heightr = 0.06*0,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
@@ -170,14 +175,13 @@ CC2 = [elements.pp_transmon.PP_Transmon_Coupler(170,14,16,'bottom',coupler_type 
 
 
 
-#CC1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = 'coupler',heightr = 0.06*0,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
-#      elements.pp_transmon.PP_Transmon_Coupler(450,160,25,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=100),
-#      ]
 
-CC1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.4,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=100),
+CC1_flux = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.4,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=100),
+      # elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
+      ]
+CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.4,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=100),
       elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
       ]
-
 
 
 
@@ -191,13 +195,17 @@ flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm'
 #flux = {}
 
 
-CC = [CC1,CC2]
+CC = [CC1_flux,CC2]
 X = 2
 Y = 1
 qubits   = []
 couplers = []
 for i in range(Y):
     for j in range(X):
+        if j%2==1:
+            jj_pp=jj_pp1
+        else:
+            jj_pp = jj_pp2
         center = (origin[0]+j*(spacing+ground_w),origin[1]+i*(spacing+ground_h))
         element = elements.pp_transmon.PP_Transmon(name='Q'+str(j)+'_'+str(i), center=center,
                                            width=width,
@@ -212,7 +220,7 @@ for i in range(Y):
                                            layer_configuration=sample.layer_configuration,
                                            Couplers=CC[j],
                                            calculate_capacitance=False,
-                                           remove_ground={'left': 0, 'right': 0.1, 'top': 0, 'bottom': 0},
+                                           remove_ground={'left': 1, 'right': 1, 'top': 1, 'bottom': 1},
                                            shoes=shoes1,
                                            transformations={'rotate': (np.pi / 4, center)},
                                            fluxline_params = flux
