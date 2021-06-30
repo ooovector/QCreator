@@ -7,7 +7,7 @@ from copy import deepcopy
 from .. import conformal_mapping as cm
 from .. import transmission_line_simulator as tlsim
 
-class Squid_in_line(DesignElement):
+class SquidInLine(DesignElement):
     def __init__(self, name: str,  center : tuple, core: float, gap: float, ground: float,
                  layer_configuration: LayerConfiguration, squid_params: Dict, fluxline: Dict):
         super().__init__(type='squid in line', name=name)
@@ -148,7 +148,7 @@ class Squid_in_line(DesignElement):
             flux_line_output = (self.center[0] + (self.core / 2 + self.gap + self.ground) * coeff, connection[1])
             remove = gdspy.FlexPath(deepcopy([connection, flux_line_output]), [self.w, self.w],
                                     offset=[-self.s, self.s], layer=self.layer_configuration.total_layer)
-            self.terminals['flux_line'] = DesignTerminal(flux_line_output, np.pi if coeff == 1 else 0,
+            self.terminals['flux'] = DesignTerminal(flux_line_output, np.pi if coeff == 1 else 0,
                                                          g=self.g, s=self.s,
                                                          w=self.w, type='cpw')
             # add connection to the ground

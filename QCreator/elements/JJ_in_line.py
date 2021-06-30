@@ -5,7 +5,7 @@ import numpy as np
 from .. import transmission_line_simulator as tlsim
 from scipy.constants import epsilon_0
 
-class JJ_in_line(DesignElement):
+class JJInLine(DesignElement):
     def __init__(self,name, cpw_port,w, g, s, length, jj_params, layer_configuration):
         super().__init__(type='JJ in line', name=name)
         self.cpw_port = cpw_port

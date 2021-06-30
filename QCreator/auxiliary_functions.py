@@ -1,7 +1,6 @@
 import numpy as np
 from . import elements
 
-
 def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
                           resonator_core,resonator_gap, resonator_ground,
                           tl_core, tl_gap, tl_ground, grounding_width,
@@ -12,7 +11,8 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
                           open_end_length = None,
                           port_orientation='left', direction_orientation='down', meander_r=None,
                  first_step_orientation='left', end_point_closed_end = None, end_orientation_closed_end=None,
-                 coupler2_length=None):
+                 coupler2_length=None, closed_end_res_meander_length=None, res_length_left=None,
+                                              res_length_right=None,object1=None, port=None):
 
     coupler_w = [resonator_core, resonator_ground, tl_core]
     coupler_s = [resonator_gap, resonator_gap, tl_gap, tl_gap]
@@ -68,25 +68,39 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
 
     total_length.append(sum([line.length for line in closed_end_meander]))
 
-    coupler2_w = [resonator_core]
-    coupler2_s = [resonator_gap, resonator_gap]
+    coupler2_w = [resonator_core, resonator_ground, resonator_core]
+    coupler2_s = [resonator_gap, resonator_gap, resonator_gap, resonator_gap]
 
-    coupler2_start_y = closed_end_meander[-1].get_terminals()['port2'].position[1] -np.cos(angle)*2*meander_r
-    coupler2_start_x = closed_end_meander[-1].get_terminals()['port2'].position[0]
     coupler2_orientation = closed_end_meander[-1].get_terminals()['port2'].orientation
+    coupler2_start_y = closed_end_meander[-1].get_terminals()['port2'].position[1] -\
+                       np.cos(angle)*(2*meander_r+2*resonator_gap+resonator_core)
+    coupler2_start_x = closed_end_meander[-1].get_terminals()['port2'].position[0] + \
+                       np.cos(coupler2_orientation)*(resonator_core + 2*resonator_gap + grounding_width)
+
     main_coupler2 = elements.CPWCoupler('purcell coupler',
                                        [(coupler2_start_x, coupler2_start_y),
                                         (coupler2_start_x + np.cos(coupler2_orientation)*coupler2_length,
                                          coupler2_start_y)],
-                                       coupler2_w, coupler2_s, tl_ground, sample.layer_configuration, r=meander_r,
+                                       coupler2_w, coupler2_s, resonator_ground, sample.layer_configuration, r=meander_r,
                                         )
     sample.add(main_coupler2)
     total_length.append(coupler2_length)
-    main_coupler2.get_terminals()['port1'].type = 'cpw'
-    main_coupler2.get_terminals()['port1'].w = main_coupler2.get_terminals()['port1'].w[0]
-    main_coupler2.get_terminals()['port1'].s = main_coupler2.get_terminals()['port1'].s[0]
 
-    coupler_connection =  sample.connect_cpw(closed_end_meander[-1], main_coupler2, 'port2', 'port1',
+    fanout3 = sample.fanout(o=main_coupler2, port='port1', name='open end resonator fanout', grouping=[0, 2])
+    g3 = sample.ground(o=fanout3, port='center', name='cl2', grounding_width=grounding_width,
+                       grounding_between=[(0, 1)])
+
+    fanout4 = sample.fanout(o=main_coupler2, port='port2', name='open end resonator fanout', grouping=[0, 3])
+    g4 = sample.ground(o=fanout4, port='wide', name='cl2', grounding_width=grounding_width,
+                       grounding_between=[(0,4)])
+
+    # closed_end_coupler2 = sample.ground(main_coupler2, 'port2', 'closed end purcell coupler', grounding_width,
+    #                                         [(0, 4)])
+
+    # sample.add(closed_end_coupler2)
+    ####С ДЛИНОЙ НЕПОНЯТКИ
+
+    coupler_connection =  sample.connect_cpw(closed_end_meander[-1], g3, 'port2', 'narrow',
                                              name='coupler-meander connection',
                                     points=[], r=meander_r)
 
@@ -102,15 +116,38 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
                                                 airbridge=airbridge,
                                                 min_spacing=min_bridge_spacing, r=meander_r)
 
+
     open_end = elements.OpenEnd(name='open end',
-                               position=(open_end_meander[0].terminals['port2'].position[0],
-                                         open_end_meander[0].terminals['port2'].position[1]),
+                               position=(open_end_meander[-1].terminals['port2'].position[0],
+                                         open_end_meander[-1].terminals['port2'].position[1]),
                                 w=[resonator_core],s=[resonator_gap, resonator_gap], g=tl_ground,
-                               orientation=open_end_meander[0].terminals['port2'].orientation + np.pi,
+                               orientation=open_end_meander[-1].terminals['port2'].orientation + np.pi,
                                layer_configuration=sample.layer_configuration,
                                h1=20,
                                h2=10)
     sample.add(open_end)
+
+    #####
+
+    open_end_res_meander = sample.connect_meander(name='open end', o1=fanout3, port1='down',
+                                              meander_length=closed_end_res_meander_length,
+                                              length_left=res_length_left,
+                                              length_right=res_length_right,
+                                              first_step_orientation='left',
+                                              meander_orientation=-fanout3.get_terminals()['down'].orientation,
+                                              meander_type='round',
+                                              airbridge=airbridge,
+                                              min_spacing=min_bridge_spacing, r=meander_r)
+
+    # total_length.append(sum([line.length for line in open_end_meander]))
+    open_end_res = sample.connect_cpw(open_end_res_meander[-1], object1, 'port2', port, name='open end connection',
+                                  points=[], airbridge=airbridge, min_spacing=min_bridge_spacing, r=meander_r)
+
+    # cl, ll = open_end[0].cm(sample.epsilon)
+    # total_length.append(sum([line.length for line in open_end]))
+    # z01 = np.sqrt(ll[0] / cl[0])[0]
+    # res_params = (sum(total_length), z01, cl[0, 0])
+    #######
 
 
     cl, ll = open_end_meander[0].cm(sample.epsilon)
@@ -120,7 +157,7 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
     if direction_orientation == 'up':
         g1, g2 = g2, g1
 
-    return g1, g2, res_params, main_coupler2
+    return g1, g2, res_params, main_coupler2, g3, g4,fanout3, fanout4
 
 def draw_purcelled_single_resonator_plus_qubit(sample,
                           coupler_start_x, coupler_start_y, coupler_length,
@@ -159,10 +196,14 @@ def draw_purcelled_single_resonator_plus_qubit(sample,
     else:
         coupler_port_for_fanout1 = 'port2'
         coupler_port_for_fanout2 = 'port1'
-    fanout1 = sample.fanout(o=main_coupler, port=coupler_port_for_fanout1, name='closed end resonator fanout', grouping=[0, 1])
-    g1 = sample.ground(o=fanout1, port='middle', name='cl1', grounding_width=grounding_width, grounding_between=[(0, 0)])
+
+    coupler_closed_end = sample.ground(main_coupler, coupler_port_for_fanout1, 'closed end coupler', grounding_width,
+                                       [(0, 2)])
+
     fanout2 = sample.fanout(o=main_coupler, port=coupler_port_for_fanout2, name='open end resonator fanout', grouping=fanout2_grouping)
-    g2 = sample.ground(o=fanout2, port='middle', name='cl2', grounding_width=grounding_width, grounding_between=[(0, 0)])
+    g2 = sample.ground(o=fanout2, port='middle', name='cl2', grounding_width=grounding_width,
+                       grounding_between=[(0, 0)])
+
     open_end_meander = sample.connect_meander(name='open end', o1=fanout2, port1=fanout2_port,
                                                 meander_length=closed_end_meander_length,
                                                 length_left=length_left,
@@ -184,10 +225,8 @@ def draw_purcelled_single_resonator_plus_qubit(sample,
     total_length.append(sum([line.length for line in open_end]))
     z01 = np.sqrt(ll[0] / cl[0])[0]
     res_params = (sum(total_length), z01, cl[0, 0])
-    if direction_orientation == 'up':
-        g1, g2 = g2, g1
 
-    return g1, g2, res_params
+    return res_params
 
 def draw_single_resonator_plus_qubit(sample,
                           coupler_start_x, coupler_start_y, coupler_length,
