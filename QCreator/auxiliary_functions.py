@@ -236,7 +236,7 @@ def draw_single_resonator_plus_qubit(sample,
                           min_bridge_spacing = None,
                           airbridge = None, object1=None, port=None,
                           open_end_length = None,
-                          port_orientation='left', direction_orientation='down'):
+                          port_orientation='left', direction_orientation='down', points_for_the_open_end=[]):
 
     #left-> open end will be done for the left port
     coupler_w = [resonator_core, resonator_ground, tl_core]
@@ -306,7 +306,7 @@ def draw_single_resonator_plus_qubit(sample,
         sample.add(object1)
 
     open_end = sample.connect_cpw(fanout2, object1, fanout2_port, port, name='right open end',
-                                    points=[], airbridge=airbridge, min_spacing=min_bridge_spacing)
+                                    points=points_for_the_open_end, airbridge=airbridge, min_spacing=min_bridge_spacing)
 
     cl, ll = open_end[0].cm(sample.epsilon)
     total_length.append(sum([line.length for line in open_end]))

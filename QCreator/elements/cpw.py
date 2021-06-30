@@ -563,7 +563,7 @@ class RectGrounding(DesignElement):
         cache = []
 
         if len(self.terminals.keys()) == 1:
-            if len(self.w) > 1:
+            if len(self.w) > 1 and ('wide', 0) in terminal_mapping:
                 for conductor_id in range(len(self.w)):  # loop over all conductors
                     g = tlsim.Short()
                     tls_instance.add_element(g, [

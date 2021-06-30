@@ -232,7 +232,7 @@ class PP_Transmon(DesignElement):
             for id, coupler in enumerate(self.couplers):
                 if coupler.side == 'fluxline':
                     continue
-                coupler_parts = coupler.render(self.center, self.g_w,self.g_h)
+                coupler_parts = coupler.render(self.center, self.g_w,self.g_h,self.g_t)
 
                 #result = gdspy.boolean(coupler_parts['positive'], result, 'or',layer=self.layer_configuration.total_layer)
 
@@ -291,7 +291,8 @@ class PP_Transmon(DesignElement):
                                                                  1] + height_right * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(-coupler.sctq,0),
                                         'or', layer=self.layer_configuration.inverted)
                     pocket = gdspy.boolean(pocket, gdspy.Rectangle((self.center[0] + self.g_w / 2 + self.g_t + 2 * gap + t,self.center[1] - height_right * self.g_h / 2 - self.g_t - 2 * gap - t),(self.center[0] + self.g_w / 2 - l1 + t, self.center[1] + height_right * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(-coupler.sctq, 0),'or')
-
+                    if coupler.sctq > self.g_t:
+                        pocket = gdspy.boolean(pocket,gdspy.Rectangle((self.center[0],self.center[1]+coupler.gap/2+coupler.w),(self.center[0]+self.g_w/2+1,self.center[1]-coupler.w-coupler.gap/2)),'or')
 
                 if side =='left':
                     #upper
@@ -335,6 +336,10 @@ class PP_Transmon(DesignElement):
                                                                   1] - height_left * self.g_h / 2 - self.g_t - 2 * gap - t),
                                                              (self.center[0] - self.g_w / 2 + l1 - t, self.center[
                                                                  1] + height_left * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(coupler.sctq,0),'or')
+                    if coupler.sctq > self.g_t:
+                        pocket = gdspy.boolean(pocket,gdspy.Rectangle((self.center[0],self.center[1]+coupler.gap/2+coupler.w),(self.center[0]-self.g_w/2-1,self.center[1]-coupler.w-coupler.gap/2)),'or')
+
+
 
                 if side == 'top':
                     extended = gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+self.g_h/2),(self.center[0]-self.g_w/2+l1-gap,self.center[1]+self.g_h/2+t+gap+gap))
@@ -642,20 +647,32 @@ class PP_Transmon_Coupler:
         #put coupler closer to qubit
         self.sctq = shift_to_qubit
 
-    def render(self, center, g_w,g_h):
+    def render(self, center, g_w,g_h,g_t = 0):
         result = 0
         if self.side == "left":
             result = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap,center[1]-self.height_left*g_h/2-self.gap),(center[0]-g_w/2-self.gap,center[1]+self.height_left*g_h/2+self.gap))
             if self.height_left == 1:
                 upper  = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap,center[1]+g_h/2+self.gap),(center[0]-g_w/2+self.l1-self.gap-self.t,center[1]+g_h/2+self.t+self.gap))
                 lower  = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap,center[1]-g_h/2-self.gap-self.t),(center[0]-g_w/2+self.l2-self.gap-self.t,center[1]-g_h/2-self.gap))
-            line   = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap-self.gap-self.ground_t,center[1]-self.w/2),(center[0]-g_w/2-self.t-self.gap,center[1]+self.w/2))#modified here ;), remove ground_t
+            if self.sctq != 0:
+                line = gdspy.Rectangle(
+                    (center[0] - g_w / 2 + g_t -self.sctq, center[1] - self.w / 2), (
+                    center[0] - g_w / 2 - self.t - self.gap,
+                    center[1] + self.w / 2))  # modified here ;), remove ground_t
+
+            else:
+                line   = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap-self.gap-self.ground_t,center[1]-self.w/2),(center[0]-g_w/2-self.t-self.gap,center[1]+self.w/2))#modified here ;), remove ground_t
+
+
             if self.height_left ==1:
                 result = gdspy.boolean(result, upper, 'or')
                 result = gdspy.boolean(result, lower, 'or')
             result = gdspy.boolean(result, line, 'or')
             result.translate(self.sctq,0)
-            self.connection = (center[0]-g_w/2-self.t-self.gap-self.gap+self.sctq,center[1])
+            if self.sctq != 0:
+                self.connection = (center[0] - g_w / 2 + g_t, center[1])
+            else:
+                self.connection = (center[0]-g_w/2-self.t-self.gap-self.gap+self.sctq,center[1])
 
         if self.side == "right":
             result = gdspy.Rectangle((center[0]+g_w/2+self.t+self.gap,center[1]-self.height_right*g_h/2-self.gap),(center[0]+g_w/2+self.gap,center[1]+self.height_right*g_h/2+self.gap))
@@ -663,13 +680,22 @@ class PP_Transmon_Coupler:
                 upper  = gdspy.Rectangle((center[0]+g_w/2+self.t+self.gap,center[1]+g_h/2+self.gap),(center[0]+g_w/2-self.l1+self.gap+self.t,center[1]+g_h/2+self.t+self.gap))
                 lower  = gdspy.Rectangle((center[0]+g_w/2+self.t+self.gap,center[1]-g_h/2-self.gap-self.t),(center[0]+g_w/2-self.l2+self.gap+self.t,center[1]-g_h/2-self.gap))
 
-            line = gdspy.Rectangle((center[0]+g_w/2+self.t+self.gap+self.gap,center[1]-self.w/2),(center[0]+g_w/2+self.t+self.gap,center[1]+self.w/2))
+            if self.sctq != 0:
+                line = gdspy.Rectangle((center[0] + g_w / 2 - g_t +self.sctq, center[1] - self.w / 2),
+                                       (center[0] + g_w / 2 + self.t + self.gap, center[1] + self.w / 2))
+            else:
+                line = gdspy.Rectangle((center[0]+g_w/2+self.t+self.gap+self.gap,center[1]-self.w/2),(center[0]+g_w/2+self.t+self.gap,center[1]+self.w/2))
+
+
             if self.height_right == 1:
                 result = gdspy.boolean(result, upper, 'or')
                 result = gdspy.boolean(result, lower, 'or')
             result = gdspy.boolean(result, line, 'or')
             result.translate(-self.sctq, 0)
-            self.connection = (center[0] + g_w / 2 + self.t + self.gap + self.gap-self.sctq, center[1] )
+            if self.sctq != 0:
+                self.connection = (center[0] + g_w / 2 - g_t, center[1])
+            else:
+                self.connection = (center[0] + g_w / 2 + self.t + self.gap + self.gap-self.sctq, center[1] )
 
         if self.side == "top":
             result = gdspy.Rectangle((center[0]-g_w/2+self.l1,center[1]+g_h/2+self.gap),(center[0]-g_w/2+self.l1+self.l2,center[1]+g_h/2+self.gap+self.t))
