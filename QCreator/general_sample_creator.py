@@ -54,7 +54,7 @@ class Sample:
     def add(self, object_):
         self.objects.append(object_)
 
-    def draw_design(self):
+    def draw_design(self,PP_qubits=False):
         #Logos
         if self.logo[0]:
             empty = gdspy.Rectangle((0,0),(0,0))
@@ -74,8 +74,11 @@ class Sample:
 
         for object_ in self.objects:
             object_.resource = None
-        self.total_cell.remove_polygons(lambda pts, layer, datatype: True)
-        self.restricted_cell.remove_polygons(lambda pts, layer, datatype: True)
+        if PP_qubits ==True:
+            None
+        else:
+            self.total_cell.remove_polygons(lambda pts, layer, datatype: True)
+            self.restricted_cell.remove_polygons(lambda pts, layer, datatype: True)
         for object_ in self.objects:
             result = object_.get()
             if 'test' in result:
