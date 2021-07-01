@@ -30,9 +30,11 @@ layers_configuration = {
     'JJs':1,
     'air bridges': 2,
     'air bridge pads': 3,
+    'air bridge sm pads': 18,
     'vertical gridlines':15,
     'horizontal gridlines':16,
-    'inverted':17
+    'inverted':17,
+    'bandages':19,
 }
 
 sample = creator.Sample('1Q_test',layers_configuration)
@@ -115,7 +117,8 @@ a1    = 0.15 #Junction height in um
 a2    = 0.30 # Junction width in um
 
 #jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':np.pi/2}
-jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8 }# hole sizes for the JJs
+jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False }# hole sizes for the JJs
+jj_pp_flux = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True }# hole sizes for the JJs
 
 l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 6, 5, 20, 50, resonator_gap
 fluxline = {'l':l,'t_m':t_m,'t_r':t_r,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
@@ -123,26 +126,32 @@ lph,lg,lpw,lw = 85,0,55,0.5*200/7
 rph,rg,rpw,rw = lph,lg,lpw,lw
 
 arms = {'l.ph':lph,'l.g':lg,'l.pw':lpw,'l.w':lw,'r.ph':rph,'r.g':rg,'r.pw':rpw,'r.w':rw}
+#
+l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 3, 5, 20, 50, resonator_gap
+flux_distance = 20
+flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
+#flux = {}
+center=(2000,1000)
+transmon1 = elements.pp_transmon.PP_Transmon(name='Q1', center=center,
+                                           width=width,
+                                           height=height,
+                                           bridge_gap=JJ_pad_offset_x,
+                                           bridge_w=JJ_pad_offset_y,
+                                           gap=gap,
+                                           ground_w=ground_w,
+                                           ground_h=ground_h,
+                                           ground_t=ground_t,
+                                           jj_params=jj_pp_flux,
+                                           layer_configuration=sample.layer_configuration,
+                                           Couplers=Couplers,
+                                           calculate_capacitance=False,
+                                           remove_ground={'left': 0, 'right': 0, 'top': 0, 'bottom': 0},
+                                           shoes=[],
+                                           transformations={'rotate':[-np.pi/2,center]},
+                                           fluxline_params=flux
+                                           )
+center = (2000,3000)
 
-transmon1 = elements.pp_squid_coupler.PP_Squid_C(name='PP_Transmon1',center=(2000,1550),
-                          width = width,
-                          height = height,
-                          bridge_gap = JJ_pad_offset_x,
-                          bridge_w   = JJ_pad_offset_y ,
-                          gap = gap,
-                          ground_w = ground_w,
-                          ground_h = ground_h,
-                          ground_t = ground_t,
-                          jj_params= jj_pp,
-                          fluxline_params = fluxline,
-                          arms = arms,
-                          layer_configuration = sample.layer_configuration,
-                          Couplers = Couplers_Squid,
-                          calculate_capacitance = False,
-                          transformations = {}
-                          )
-
-center = (2000,2750)
 transmon2 = elements.pp_transmon.PP_Transmon(name='PP_Transmon2',center=center,
                           width = width,
                           height = height,
@@ -156,9 +165,10 @@ transmon2 = elements.pp_transmon.PP_Transmon(name='PP_Transmon2',center=center,
                           layer_configuration = sample.layer_configuration,
                           Couplers = Couplers,
                           calculate_capacitance = False,
-                          transformations = {'rotate':[np.pi/2+0.2,center]}
+                          transformations = {'rotate':[np.pi/2,center]}
                           )
-sample.add(transmon1)
 sample.add(transmon2)
+sample.add(transmon1)
+
 sample.draw_design()
 #sample.watch()
