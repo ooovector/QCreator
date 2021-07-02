@@ -104,6 +104,10 @@ Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 
 Couplers_flux=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground)]
 
+CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175),
+      elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
+      ]
+
 width = 250
 height= 450
 gap   = 50
@@ -191,7 +195,10 @@ transmon1_left_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=c
                           transformations = {'rotate':[-np.pi/2,center]}
                           )
 sample.add(transmon1_left_fixed)
-transmon1_right_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=center,
+
+center = (6000,1500)
+
+transmon1_right_fixed = elements.pp_transmon.PP_Transmon(name='Q2_fixed',center=center,
                           width = width,
                           height = height,
                           bridge_gap = JJ_pad_offset_x,
@@ -206,7 +213,7 @@ transmon1_right_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=
                           calculate_capacitance = False,
                           transformations = {'rotate':[-np.pi/2,center]}
                           )
-sample.add(transmon1_left_fixed)
+sample.add(transmon1_right_fixed)
 
 sample.draw_design()
 #sample.watch()
