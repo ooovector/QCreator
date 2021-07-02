@@ -12,11 +12,12 @@ reload(gdspy)
 ### to have 50 Oms impedance with eps=11.75
 tl_core = 20.
 tl_gap = 12.
-tl_ground = 5.#<-- changed from 10. to 5.
+tl_ground = 6.#<-- changed from 10. to 5.
 
 resonator_core = 8
 resonator_gap = 7
-resonator_ground = 5 #5
+resonator_ground = 15 #5
+resonator_tl_ground=5
 
 pad_offset = 800
 
@@ -97,21 +98,18 @@ p2 = pads_right[0]
 
 ################################
 
-Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.3,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground)
-         ]
+Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground)]
 
-Couplers_Squid=[elements.pp_squid_coupler.PP_Squid_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.3,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground)
-         ]
+Couplers_flux=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground)]
 
-
-width = 200
-height= 200
+width = 250
+height= 450
 gap   = 50
-ground_w = 600
-ground_h   = 400
-ground_t   = 10
+ground_w = 680+40+30
+ground_h   = 680+40+30
+ground_t   = 50
 # b_g   = 19 # from JJ Design for JJ4q
 JJ_pad_offset_x = 16 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design
@@ -119,7 +117,7 @@ JJ_pad_offset_y = 16 # JJ design
 a1    = 0.15 #Junction height in um
 a2    = 0.30 # Junction width in um
 
-#jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':np.pi/2}
+
 jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False }# hole sizes for the JJs
 
 
@@ -132,7 +130,7 @@ flux_distance = 20
 flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
 
 # draw 2 tunable qubits
-center=(4000,4500)
+center=(3100,4500)
 transmon1_left_flux = elements.pp_transmon.PP_Transmon(name='Q1_flux_left', center=center,
                                            width=width,
                                            height=height,
@@ -151,7 +149,7 @@ transmon1_left_flux = elements.pp_transmon.PP_Transmon(name='Q1_flux_left', cent
                                            transformations={'rotate':[np.pi/2,center]},
                                            fluxline_params=flux
                                            )
-center=(8000,4500)
+center=(6600,4500)
 transmon2_right_flux = elements.pp_transmon.PP_Transmon(name='Q2_flux_right', center=center,
                                            width=width,
                                            height=height,
@@ -163,11 +161,11 @@ transmon2_right_flux = elements.pp_transmon.PP_Transmon(name='Q2_flux_right', ce
                                            ground_t=ground_t,
                                            jj_params=jj_pp_flux,
                                            layer_configuration=sample.layer_configuration,
-                                           Couplers=Couplers,
+                                           Couplers=Couplers_flux,
                                            calculate_capacitance=False,
                                            remove_ground={'left': 0, 'right': 0, 'top': 0, 'bottom': 0},
                                            shoes=[],
-                                           transformations={'rotate':[np.pi/2,center]},
+                                           transformations={'rotate':[-np.pi/2,center]},
                                            fluxline_params=flux
                                            )
 
@@ -178,6 +176,22 @@ sample.add(transmon2_right_flux)
 center = (2000,1500)
 
 transmon1_left_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=center,
+                          width = width,
+                          height = height,
+                          bridge_gap = JJ_pad_offset_x,
+                          bridge_w   = JJ_pad_offset_y ,
+                          gap = gap,
+                          ground_w = ground_w,
+                          ground_h = ground_h,
+                          ground_t = ground_t,
+                          jj_params= jj_pp,
+                          layer_configuration = sample.layer_configuration,
+                          Couplers = Couplers,
+                          calculate_capacitance = False,
+                          transformations = {'rotate':[-np.pi/2,center]}
+                          )
+sample.add(transmon1_left_fixed)
+transmon1_right_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=center,
                           width = width,
                           height = height,
                           bridge_gap = JJ_pad_offset_x,

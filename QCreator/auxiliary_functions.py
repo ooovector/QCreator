@@ -554,7 +554,7 @@ def get_grounded_qubit_resonator_parameters(resonator,qubit,coupler_name,res_fr,
 def draw_rounded_single_resonator_plus_qubit(sample,
                           coupler_start_x, coupler_start_y, coupler_length,
                           resonator_core,resonator_gap, resonator_ground,
-                          tl_core, tl_gap, tl_ground, grounding_width,
+                          tl_core, tl_gap, tl_ground, resonator_tl_ground,
                           closed_end_meander_length, length_left, length_right,
                           min_bridge_spacing = None,
                           airbridge = None, object1=None, port=None,
@@ -562,7 +562,7 @@ def draw_rounded_single_resonator_plus_qubit(sample,
                           port_orientation='left',meander_orientation='right', direction_orientation='down', points_for_the_open_end=[]):
 
     #left-> open end will be done for the left port
-    coupler_w = [resonator_core, resonator_ground, tl_core]
+    coupler_w = [resonator_core, resonator_tl_ground, tl_core]
     coupler_s = [resonator_gap, resonator_gap, tl_gap, tl_gap]
 
     # 2. Create main coupler:
@@ -570,45 +570,51 @@ def draw_rounded_single_resonator_plus_qubit(sample,
     if direction_orientation == 'up':
         coupler_start_x, coupler_length = coupler_start_x + coupler_length, -coupler_length
         angle = np.pi
-
-    coupler_start_y = coupler_start_y - np.cos(angle)*(tl_gap/2+tl_core/2)
+    coupler_start_y_initial=deepcopy(coupler_start_y)
+    coupler_start_y = coupler_start_y - np.cos(angle)*((resonator_gap*2+tl_gap*2+resonator_tl_ground+tl_core+resonator_core+tl_ground*2)/2-tl_ground-tl_gap-tl_core/2)
 
     main_coupler = elements.CPWCoupler('TL-resonator coupler',
                                        [(coupler_start_x, coupler_start_y),
                                         (coupler_start_x + coupler_length, coupler_start_y)],
                                        coupler_w, coupler_s, tl_ground, sample.layer_configuration, r=100)
     temp_value = deepcopy(main_coupler.terminals['port1'])
-    main_coupler.terminals['port1'].position = [coupler_start_x, coupler_start_y+np.cos(angle)*(tl_gap/2+tl_core/2)]
+    main_coupler.terminals['port1'].position = [coupler_start_x, coupler_start_y_initial]
     main_coupler.terminals['port1'].type='cpw'
     main_coupler.terminals['port1'].w = tl_core
     main_coupler.terminals['port1'].s = tl_gap
+    main_coupler.terminals['port1'].g = tl_ground
 
     main_coupler.terminals['port2'].position = [coupler_start_x+coupler_length,
-                                                coupler_start_y +np.cos(angle)*(tl_gap/2+tl_core/2)]
+                                                coupler_start_y_initial]
     main_coupler.terminals['port2'].type = 'cpw'
     main_coupler.terminals['port2'].w = tl_core
     main_coupler.terminals['port2'].s = tl_gap
+    main_coupler.terminals['port2'].g = tl_ground
 
     main_coupler.terminals.update({'res1':deepcopy(temp_value),'res2':deepcopy(temp_value)})
     main_coupler.terminals['res1'].position = [coupler_start_x,
-                                                coupler_start_y - np.cos(angle)*(tl_gap / 2 + resonator_ground + resonator_gap + resonator_core / 2)]
+                                                coupler_start_y - np.cos(angle)*(tl_gap / 2 + 3*resonator_tl_ground/2 + resonator_gap + resonator_core / 2)]
     main_coupler.terminals['res1'].type = 'cpw'
+    main_coupler.terminals['res1'].orientation=main_coupler.terminals['res1'].orientation+np.pi*0
     main_coupler.terminals['res1'].w = resonator_core
     main_coupler.terminals['res1'].s = resonator_gap
+    main_coupler.terminals['res1'].g = resonator_ground
+
     main_coupler.terminals['res2'].position = [coupler_start_x + coupler_length,
-                                                coupler_start_y - np.cos(angle)*(tl_gap / 2 + resonator_ground + resonator_gap + resonator_core / 2)]
+                                                coupler_start_y - np.cos(angle)*(tl_gap / 2 + 3*resonator_tl_ground/2 + resonator_gap + resonator_core / 2)]
     main_coupler.terminals['res2'].orientation=main_coupler.terminals['res2'].orientation+np.pi
     main_coupler.terminals['res2'].type = 'cpw'
     main_coupler.terminals['res2'].w = resonator_core
     main_coupler.terminals['res2'].s = resonator_gap
+    main_coupler.terminals['res2'].g = resonator_ground
     sample.add(main_coupler)
     total_length = [coupler_length]
     ################# first fanout
-    fanout_offset=100
+    fanout_offset=130
     left_rounded_fanout = elements.CPWCoupler('TL-resonator coupler',
-                                       [(coupler_start_x-np.cos(angle)*fanout_offset, coupler_start_y-np.cos(angle)*150),
-                                        (coupler_start_x -np.cos(angle)*fanout_offset, coupler_start_y-np.cos(angle)*170)],
-                                       [resonator_core], [resonator_gap, resonator_gap], tl_ground, sample.layer_configuration, r=100)
+                                       [(coupler_start_x-np.cos(angle)*fanout_offset, coupler_start_y-np.cos(angle)*200),
+                                        (coupler_start_x -np.cos(angle)*fanout_offset, coupler_start_y-np.cos(angle)*250)],
+                                       [resonator_core], [resonator_gap, resonator_gap], resonator_ground, sample.layer_configuration, r=100)
     left_rounded_fanout.terminals['port1'].type = 'cpw'
     left_rounded_fanout.terminals['port1'].w = resonator_core
     left_rounded_fanout.terminals['port1'].s = resonator_gap
@@ -626,7 +632,7 @@ def draw_rounded_single_resonator_plus_qubit(sample,
                                                 coupler_start_y - np.cos(angle) * 150),
                                                (coupler_start_x + coupler_length + np.cos(angle) * fanout_offset,
                                                 coupler_start_y - np.cos(angle) * 170)],
-                                              [resonator_core], [resonator_gap, resonator_gap], tl_ground,
+                                              [resonator_core], [resonator_gap, resonator_gap], resonator_ground,
                                               sample.layer_configuration, r=100)
     right_rounded_fanout.terminals['port1'].type = 'cpw'
     right_rounded_fanout.terminals['port1'].w = resonator_core
@@ -674,7 +680,7 @@ def draw_rounded_single_resonator_plus_qubit(sample,
                                                -np.cos(angle)*open_end_length),
                                      w=[resonator_core],
                                      s=[resonator_gap, resonator_gap],
-                                     g=tl_ground,
+                                     g=resonator_ground,
                                      orientation=fanout2.get_terminals()[fanout2_port].orientation+np.pi,
                                      layer_configuration=sample.layer_configuration,
                                      h1=20,
@@ -682,7 +688,8 @@ def draw_rounded_single_resonator_plus_qubit(sample,
                                      )
         port = 'wide'
         sample.add(object1)
-
+    print(fanout2.terminals)
+    print(object1.terminals)
     open_end = sample.connect_cpw(fanout2, object1, fanout2_port, port, name='right open end',
                                     points=points_for_the_open_end, airbridge=airbridge, min_spacing=min_bridge_spacing)
 
@@ -695,7 +702,7 @@ def draw_rounded_single_resonator_plus_qubit(sample,
     # else:
     #     g1,g2 = main_coupler.terminals['port2'], main_coupler.terminals['port1']
 
-    return main_coupler,res_params
+    return main_coupler,left_rounded_fanout
 
 def draw_rounded_single_resonator(sample,
                           coupler_start_x, coupler_start_y, coupler_length,
