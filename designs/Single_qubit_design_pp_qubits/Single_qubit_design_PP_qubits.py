@@ -12,12 +12,15 @@ reload(gdspy)
 ### to have 50 Oms impedance with eps=11.75
 tl_core = 20.
 tl_gap = 12.
+### to have 50 Oms impedance with eps=11.45
+tl_core = 22.
+tl_gap = 12.
 tl_ground = 6.#<-- changed from 10. to 5.
 
-resonator_core = 8
-resonator_gap = 7
+resonator_core = 15
+resonator_gap = 10
 resonator_ground = 15 #5
-resonator_tl_ground=5
+resonator_tl_ground=10
 
 pad_offset = 800
 
