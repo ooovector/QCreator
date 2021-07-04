@@ -622,68 +622,15 @@ def draw_rounded_single_resonator_plus_qubit(sample,
     left_rounded_fanout.terminals['port2'].type = 'cpw'
     left_rounded_fanout.terminals['port2'].w = resonator_core
     left_rounded_fanout.terminals['port2'].s = resonator_gap
-    if transmission != True:
-        sample.add(left_rounded_fanout)
-        left_fanout_length = sample.connect_cpw(o1=main_coupler, o2=left_rounded_fanout, port1='res1', port2='port1', name='feedline',
-                           points=[])
-        total_length.append(sum([line.length for line in left_fanout_length]))
-    if transmission ==True and port_orientation=='left':
-        sample.add(left_rounded_fanout)
-        left_fanout_length = sample.connect_cpw(o1=main_coupler, o2=left_rounded_fanout, port1='res1', port2='port1',
-                                                name='feedline',
-                                                points=[])
-        total_length.append(sum([line.length for line in left_fanout_length]))
-        transmission_fanaout=left_rounded_fanout
-    ################# second fanout
-    right_rounded_fanout = elements.CPWCoupler('TL-resonator coupler',
-                                              [(coupler_start_x + coupler_length + np.cos(angle) * fanout_offset,
-                                                coupler_start_y - np.cos(angle) * 150),
-                                               (coupler_start_x + coupler_length + np.cos(angle) * fanout_offset,
-                                                coupler_start_y - np.cos(angle) * 170)],
-                                              [resonator_core], [resonator_gap, resonator_gap], resonator_ground,
-                                              sample.layer_configuration, r=100)
-    right_rounded_fanout.terminals['port1'].type = 'cpw'
-    right_rounded_fanout.terminals['port1'].w = resonator_core
-    right_rounded_fanout.terminals['port1'].s = resonator_gap
 
-    right_rounded_fanout.terminals['port2'].type = 'cpw'
-    right_rounded_fanout.terminals['port2'].w = resonator_core
-    right_rounded_fanout.terminals['port2'].s = resonator_gap
-    if transmission != True:
-        sample.add(right_rounded_fanout)
-        right_fanout_length = sample.connect_cpw(o1=main_coupler, o2=right_rounded_fanout, port1='res2', port2='port1', name='feedline',
+    sample.add(left_rounded_fanout)
+    left_fanout_length = sample.connect_cpw(o1=main_coupler, o2=left_rounded_fanout, port1='res1', port2='port1', name='feedline',
                            points=[])
-        total_length.append(sum([line.length for line in right_fanout_length]))
-    if transmission == True and port_orientation == 'right':
-        sample.add(right_rounded_fanout)
-        right_fanout_length = sample.connect_cpw(o1=main_coupler, o2=right_rounded_fanout, port1='res2', port2='port1',
-                                                 name='feedline',
-                                                 points=[])
-        total_length.append(sum([line.length for line in right_fanout_length]))
-        transmission_fanaout=right_fanout_length
+    total_length.append(sum([line.length for line in left_fanout_length]))
 
-    if transmission == False:
-        fanout1_port, fanout2_port = 'port2', 'port2'
-        fanout1, fanout2 = left_rounded_fanout, right_rounded_fanout
-        if port_orientation == 'right':
-            fanout1, fanout2 = right_rounded_fanout, left_rounded_fanout
-        if direction_orientation == 'up':
-            fanout1, fanout2 = right_rounded_fanout, left_rounded_fanout
-            if port_orientation == 'left':
-                fanout1, fanout2 = left_rounded_fanout, right_rounded_fanout
-    if transmission == True:
-        fanout1_port, fanout2_port = 'port2','res1'
-        fanout1, fanout2 = transmission_fanaout, main_coupler
-        if port_orientation == 'right':
-            fanout1_port, fanout2_port = 'res2', 'port2'
-        if direction_orientation == 'up':
-            fanout1_port, fanout2_port = 'res2', 'port2'
-            if port_orientation == 'left':
-                fanout1_port, fanout2_port = 'port2', 'res1'
 
     # 6. Create closed meander of resonator
-    print(fanout1,fanout1_port)
-    closed_end_meander = sample.connect_meander(name='closed end', o1=fanout1, port1=fanout1_port,
+    closed_end_meander = sample.connect_meander(name='closed end', o1=left_rounded_fanout, port1='port2',
                                                 meander_length=closed_end_meander_length,
                                                 length_left=length_left,
                                                 length_right=length_right,
@@ -695,55 +642,36 @@ def draw_rounded_single_resonator_plus_qubit(sample,
 
     total_length.append(sum([line.length for line in closed_end_meander]))
     # # 7. Create grounding of resonator
-    resonator_ground_ = sample.ground(o=closed_end_meander[-1], port='port2', name='resonator ground', grounding_width=30,
+    resonator_ground_ = sample.ground(o=main_coupler, port='res2', name='resonator ground',
+                                      grounding_width=30,
                                       grounding_between=[(0, 2)])
+    # resonator_ground_ = sample.ground(o=closed_end_meander[-1], port='port2', name='resonator ground', grounding_width=30,
+    #                                   grounding_between=[(0, 2)])
+
 
     # 10. Connect open end with the coupler part of the qubit
-    if object1 is None and transmission==False:
+    if object1 is None:
         object1 = elements.OpenEnd(name='open end',
-                                     position=(fanout2.get_terminals()[fanout2_port].position[0],
-                                               fanout2.get_terminals()[fanout2_port].position[1]
+                                     position=(closed_end_meander[-1].get_terminals()['port2'].position[0],
+                                               closed_end_meander[-1].get_terminals()['port2'].position[1]
                                                -np.cos(angle)*open_end_length),
                                      w=[resonator_core],
                                      s=[resonator_gap, resonator_gap],
                                      g=resonator_ground,
-                                     orientation=fanout2.get_terminals()[fanout2_port].orientation+np.pi,
+                                     orientation=closed_end_meander[-1].get_terminals()['port2'].orientation+np.pi,
                                      layer_configuration=sample.layer_configuration,
                                      h1=20,
                                      h2=10,
                                      )
         port = 'wide'
         sample.add(object1)
-    if object1 is None and transmission==True:
-        object1 = elements.OpenEnd(name='open end',
-                                     position=(fanout2.get_terminals()[fanout2_port].position[0],
-                                               fanout2.get_terminals()[fanout2_port].position[1]
-                                               -np.cos(angle)*open_end_length),
-                                     w=[resonator_core],
-                                     s=[resonator_gap, resonator_gap],
-                                     g=tl_ground,
-                                     orientation=fanout2.get_terminals()[fanout2_port].orientation+np.pi,
-                                     layer_configuration=sample.layer_configuration,
-                                     h1=20,
-                                     h2=10,
-                                     )
-        port = 'wide'
-        sample.add(object1)
-    if transmission == False:
-        open_end = sample.connect_cpw(fanout2, object1, fanout2_port, port, name='right open end',
-                                      points=points_for_the_open_end, airbridge=airbridge, min_spacing=min_bridge_spacing)
-
-        cl, ll = open_end[0].cm(sample.epsilon)
-        total_length.append(sum([line.length for line in open_end]))
-        z01 = np.sqrt(ll[0] / cl[0])[0]
-        res_params = (sum(total_length), z01, cl[0, 0])
     else:
-        res_params = sum(total_length)
-    # if direction_orientation == 'up':
-    #     g1, g2 = main_coupler.terminals['port1'], main_coupler.terminals['port2']
-    # else:
-    #     g1,g2 = main_coupler.terminals['port2'], main_coupler.terminals['port1']
-
+        open_end = sample.connect_cpw(closed_end_meander[-1], object1, 'port2', port, name='right open end',
+                                  points=points_for_the_open_end, airbridge=airbridge, min_spacing=min_bridge_spacing)
+        total_length.append(sum([line.length for line in open_end]))
+    cl, ll = left_fanout_length[0].cm(sample.epsilon)
+    z01 = np.sqrt(ll[0] / cl[0])[0]
+    res_params = (sum(total_length), z01, cl[0, 0])
     return main_coupler,res_params
 
 def draw_rounded_single_resonator(sample,
