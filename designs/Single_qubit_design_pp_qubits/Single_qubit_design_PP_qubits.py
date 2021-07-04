@@ -153,7 +153,7 @@ transmon1_left_flux = elements.pp_transmon.PP_Transmon(name='Q1_flux_left', cent
                                            transformations={'rotate':[np.pi/2,center]},
                                            fluxline_params=flux
                                            )
-center=(6600,4500)
+center=(6900,4500)
 transmon2_right_flux = elements.pp_transmon.PP_Transmon(name='Q2_flux_right', center=center,
                                            width=width,
                                            height=height,
@@ -196,9 +196,30 @@ transmon1_left_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=c
                           )
 sample.add(transmon1_left_fixed)
 
-center = (6000,1500)
+center = (6200,1500)
 
 transmon1_right_fixed = elements.pp_transmon.PP_Transmon(name='Q2_fixed',center=center,
+                          width = width,
+                          height = height,
+                          bridge_gap = JJ_pad_offset_x,
+                          bridge_w   = JJ_pad_offset_y ,
+                          gap = gap,
+                          ground_w = ground_w,
+                          ground_h = ground_h,
+                          ground_t = ground_t,
+                          jj_params= jj_pp_flux,
+                          layer_configuration = sample.layer_configuration,
+                          Couplers = Couplers_flux,
+                          calculate_capacitance = False,
+                          transformations = {'rotate':[np.pi/2,center]},
+                          fluxline_params=flux
+                          )
+sample.add(transmon1_right_fixed)
+################# add them for testing
+
+center = (4000,1500)
+
+transmon1_left_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=center,
                           width = width,
                           height = height,
                           bridge_gap = JJ_pad_offset_x,
@@ -213,7 +234,29 @@ transmon1_right_fixed = elements.pp_transmon.PP_Transmon(name='Q2_fixed',center=
                           calculate_capacitance = False,
                           transformations = {'rotate':[-np.pi/2,center]}
                           )
-sample.add(transmon1_right_fixed)
+sample.add(transmon1_left_fixed)
+
+center = (4900,4500)
+
+transmon1_left_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=center,
+                          width = width,
+                          height = height,
+                          bridge_gap = JJ_pad_offset_x,
+                          bridge_w   = JJ_pad_offset_y ,
+                          gap = gap,
+                          ground_w = ground_w,
+                          ground_h = ground_h,
+                          ground_t = ground_t,
+                          jj_params= jj_pp,
+                          layer_configuration = sample.layer_configuration,
+                          Couplers = Couplers,
+                          calculate_capacitance = False,
+                          transformations = {'rotate':[np.pi/2,center]}
+                          )
+sample.add(transmon1_left_fixed)
+
+
+
 
 sample.draw_design()
 #sample.watch()
