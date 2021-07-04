@@ -20,7 +20,7 @@ tl_ground = 6.#<-- changed from 10. to 5.
 resonator_core = 15
 resonator_gap = 10
 resonator_ground = 15 #5
-resonator_tl_ground=10
+resonator_tl_ground=12
 
 pad_offset = 800
 
