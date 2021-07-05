@@ -661,7 +661,6 @@ class PP_Transmon_Coupler:
             if self.height_left == 1:
                 upper  = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap,center[1]+g_h/2+self.gap),(center[0]-g_w/2+self.l1-self.gap-self.t,center[1]+g_h/2+self.t+self.gap))
                 lower  = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap,center[1]-g_h/2-self.gap-self.t),(center[0]-g_w/2+self.l2-self.gap-self.t,center[1]-g_h/2-self.gap))
-            print(self.sctq,g_t)
             if self.sctq > g_t:
                 line = gdspy.Rectangle(
                     (center[0] - g_w / 2 + g_t -self.sctq, center[1] - self.w / 2), (
