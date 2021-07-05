@@ -105,8 +105,14 @@ Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground)]
 
 
-CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175),
-      elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
+CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground),
+      elements.pp_transmon.PP_Transmon_Coupler(600,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
+      ]
+
+CC1_mw_first_qubit = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground),
+      elements.pp_transmon.PP_Transmon_Coupler(600,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
       ]
 
 width = 250
@@ -147,14 +153,14 @@ transmon1_left_flux = elements.pp_transmon.PP_Transmon(name='Q1_flux_left', cent
                                            ground_t=ground_t,
                                            jj_params=jj_pp,
                                            layer_configuration=sample.layer_configuration,
-                                           Couplers=CC1_mw,
+                                           Couplers=CC1_mw_first_qubit,
                                            calculate_capacitance=False,
                                            remove_ground={'left': 0, 'right': 0, 'top': 0, 'bottom': 0},
                                            shoes=[],
                                            transformations={'rotate':[np.pi/2,center]},
                                            # fluxline_params=flux
                                            )
-center=(6900,4500)
+center=(6700,4500)
 transmon2_right_flux = elements.pp_transmon.PP_Transmon(name='Q2_flux_right', center=center,
                                            width=width,
                                            height=height,
