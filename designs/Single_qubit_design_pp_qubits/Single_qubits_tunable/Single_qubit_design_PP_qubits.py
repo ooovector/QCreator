@@ -102,10 +102,10 @@ p2 = pads_right[0]
 ################################
 
 Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground)]
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35)]
 
 Couplers_flux=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground)]
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35)]
 
 CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175),
       elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
@@ -116,7 +116,7 @@ height= 450
 gap   = 50
 ground_w = 680+40+30
 ground_h   = 680+40+30
-ground_t   = 50
+ground_t   = 50-11
 # b_g   = 19 # from JJ Design for JJ4q
 JJ_pad_offset_x = 16 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design

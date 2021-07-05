@@ -102,14 +102,18 @@ p2 = pads_right[0]
 ################################
 
 Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground)]
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35)]
+
+Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35)]
 
 Couplers_flux=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground)]
-
+"""
 CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175),
       elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
       ]
+"""
 
 width = 250
 height= 450
@@ -121,8 +125,9 @@ ground_t   = 50
 JJ_pad_offset_x = 16 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design
 
-a1    = 0.15 #Junction height in um
-a2    = 0.30 # Junction width in um
+a1    = np.sqrt(0.15*0.30) #Junction height in um
+a2    = a1 # Junction width in um
+
 
 
 jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False }# hole sizes for the JJs
@@ -131,10 +136,10 @@ jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid'
 
 
 ###### define parameters for the tunable qubits
-jj_pp_flux = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True }# hole sizes for the JJs
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 3, 5, 20, 50, resonator_gap
-flux_distance = 20
-flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
+#jj_pp_flux = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True }# hole sizes for the JJs
+#l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 3, 5, 20, 50, resonator_gap
+#flux_distance = 20
+#flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
 
 # draw 2 tunable qubits
 center=(3100,4500)
@@ -153,7 +158,8 @@ transmon1_left_flux = elements.pp_transmon.PP_Transmon(name='Q1_flux_left', cent
                                            calculate_capacitance=False,
                                            remove_ground={'left': 0, 'right': 0, 'top': 0, 'bottom': 0},
                                            shoes=[],
-                                           transformations={'rotate':[np.pi/2,center]},
+                                            transformations={},
+                                           #transformations={'rotate':[np.pi/2,center]},
                                            # fluxline_params=flux
                                            )
 center=(6900,4500)
