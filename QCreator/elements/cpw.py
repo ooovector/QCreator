@@ -55,7 +55,7 @@ class CPWCoupler(DesignElement):
             'port1': DesignTerminal(self.points[0], orientation1, g=g, s=s, w=w, type='mc-cpw', order=False),
             'port2': DesignTerminal(self.points[-1], orientation2, g=g, s=s, w=w, type='mc-cpw')}
 
-        self.width_total, self.widths, self.offsets = widths_offsets(self.w, self.s, self.g)
+        self.width_total, self.widths, self.offsets, self.holes, self.holes_offsets = widths_offsets(self.w, self.s, self.g)
 
         self.segments = []
         self.finalize_points()
@@ -172,15 +172,19 @@ class CPWCoupler(DesignElement):
         p2 = gdspy.FlexPath([self.segments[0]['endpoint']], width=self.width_total, offset=0, ends='flush',
                                  corners='natural', bend_radius=self.g, precision=precision,
                                  layer=self.layer_configuration.restricted_area_layer)
+        p3 = gdspy.FlexPath([self.segments[0]['endpoint']], width=self.holes,offset=self.holes_offsets,ends='flush',
+                            corners='natural', bend_radius=self.g, precision=precision,
+                            layer=self.layer_configuration.inverted)
         for segment in self.segments[1:]:
             if segment['type'] == 'turn':
                 p1.turn(self.r, angle=segment['turn'])
                 p2.turn(self.r, angle=segment['turn'])
+                p3.turn(self.r, angle=segment['turn'])
             else:
                 p1.segment(segment['endpoint'])
                 p2.segment(segment['endpoint'])
-
-        return {'positive': p1.to_polygonset(), 'restrict': p2.to_polygonset()}
+                p3.segment(segment['endpoint'])
+        return {'positive': p1.to_polygonset(), 'restrict': p2.to_polygonset(), 'inverted':p3.to_polygonset()}
 
     def get_terminals(self):
         return self.terminals
@@ -386,11 +390,15 @@ class Narrowing(DesignElement):
 def widths_offsets(w, s, g):
     width_total = g * 2 + sum(s) + sum(w)
     widths = [g] + w + [g]
+    holes = s
+    holes_offsets = [-(sum(s) + sum(w)-s[0]) / 2]
     offsets = [-(width_total - g) / 2]
     for c in range(len(widths) - 1):
         offsets.append(offsets[-1] + widths[c] / 2 + s[c] + widths[c + 1] / 2)
+    for c in range(len(w)):
+        holes_offsets.append(holes_offsets[-1] + holes[c]/2 + w[c] + holes[c + 1] / 2)
 
-    return width_total, widths, offsets
+    return width_total, widths, offsets,holes,holes_offsets
 
 
 class RectGrounding(DesignElement):
