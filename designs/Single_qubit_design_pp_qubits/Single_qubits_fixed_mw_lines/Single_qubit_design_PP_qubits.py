@@ -102,10 +102,10 @@ p2 = pads_right[0]
 ################################
 
 Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=45)]
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46)]
 
 CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=45),
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46),
       elements.pp_transmon.PP_Transmon_Coupler(600,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
       ]
 
