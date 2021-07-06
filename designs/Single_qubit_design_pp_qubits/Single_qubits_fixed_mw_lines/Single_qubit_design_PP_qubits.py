@@ -106,12 +106,12 @@ Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 
 
 CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46),
-      elements.pp_transmon.PP_Transmon_Coupler(600,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
+      elements.pp_transmon.PP_Transmon_Coupler(600,15,15,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
       ]
 
 CC1_mw_first_qubit = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=45),
-      elements.pp_transmon.PP_Transmon_Coupler(600,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46),
+      elements.pp_transmon.PP_Transmon_Coupler(600,15,15,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
       ]
 
 width = 250

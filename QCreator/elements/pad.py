@@ -75,7 +75,9 @@ class Pad(DesignElement):
         for layer_name, polygons in result.items():
             result[layer_name].rotate(self.orientation, (0, 0))
             result[layer_name].translate(*self.position)
-
+        negative=gdspy.boolean(result['restrict'],result['positive'],'not',layer=self.layer_configuration.inverted)
+        result.update({'inverted': negative})
+        # print(result)
         return result
 
     def get_terminals(self) -> Mapping[str, DesignTerminal]:
