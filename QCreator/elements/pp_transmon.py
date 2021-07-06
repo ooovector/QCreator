@@ -228,7 +228,7 @@ class PP_Transmon(DesignElement):
                                  (self.center[0] + self.g_w / 2 - self.g_t, self.center[1] + self.g_h / 2 - self.g_t))
 
         if len(self.couplers) != 0:
-
+            pockets = []
             for id, coupler in enumerate(self.couplers):
                 if coupler.side == 'fluxline':
                     continue
@@ -402,6 +402,7 @@ class PP_Transmon(DesignElement):
                     pocket = gdspy.boolean(pocket,gdspy.Rectangle((self.center[0] - self.g_w / 2 + l1 - gap - self.g_t, self.center[1] - self.g_h / 2), (self.center[0] - self.g_w / 2 + l1 + l2 + self.g_t + gap,self.center[1] - self.g_h / 2 - t - gap - gap - self.g_t)).translate(0,coupler.sctq),'or')
 
                 result = gdspy.boolean(coupler_parts['positive'], result, 'or',layer=self.layer_configuration.total_layer)
+                pockets.append(pocket)
                 result_restricted = gdspy.boolean(pocket, result_restricted, 'or',layer=self.layer_configuration.total_layer)
                 if coupler.coupler_type == 'coupler':
                         qubit_cap_parts.append(gdspy.boolean(coupler.result_coupler, coupler.result_coupler, 'or',layer=10+id+self.secret_shift))
@@ -410,6 +411,10 @@ class PP_Transmon(DesignElement):
         qubit_cap_parts.append(gdspy.boolean(result,last_step_cap,'not'))
 
         inverted = gdspy.boolean(box, result, 'not',layer=self.layer_configuration.inverted)
+
+        #for p in pockets:
+            #result_restricted = gdspy.boolean(p, result_restricted, 'or', layer=self.layer_configuration.total_layer)
+
 
         # add JJs
         if self.JJ_params is not None:
@@ -668,7 +673,7 @@ class PP_Transmon_Coupler:
                     center[1] + self.w / 2))  # modified here ;), remove ground_t
 
             else:
-                line   = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap-self.gap-self.ground_t,center[1]-self.w/2),(center[0]-g_w/2-self.t-self.gap,center[1]+self.w/2))#modified here ;), remove ground_t
+                line   = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap-self.gap-self.ground_t-g_t,center[1]-self.w/2),(center[0]-g_w/2-self.t-self.gap,center[1]+self.w/2))#modified here ;), remove ground_t
 
 
             if self.height_left ==1:
@@ -680,7 +685,10 @@ class PP_Transmon_Coupler:
             if self.sctq > g_t:
                 self.connection = (center[0] - g_w / 2 + g_t, center[1])
             else:
-                self.connection = (center[0]-g_w/2-self.t-self.gap-self.gap+self.sctq,center[1])
+                self.connection = (center[0]-g_w/2-self.t-self.gap-self.gap+self.sctq-g_t,center[1])
+
+
+
 
         if self.side == "right":
             result = gdspy.Rectangle((center[0]+g_w/2+self.t+self.gap,center[1]-self.height_right*g_h/2-self.gap),(center[0]+g_w/2+self.gap,center[1]+self.height_right*g_h/2+self.gap))
@@ -692,7 +700,7 @@ class PP_Transmon_Coupler:
                 line = gdspy.Rectangle((center[0] + g_w / 2 - g_t +self.sctq, center[1] - self.w / 2),
                                        (center[0] + g_w / 2 + self.t + self.gap, center[1] + self.w / 2))
             else:
-                line = gdspy.Rectangle((center[0]+g_w/2+self.t+self.gap+self.gap,center[1]-self.w/2),(center[0]+g_w/2+self.t+self.gap,center[1]+self.w/2))
+                line = gdspy.Rectangle((center[0]+g_w/2+self.t+self.gap+self.gap+g_t,center[1]-self.w/2),(center[0]+g_w/2+self.t+self.gap,center[1]+self.w/2))
 
 
             if self.height_right == 1:
@@ -703,7 +711,7 @@ class PP_Transmon_Coupler:
             if self.sctq > g_t:
                 self.connection = (center[0] + g_w / 2 - g_t, center[1])
             else:
-                self.connection = (center[0] + g_w / 2 + self.t + self.gap + self.gap-self.sctq, center[1] )
+                self.connection = (center[0] + g_w / 2 + self.t + self.gap + self.gap-self.sctq+g_t, center[1] )
 
         if self.side == "top":
             result = gdspy.Rectangle((center[0]-g_w/2+self.l1,center[1]+g_h/2+self.gap),(center[0]-g_w/2+self.l1+self.l2,center[1]+g_h/2+self.gap+self.t))
