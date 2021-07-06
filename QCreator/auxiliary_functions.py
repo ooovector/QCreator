@@ -608,7 +608,7 @@ def draw_rounded_single_resonator_plus_qubit(sample,
     main_coupler.terminals['res2'].s = resonator_gap
     main_coupler.terminals['res2'].g = resonator_ground
     sample.add(main_coupler)
-    total_length = [coupler_length]
+    total_length = [abs(coupler_length)]
     ################# first fanout
     fanout_offset=150
     left_rounded_fanout = elements.CPWCoupler('TL-resonator coupler',
@@ -627,7 +627,7 @@ def draw_rounded_single_resonator_plus_qubit(sample,
     left_fanout_length = sample.connect_cpw(o1=main_coupler, o2=left_rounded_fanout, port1='res1', port2='port1', name='feedline',
                            points=[])
     total_length.append(sum([line.length for line in left_fanout_length]))
-
+    total_length.append(50)
 
     # 6. Create closed meander of resonator
     closed_end_meander = sample.connect_meander(name='closed end', o1=left_rounded_fanout, port1='port2',
@@ -669,6 +669,7 @@ def draw_rounded_single_resonator_plus_qubit(sample,
         open_end = sample.connect_cpw(closed_end_meander[-1], object1, 'port2', port, name='right open end',
                                   points=points_for_the_open_end, airbridge=airbridge, min_spacing=min_bridge_spacing)
         total_length.append(sum([line.length for line in open_end]))
+    # print(total_length)
     cl, ll = left_fanout_length[0].cm(sample.epsilon)
     z01 = np.sqrt(ll[0] / cl[0])[0]
     res_params = (sum(total_length), z01, cl[0, 0])

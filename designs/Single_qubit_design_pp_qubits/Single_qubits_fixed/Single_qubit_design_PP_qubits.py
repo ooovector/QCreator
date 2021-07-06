@@ -13,7 +13,7 @@ reload(gdspy)
 tl_core = 20.
 tl_gap = 12.
 ### to have 50 Oms impedance with eps=11.45
-tl_core = 22.
+tl_core = 21.
 tl_gap = 12.
 tl_ground = 6.#<-- changed from 10. to 5.
 
@@ -102,13 +102,13 @@ p2 = pads_right[0]
 ################################
 
 Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35)]
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35+11)]
 
 Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35)]
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35+11)]
 
 Couplers_flux=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35)]
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35+11)]
 """
 CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175),
       elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
