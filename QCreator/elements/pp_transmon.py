@@ -242,6 +242,7 @@ class PP_Transmon(DesignElement):
                 t    = coupler.t
                 gap  = coupler.gaps[1]
                 gap2 = coupler.gaps[0]
+
                 core = coupler.w
                 side = coupler.side
                 height_left = coupler.height_left
@@ -286,8 +287,8 @@ class PP_Transmon(DesignElement):
                                                                        (self.center[0] + self.g_w / 2+self.g_t,
                                                                         self.center[1] + self.g_h/2)), 'or')
                     else:
-                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+t+self.g_w/2-l1,self.center[1]+gap+height_right*self.g_h/2+t+gap),(self.center[0]+self.g_w/2+2*gap+t+self.g_t,self.center[1]+gap+height_right*self.g_h/2+t+self.g_t+gap)),'or')
-                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+self.g_w/2+2*gap+t,self.center[1]+gap+height_right*self.g_h/2+t+gap),(self.center[0]+self.g_w/2+2*gap+t+self.g_t,self.center[1]+gap+gap)), 'or')
+                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+t+self.g_w/2-l1,self.center[1]+gap+height_right*self.g_h/2+t+gap),(self.center[0]+self.g_w/2+2*gap+t+self.g_t,self.center[1]+height_right*self.g_h/2+t+self.g_t+ core/2 + gap2)),'or')
+                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+self.g_w/2+2*gap+t,self.center[1]+gap+height_right*self.g_h/2+t+gap),(self.center[0]+self.g_w/2+2*gap+t+self.g_t,self.center[1]+ core/2 + gap2)), 'or')
 
                     #lower
                     if l2_check:
@@ -315,8 +316,8 @@ class PP_Transmon(DesignElement):
                                                                        (self.center[0] + self.g_w / 2+self.g_t,
                                                                         self.center[1] - self.g_h/2)), 'or')
                     else:
-                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+t+self.g_w/2-l2,self.center[1]-gap-height_right*self.g_h/2-t-gap),(self.center[0]+self.g_w/2+2*gap+t+self.g_t,self.center[1]-gap-height_right*self.g_h/2-t-self.g_t-gap)),'or')
-                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+self.g_w/2+2*gap+t,self.center[1]-gap-height_right*self.g_h/2-t-gap),(self.center[0]+self.g_w/2+2*gap+t+self.g_t,self.center[1]-gap-gap)), 'or')
+                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+t+self.g_w/2-l2,self.center[1]-gap-height_right*self.g_h/2-t-gap),(self.center[0]+self.g_w/2+2*gap+t+self.g_t,self.center[1]-height_right*self.g_h/2-t-self.g_t- core/2 - gap2)),'or')
+                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+self.g_w/2+2*gap+t,self.center[1]-gap-height_right*self.g_h/2-t-gap),(self.center[0]+self.g_w/2+2*gap+t+self.g_t,self.center[1]- core/2 - gap2)), 'or')
 
 
                     # shift coupler to qubit and remove ground where necessary
@@ -388,8 +389,8 @@ class PP_Transmon(DesignElement):
                                                                         self.center[1] + self.g_h/2)), 'or')
 
                     else:
-                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-t-self.g_w/2+l1,self.center[1]+gap+height_left*self.g_h/2+t+gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]+gap+height_left*self.g_h/2+t+self.g_t+gap)),'or')
-                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-self.g_w/2-2*gap-t,self.center[1]+gap+height_left*self.g_h/2+t+gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]+gap+gap)), 'or')
+                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-t-self.g_w/2+l1,self.center[1]+gap+height_left*self.g_h/2+t+gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]+height_left*self.g_h/2+t+self.g_t+ core/2 + gap2)),'or')
+                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-self.g_w/2-2*gap-t,self.center[1]+gap+height_left*self.g_h/2+t+gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]+ core/2 + gap2)), 'or')
 
                     #lower
                     if l2_check:
@@ -416,8 +417,8 @@ class PP_Transmon(DesignElement):
                                                                            (self.center[0] - self.g_w / 2 - self.g_t,
                                                                             self.center[1] - self.g_h / 2)), 'or')
                     else:
-                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-t-self.g_w/2+l2,self.center[1]-gap-height_left*self.g_h/2-t-gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]-gap-height_left*self.g_h/2-t-self.g_t-gap)),'or')
-                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-self.g_w/2-2*gap-t,self.center[1]-gap-height_left*self.g_h/2-t-gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]-gap-gap)), 'or')
+                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-t-self.g_w/2+l2,self.center[1]-gap-height_left*self.g_h/2-t-gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]-height_left*self.g_h/2-t-self.g_t- core/2 - gap2)),'or')
+                        extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-self.g_w/2-2*gap-t,self.center[1]-gap-height_left*self.g_h/2-t-gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]- core/2 - gap2)), 'or')
 
 
 
@@ -778,6 +779,8 @@ class PP_Transmon_Coupler:
         if tight[0]:
             self.gaps = [s,tight[1]]
             self.gap = tight[1]
+        else:
+            self.gaps = [s,s]
         self.tight = tight[0]
         self.side = side
         self.coupler_type = coupler_type
