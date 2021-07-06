@@ -20,7 +20,7 @@ tl_ground = 6.#<-- changed from 10. to 5.
 resonator_core = 15
 resonator_gap = 10
 resonator_ground = 15 #5
-resonator_tl_ground=12
+resonator_tl_ground= 12
 
 pad_offset = 800
 
@@ -100,12 +100,12 @@ p1 = pads_left[0]
 p2 = pads_right[0]
 
 ################################
-
+tight = [True,6]
 Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35)]
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35,tight =tight)]
 
 Couplers_flux=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35)]
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35,tight = tight)]
 
 
 width = 250
