@@ -129,9 +129,9 @@ jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid'
 ###### define parameters for the tunable qubits
 jj_pp_flux = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True }# hole sizes for the JJs
 
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 150-23, resonator_core, 3, 5, 20, 50, resonator_gap
 
 flux_distance = 20
+l, t_m, t_r, gp, l_arm, h_arm, s_gap = 150-3-flux_distance, resonator_core, 3, 5, 20, 50, resonator_gap
 flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
 
 # draw 2 tunable qubits
