@@ -1247,8 +1247,8 @@ class OpenEnd(DesignElement):
                                         layer=self.layer_configuration.restricted_area_layer)
 
         positive_total = gdspy.boolean(operand1=continue_ground, operand2=add_connection, operation='or')
-
-        return {'positive': positive_total, 'restrict': restrict_total.to_polygonset()}
+        negative = gdspy.boolean(restrict_total,positive_total, 'not', layer=self.layer_configuration.inverted)
+        return {'positive': positive_total, 'restrict': restrict_total.to_polygonset(), 'inverted': negative}
 
     def get_terminals(self) -> Mapping[str, DesignTerminal]:
         return self.terminals

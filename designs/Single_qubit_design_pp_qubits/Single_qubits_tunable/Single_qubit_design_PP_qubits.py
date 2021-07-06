@@ -102,18 +102,18 @@ p2 = pads_right[0]
 ################################
 tight = [True,6]
 Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35,tight =tight)]
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46,tight =tight)]
 
 Couplers_flux=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35,tight = tight)]
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46,tight = tight)]
 
 
 width = 250
 height= 450
 gap   = 50
-ground_w = 680+40+30
-ground_h   = 680+40+30
-ground_t   = 50-11
+ground_w = 680+40+30+30
+ground_h   = 680+40+30+30
+ground_t   = 50
 # b_g   = 19 # from JJ Design for JJ4q
 JJ_pad_offset_x = 10 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design
@@ -131,7 +131,7 @@ jj_pp_flux = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'s
 
 
 flux_distance = 20
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 150-3-flux_distance, resonator_core, 3, 5, 20, 50, resonator_gap
+l, t_m, t_r, gp, l_arm, h_arm, s_gap = 150-3-flux_distance+15, resonator_core, 3, 5, 20, 50, resonator_gap
 flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
 
 # draw 2 tunable qubits

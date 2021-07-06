@@ -100,15 +100,15 @@ p1 = pads_left[0]
 p2 = pads_right[0]
 
 ################################
-
+tight = [True,6]
 Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35+11)]
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35+11,tight=tight)]
 
 Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35+11)]
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35+11,tight=tight)]
 
 Couplers_flux=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35+11)]
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35+11,tight=tight)]
 """
 CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175),
       elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
