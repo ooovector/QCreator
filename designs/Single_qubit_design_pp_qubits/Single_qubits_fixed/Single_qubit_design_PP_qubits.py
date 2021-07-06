@@ -107,8 +107,8 @@ Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 
 Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35)]
 
-Couplers_flux=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground)]
+Couplers_flux=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35)]
 """
 CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175),
       elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
@@ -122,10 +122,10 @@ ground_w = 680+40+30
 ground_h   = 680+40+30
 ground_t   = 50
 # b_g   = 19 # from JJ Design for JJ4q
-JJ_pad_offset_x = 16 # for JJ_manhatten #for the JJ connections pads between the PPs
+JJ_pad_offset_x = 10 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design
 
-a1    = np.sqrt(0.15*0.30) #Junction height in um
+a1    = np.sqrt(0.15*0.3) #Junction height in um
 a2    = a1 # Junction width in um
 
 
@@ -158,8 +158,7 @@ transmon1_left_flux = elements.pp_transmon.PP_Transmon(name='Q1_flux_left', cent
                                            calculate_capacitance=False,
                                            remove_ground={'left': 0, 'right': 0, 'top': 0, 'bottom': 0},
                                            shoes=[],
-                                            transformations={},
-                                           #transformations={'rotate':[np.pi/2,center]},
+                                           transformations={'rotate':[-np.pi/2,center]},
                                            # fluxline_params=flux
                                            )
 center=(6900,4500)
@@ -178,7 +177,7 @@ transmon2_right_flux = elements.pp_transmon.PP_Transmon(name='Q2_flux_right', ce
                                            calculate_capacitance=False,
                                            remove_ground={'left': 0, 'right': 0, 'top': 0, 'bottom': 0},
                                            shoes=[],
-                                           transformations={'rotate':[-np.pi/2,center]},
+                                           transformations={'rotate':[np.pi/2,center]},
                                            # fluxline_params=flux
                                            )
 
@@ -201,7 +200,7 @@ transmon1_left_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=c
                           layer_configuration = sample.layer_configuration,
                           Couplers = Couplers,
                           calculate_capacitance = False,
-                          transformations = {'rotate':[-np.pi/2,center]}
+                          transformations = {'rotate':[np.pi/2,center]}
                           )
 sample.add(transmon1_left_fixed)
 
@@ -220,7 +219,7 @@ transmon1_right_fixed = elements.pp_transmon.PP_Transmon(name='Q2_fixed',center=
                           layer_configuration = sample.layer_configuration,
                           Couplers = Couplers_flux,
                           calculate_capacitance = False,
-                          transformations = {'rotate':[np.pi/2,center]},
+                          transformations = {'rotate':[-np.pi/2,center]},
                           # fluxline_params=flux
                           )
 sample.add(transmon1_right_fixed)
@@ -241,7 +240,7 @@ transmon1_left_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=c
                           layer_configuration = sample.layer_configuration,
                           Couplers = Couplers,
                           calculate_capacitance = False,
-                          transformations = {'rotate':[-np.pi/2,center]}
+                          transformations = {'rotate':[np.pi/2,center]}
                           )
 sample.add(transmon1_left_fixed)
 
@@ -260,7 +259,7 @@ transmon1_left_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=c
                           layer_configuration = sample.layer_configuration,
                           Couplers = Couplers,
                           calculate_capacitance = False,
-                          transformations = {'rotate':[np.pi/2,center]}
+                          transformations = {'rotate':[-np.pi/2,center]}
                           )
 sample.add(transmon1_left_fixed)
 

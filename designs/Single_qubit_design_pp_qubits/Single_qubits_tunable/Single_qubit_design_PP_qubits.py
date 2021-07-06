@@ -107,9 +107,6 @@ Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 
 Couplers_flux=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=35)]
 
-CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175),
-      elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
-      ]
 
 width = 250
 height= 450
