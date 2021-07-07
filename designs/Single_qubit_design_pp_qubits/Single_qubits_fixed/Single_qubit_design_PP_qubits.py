@@ -20,7 +20,7 @@ tl_ground = 6.#<-- changed from 10. to 5.
 resonator_core = 15
 resonator_gap = 10
 resonator_ground = 15 #5
-resonator_tl_ground=12
+resonator_tl_ground=13
 
 pad_offset = 800
 
@@ -125,8 +125,8 @@ ground_t   = 50
 JJ_pad_offset_x = 10 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design
 
-a1    = np.sqrt(0.15*0.3) #Junction height in um
-a2    = a1 # Junction width in um
+a1    = 0.17 #Junction height in um
+a2    = 0.3 # Junction width in um
 
 
 

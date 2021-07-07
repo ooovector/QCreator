@@ -13,14 +13,14 @@ reload(gdspy)
 tl_core = 20.
 tl_gap = 12.
 ### to have 50 Oms impedance with eps=11.45
-tl_core = 22.
+tl_core = 21.
 tl_gap = 12.
 tl_ground = 6.#<-- changed from 10. to 5.
 
 resonator_core = 15
 resonator_gap = 10
 resonator_ground = 15 #5
-resonator_tl_ground=12
+resonator_tl_ground=13
 
 pad_offset = 800
 
@@ -106,12 +106,12 @@ Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 
 
 CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46,tight=tight),
-      elements.pp_transmon.PP_Transmon_Coupler(600,15,15,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
+      elements.pp_transmon.PP_Transmon_Coupler(500,15,10,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-70),
       ]
 
 CC1_mw_first_qubit = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46,tight=tight),
-      elements.pp_transmon.PP_Transmon_Coupler(600,15,15,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
+      elements.pp_transmon.PP_Transmon_Coupler(500,15,10,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-70),
       ]
 
 width = 250
@@ -124,8 +124,8 @@ ground_t   = 50
 JJ_pad_offset_x = 10 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design
 
-a1    = np.sqrt(0.15*0.3) #Junction height in um
-a2    = a1 # Junction width in um
+a1    = 0.17 #Junction height in um
+a2    = 0.3 # Junction width in um
 
 
 jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False }# hole sizes for the JJs
