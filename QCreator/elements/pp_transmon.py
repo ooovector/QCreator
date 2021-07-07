@@ -100,7 +100,7 @@ class PP_Transmon(DesignElement):
         result_restricted = gdspy.Rectangle((self.center[0]-self.g_w/2,self.center[1]-self.g_h/2),(self.center[0]+self.g_w/2,self.center[1]+self.g_h/2),layer=self.layer_configuration.restricted_area_layer)
 
         P1 = gdspy.Rectangle((self.center[0]-self.gap/2-self.w,self.center[1]-self.h/2),(self.center[0]-self.gap/2,self.center[1]+self.h/2))
-        P2 = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w, self.center[1] - self.h / 2),(self.center[0] + self.gap / 2, self.center[1] + self.h / 2))
+        P2 = gdspy.copy(P1,self.w+self.gap,0)
 
         # adding the shoe caps here
         if self.shoes != {}:
@@ -216,8 +216,7 @@ class PP_Transmon(DesignElement):
         qubit_cap_parts.append(gdspy.boolean(P1, P1_bridge, 'or', layer=8 + self.secret_shift))
         qubit_cap_parts.append(gdspy.boolean(P2, P2_bridge, 'or', layer=9 + self.secret_shift))
 
-        result = gdspy.boolean(result, P1_bridge, 'or', layer=self.layer_configuration.total_layer)
-        result = gdspy.boolean(result, P2_bridge, 'or', layer=self.layer_configuration.total_layer)
+        result = gdspy.boolean(result, [P1_bridge,P2_bridge], 'or', layer=self.layer_configuration.total_layer)
         self.layers.append(self.layer_configuration.total_layer)
 
         # add couplers
@@ -281,8 +280,6 @@ class PP_Transmon(DesignElement):
                                                                        (self.center[
                                                                             0] + self.g_w / 2 + 2 * gap + t + self.g_t,
                                                                         self.center[1] + core/2 + gap2)), 'or')
-
-
 
                         extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0] + self.g_w / 2 ,
                                                                         self.center[1] + gap + height_right * self.g_h / 2  + gap),
@@ -423,10 +420,6 @@ class PP_Transmon(DesignElement):
                         extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-self.g_w/2-2*gap-t,self.center[1]-gap-height_left*self.g_h/2-t-gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]- core/2 - gap2)), 'or')
 
 
-
-
-
-
                     # shift coupler to qubit and remove ground where necessary
                     remove = gdspy.Rectangle((self.center[0] - self.g_w / 2,
                                               self.center[1] + gap + height_left * self.g_h / 2 + t + self.g_t + gap),
@@ -461,11 +454,6 @@ class PP_Transmon(DesignElement):
                                             'or', layer=self.layer_configuration.inverted)
                     else:
                         box = gdspy.boolean(box, gdspy.Rectangle((self.center[0] - self.g_w / 2 - self.g_t - 2 * gap - t,self.center[1] - height_left * self.g_h / 2 - self.g_t - 2 * gap ),(self.center[0] - self.g_w / 2 + l1 - t, self.center[1] + height_left * self.g_h / 2 + self.g_t + 2 * gap)).translate(+coupler.sctq,0),'or', layer=self.layer_configuration.inverted)
-
-
-
-
-
 
                     pocket = gdspy.boolean(pocket, gdspy.Rectangle((self.center[0] - self.g_w / 2 - self.g_t - 2 * gap - t,
                                                               self.center[
@@ -945,22 +933,28 @@ class PP_Squid_Fluxline:
     def render(self, center, width,height,ground_height,ground_t):
         if not self.extend:
             ground_t = ground_height/2
+        factor = 2.18
+        #the shift is necessary for the diagonal parts to have the same thickness as the arms
+        x1 = (self.l_arm-self.s_gap)/self.h_arm
+        x2 =  (factor*self.l_arm-self.s_gap)/self.h_arm
+        shift_right = self.t_r*np.tan(0.5*np.arctan(x1))
+        shift_left  = self.t_r*np.tan(0.5*np.arctan(x2))
 
         start  = [0,0]
-        points = [start+[0,0],start+[self.t_m,0],start+[self.t_m,-self.l],start+[self.t_m+self.l_arm,-self.l]]
-        points.append(start+[self.t_m+self.s_gap,-self.l+self.h_arm])
+        points = [start+[0,0],start+[self.t_m,0],start+[self.t_m,-self.l],start+[self.t_m+self.l_arm-shift_right*(self.l_arm-self.s_gap)/self.h_arm,-self.l]]
+        points.append(start+[self.t_m+self.s_gap,-self.l+self.h_arm-shift_right])
         points.append(start+[self.t_m+self.s_gap,0])
         points.append(start + [self.t_m + self.s_gap+self.t_r, 0])
         points.append(start + [self.t_m + self.s_gap + self.t_r, -self.l+self.h_arm])
         points.append(start + [self.t_m + self.l_arm+ self.t_r, -self.l])
         points.append(start + [self.t_m + self.l_arm+ self.t_r, -self.l-self.t_r])
-        points.append(start + [- self.l_arm- self.t_r, -self.l-self.t_r])
-        points.append(start + [- self.l_arm - self.t_r, -self.l])
+        points.append(start + [- factor*self.l_arm- self.t_r, -self.l-self.t_r])
+        points.append(start + [- factor*self.l_arm - self.t_r, -self.l])
         points.append(start + [-self.t_r-self.s_gap, -self.l+self.h_arm])
         points.append(start + [-self.t_r - self.s_gap, 0])
         points.append(start + [- self.s_gap, 0])
-        points.append(start + [- self.s_gap, -self.l+self.h_arm])
-        points.append(start + [- self.l_arm, -self.l])
+        points.append(start + [- self.s_gap, -self.l+self.h_arm-shift_left])
+        points.append(start + [- factor*self.l_arm+shift_left*(factor*self.l_arm-self.s_gap)/self.h_arm, -self.l])
         points.append(start + [0, -self.l])
         points = [(i[0]+i[2],i[1]+i[3]) for i in points]
         result = gdspy.Polygon(points)
