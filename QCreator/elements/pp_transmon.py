@@ -851,17 +851,24 @@ class PP_Transmon_Coupler:
 
         if self.side == "top":
             result = gdspy.Rectangle((center[0]-g_w/2+self.l1,center[1]+g_h/2+self.gap),(center[0]-g_w/2+self.l1+self.l2,center[1]+g_h/2+self.gap+self.t))
-            line   = gdspy.Rectangle((center[0]-g_w/2+self.l1+self.l2/2-self.w/2,center[1]+g_h/2+self.gap+self.t),(center[0]-g_w/2+self.l1+self.l2/2+self.w/2,center[1]+g_h/2+self.gap+self.t+self.gap))
+            line = gdspy.Rectangle(
+                (center[0] - g_w / 2 + self.l1 + self.l2 / 2 - self.w / 2, center[1] + g_h / 2 + self.gap + self.t), (
+                center[0] - g_w / 2 + self.l1 + self.l2 / 2 + self.w / 2,
+                center[1] + g_h / 2 + self.gap + self.t + self.gap+g_t))
+
             result = gdspy.boolean(result, line, 'or')
             result.translate(0,-self.sctq)
-            self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]+g_h/2+self.gap+self.t+self.gap-self.sctq)
+            self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]+g_h/2+self.gap+self.t+self.gap-self.sctq+g_t)
+
+
+
 
         if self.side == "bottom":
             result = gdspy.Rectangle((center[0]-g_w/2+self.l1,center[1]-g_h/2-self.gap),(center[0]-g_w/2+self.l1+self.l2,center[1]-g_h/2-self.gap-self.t))
-            line   = gdspy.Rectangle((center[0]-g_w/2+self.l1+self.l2/2-self.w/2,center[1]-g_h/2-self.gap-self.t),(center[0]-g_w/2+self.l1+self.l2/2+self.w/2,center[1]-g_h/2-self.gap-self.t-self.gap))
+            line   = gdspy.Rectangle((center[0]-g_w/2+self.l1+self.l2/2-self.w/2,center[1]-g_h/2-self.gap-self.t),(center[0]-g_w/2+self.l1+self.l2/2+self.w/2,center[1]-g_h/2-self.gap-self.t-self.gap-g_t))
             result = gdspy.boolean(result, line, 'or')
             result.translate(0,+self.sctq)
-            self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]-g_h/2-self.gap-self.t-self.gap+self.sctq)
+            self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]-g_h/2-self.gap-self.t-self.gap+self.sctq-g_t)
 
         self.result_coupler = result
 
