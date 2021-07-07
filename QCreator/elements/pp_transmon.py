@@ -204,10 +204,12 @@ class PP_Transmon(DesignElement):
                     (self.center[0] + 3 * l_arm / 2 + t_r + t_m + self.g_t, self.center[1] + self.h / 2 + 250)), 'not',
                                        layer=self.layer_configuration.total_layer)
             else:
+
                 result = gdspy.boolean(result, gdspy.Rectangle(
-                    (self.center[0], self.center[1] + self.h / 2 + 0.01),
-                    (self.center[0] + l_arm + t_m, self.center[1] + self.h / 2 + 250)), 'not',
+                    (self.center[0]+l_arm/2-s_gap, self.center[1] + self.h / 2 + 0.01),
+                    (self.center[0]+l_arm/2+t_m+s_gap , self.center[1] + self.h / 2 + 250)), 'not',
                                        layer=self.layer_configuration.total_layer)
+
 
             result = gdspy.boolean(result, fluxline, 'or', layer=self.layer_configuration.total_layer)
 
@@ -699,17 +701,14 @@ class PP_Transmon(DesignElement):
             if self.JJ_params['squid']:
                 reachy = 5
                 reachx = 15
-                result = gdspy.Rectangle((self.center[0] - self.b_g / 2,
-                                          self.center[1] + self.h / 2 - self.b_w / 3 + self.JJ_params['a1'] / 2), (
+                loop_h = self.JJ_params['loop_h']
+                result1 = gdspy.Rectangle((self.center[0] - self.b_g / 2,
+                                          self.center[1] + self.h / 2 - loop_h/2-self.b_w/2 + self.JJ_params['a1'] / 2), (
                                          self.center[0] +reachx,
-                                         self.center[1] + self.h / 2 - self.b_w / 3 - self.JJ_params['a1'] / 2))
+                                         self.center[1] + self.h / 2 - loop_h/2 -self.b_w/2 - self.JJ_params['a1'] / 2))
+                result2 = gdspy.copy(result1,0,loop_h)
+                result = gdspy.boolean(result1, result2, 'or')
 
-                result = gdspy.boolean(result, gdspy.Rectangle((self.center[0] - self.b_g / 2,
-                                                                self.center[1] + self.h / 2 - 2 * self.b_w / 3 +
-                                                                self.JJ_params['a1'] / 2), (
-                                                               self.center[0] + reachx,
-                                                               self.center[1] + self.h / 2 - 2 * self.b_w / 3 -
-                                                               self.JJ_params['a1'] / 2)), 'or')
                 result = gdspy.boolean(result, gdspy.Rectangle(
                     (self.center[0] + self.b_g / 2, self.center[1] + self.h / 2 - 2 * self.b_w), (
                     self.center[0] + self.b_g / 2 + self.JJ_params['a2'],self.center[1] + self.h / 2 - self.b_w / 3 + self.JJ_params['a1'] / 2+reachy
@@ -978,8 +977,8 @@ class PP_Squid_Fluxline:
                 (0,ground_height / 2 - ground_t),
                 (self.l_arm + self.t_m,ground_height / 2 + 250))
         cutout2 = gdspy.Rectangle(
-                (-2*self.l_arm, center[1] + ground_height / 2 ),
-                (+2*self.l_arm, center[1] + ground_height / 2 +100))
+                (-self.s_gap-self.t_m/2, center[1] + ground_height / 2 ),
+                (+self.s_gap+self.t_m/2, center[1] + ground_height / 2 +100))
 
         result = gdspy.boolean(result,cutout1,'not')
 

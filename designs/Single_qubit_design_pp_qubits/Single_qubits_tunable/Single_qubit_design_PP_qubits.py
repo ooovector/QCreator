@@ -127,11 +127,11 @@ jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid'
 
 
 ###### define parameters for the tunable qubits
-jj_pp_flux = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True }# hole sizes for the JJs
+jj_pp_flux = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10}# hole sizes for the JJs
 
 
-flux_distance = 20
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 150-3-flux_distance+15, resonator_core, 3, 5, 20, 50, resonator_gap
+flux_distance = 15
+l, t_m, t_r, gp, l_arm, h_arm, s_gap = 150-3-flux_distance+15, resonator_core, 3, 5, 40, 50, resonator_gap
 flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
 
 # draw 2 tunable qubits
@@ -139,7 +139,7 @@ center=(3100,4500)
 transmon1_left_flux = elements.pp_transmon.PP_Transmon(name='Q1_flux_left', center=center,
                                            width=width,
                                            height=height,
-                                           bridge_gap=JJ_pad_offset_x,
+                                           bridge_gap=JJ_pad_offset_x+10,
                                            bridge_w=JJ_pad_offset_y,
                                            gap=gap,
                                            ground_w=ground_w,
