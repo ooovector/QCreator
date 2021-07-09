@@ -7,6 +7,9 @@ from .cpw_primitives import Stub, Trapezoid
 from .drawing import combine
 
 
+def reduced_pad_geometry():
+    return {'pad_w': 300, 'pad_s': 170, 'pad_g': 8, 'pad_length': 250, 'narrowing_length': 160, 'stub_length': 100,
+            'z0': 50}
 def default_pad_geometry():
     return {'pad_w': 250, 'pad_s': 146, 'pad_g': 8, 'pad_length': 400, 'narrowing_length': 160, 'stub_length': 100,
             'z0': 50}
