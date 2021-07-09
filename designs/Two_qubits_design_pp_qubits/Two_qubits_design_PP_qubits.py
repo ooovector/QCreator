@@ -12,8 +12,15 @@ reload(gdspy)
 ### to have 50 Oms impedance with eps=11.75
 tl_core = 20.
 tl_gap = 12.
-tl_ground = 10.
+### to have 50 Oms impedance with eps=11.45
+tl_core = 21.
+tl_gap = 12.
+tl_ground = 6.#<-- changed from 10. to 5.
 
+resonator_core = 15
+resonator_gap = 10
+resonator_ground = 15 #5
+resonator_tl_ground=13
 pad_offset = 800
 
 layers_configuration = {
@@ -89,10 +96,6 @@ p1 = pads_top[0]
 p2 = pads_top[1]
 
 ################################
-# resonator parameters:
-resonator_core = 8
-resonator_gap = 7
-resonator_ground = 10
 
 ############### Qubits and Coupler
 
@@ -111,11 +114,11 @@ ground_w = 710+ground_t*2
 ground_h = 750+ground_t*2
 
 #square junctions
-a1    = np.sqrt(0.15*0.3) #Junction height in um
-a2    = a1 # Junction width in um
+a1    = 0.17 #Junction height in um
+a2    = 0.3 # Junction width in um
 
 #jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':np.pi/2}
-jj_pp2 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True }# hole sizes for the JJs
+jj_pp2 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10 }# hole sizes for the JJs
 jj_pp1 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False }# hole sizes for the JJs
 
 JJ_pad_offset_x = 10 # for JJ_manhatten
