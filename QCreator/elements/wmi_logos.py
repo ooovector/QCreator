@@ -3,7 +3,6 @@ from .. import transmission_line_simulator as tlsim
 import numpy as np
 import gdspy
 from typing import Tuple
-import sys
 
 
 class WMILogos(DesignElement):
