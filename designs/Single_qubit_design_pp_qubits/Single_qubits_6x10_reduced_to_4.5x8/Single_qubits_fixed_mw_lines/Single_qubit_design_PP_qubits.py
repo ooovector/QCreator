@@ -265,6 +265,7 @@ sample.add(transmon1_right_fixed)
 
 
 
-
+logos=elements.WMILogos((-1500,0),(-1000,0),r'C:\Python\Github\QCreator\QCreator\elements\masks',layers_configuration)
+sample.add(logos)
 sample.draw_design()
 #sample.watch()
