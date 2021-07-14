@@ -6,16 +6,16 @@ from typing import Tuple
 
 
 class AlignmentMarkers(DesignElement):
-    def __init__(self, position: Tuple[float, float],chip_dimensions: Tuple[float, float], size: float,
+    def __init__(self, edge_distance: Tuple[float, float],chip_dimensions: Tuple[float, float], size: float,
                  layer_configuration: LayerConfiguration):
         """
         Element for creating four squares as markers for alignment purposes durin chip fabrication
         chip_dimensions : (x,y) size of qubit chip,
-        position : (dx,dy) distance from chip edge,
+        edge_distance : (dx,dy) distance from chip edge,
         size : size of the square
         """
         super().__init__('chip_edge_ground', 'chip_edge_ground')
-        self.position = position
+        self.position = edge_distance
         self.chip_dimensions = chip_dimensions
         self.size = size
         self.layer_configuration = layer_configuration
