@@ -265,6 +265,11 @@ sample.add(transmon1_right_fixed)
 
 
 
-
+logos=elements.WMILogos((-1500,-1500),(-1500,5000),layers_configuration)
+sample.add(logos)
 sample.draw_design()
+markers = elements.AlignmentMarkers((500,500),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),10,sample.layer_configuration)
+sample.add(markers)
+
+
 #sample.watch()

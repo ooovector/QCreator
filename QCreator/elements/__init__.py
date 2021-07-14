@@ -1,7 +1,7 @@
 from .core import DesignElement, DesignTerminal, LayerConfiguration, ChipGeometry
 from .airbridge import AirBridgeGeometry, AirbridgeOverCPW
 from .chip_edge_ground import ChipEdgeGround, Pads
-from .pad import Pad, default_pad_geometry
+from .pad import Pad, default_pad_geometry, reduced_pad_geometry
 from .cpw import CPWCoupler, CPW, Narrowing, RectFanout, RectGrounding, OpenEnd
 from .grid_ground import GridGround
 from .coaxmon import Coaxmon
@@ -20,3 +20,5 @@ from .fungus_squid_coupler import Fungus_Squid_C
 from .twoqtc import TWOQTC
 from .y_squid_coupler import Y_Squid_C
 from .alignment_structure import AirbridgeAlignmentMarks
+from .wmi_logos import WMILogos
+from .alignment_markers import AlignmentMarkers
