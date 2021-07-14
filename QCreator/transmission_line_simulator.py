@@ -499,6 +499,38 @@ class TLSystem:
         order = np.argsort(frequencies)
         return np.asarray(frequencies)[order], np.asarray(gammas)[order], np.asarray(modes)[order]
 
+    def get_scdc_subsystems(self):
+        #scdc_nodes = self.get_scdc_nodes()
+        unbound_scdc_nodes = self.get_scdc_nodes()
+        bound_scdc_nodes = []
+        subsystems = []
+        shorts = []
+
+        while len(unbound_scdc_nodes):
+            subsystem_nodes = [unbound_scdc_nodes[0]]
+            subsystem_elements = []
+            bound_scdc_nodes.append(unbound_scdc_nodes[0])
+            del unbound_scdc_nodes[0]
+            elements_found = True
+            while elements_found:
+                elements_found = False
+                for element, connections in zip(self.elements, self.terminal_node_mapping):
+                    if not element.is_scdc():
+                        continue
+                    for connection in connections:
+                        if connection in subsystem_nodes and connection not in shorts:
+                            subsystem_nodes = list(set(subsystem_nodes + connections))
+                            if element not in subsystem_elements:
+                                if type(element) is Short:
+                                    shorts.append(connection)
+                                subsystem_elements.append(element)
+                                elements_found = True
+                                #print ('found ', element, connections)
+                            bound_scdc_nodes = list(set(bound_scdc_nodes + subsystem_nodes))
+                            unbound_scdc_nodes = list(set(unbound_scdc_nodes).difference(set(subsystem_nodes)))
+            subsystems.append((subsystem_nodes, subsystem_elements))
+        return subsystems
+
     def get_scdc_nodes(self):
         nodes = []
         for element, connections in zip(self.elements, self.terminal_node_mapping):
@@ -509,23 +541,26 @@ class TLSystem:
     def get_scdc_elements(self):
         return [e for e in self.elements if e.is_scdc()]
 
-    def set_phases(self, state):
-        scdc_nodes = self.get_scdc_nodes()
+    def set_phases(self, state, subsystem_id):
+        #scdc_nodes = self.get_scdc_nodes()
+        scdc_subnodes, scdc_subelements = self.get_scdc_subsystems()[subsystem_id]
         for e_id, e in enumerate(self.elements):
-            if not e.is_scdc():
+            #if not e.is_scdc():
+            if e not in scdc_subelements:
                 continue
             if hasattr(e, 'set_stationary_phase'):
-                phase = state[scdc_nodes.index(self.terminal_node_mapping[e_id][1])] - \
-                        state[scdc_nodes.index(self.terminal_node_mapping[e_id][0])]
+                phase = state[scdc_subnodes.index(self.terminal_node_mapping[e_id][1])] - \
+                        state[scdc_subnodes.index(self.terminal_node_mapping[e_id][0])]
                 e.set_stationary_phase(phase)
 
-    def nonlinear_scdc_equations(self, state):
+    def nonlinear_scdc_equations(self, state, subsystem_id):
         from collections import defaultdict
         # number of nodes
-        scdc_nodes = self.get_scdc_nodes()
-        node_no = len(scdc_nodes)
+        scdc_subnodes, scdc_subelements = self.get_scdc_subsystems()[subsystem_id]
+        #scdc_nodes = self.get_scdc_nodes()
+        node_no = len(scdc_subnodes)
         # number of terminals
-        terminal_no = np.sum([e.num_terminals() for e in self.get_scdc_elements()])
+        terminal_no = np.sum([e.num_terminals() for e in scdc_subelements])
 
         dynamic_equation_no = terminal_no
         # kinetic equations are Kirchhof's law that the sum of nodal currents is zero
@@ -536,13 +571,26 @@ class TLSystem:
         equations = []
         node_currents = defaultdict(lambda: 0)
         #scdc_elements = self.get_scdc_elements()
+        # decompress state
+        '''
+        decompressed_state = state[:node_no]
+        current_chains = []
         for e_id, e in enumerate(self.elements):
             if not e.is_scdc():
+                continue
+            if e.num_terminals() == 2:
+                current_chains
+        '''
+        # work with decompressed state
+        for e_id, e in enumerate(self.elements):
+            #if not e.is_scdc():
+            #    continue
+            if e not in scdc_subelements:
                 continue
             element_state_size = 2 * e.num_terminals()
             element_state = np.zeros((element_state_size,))
             for terminal_id, terminal_node in enumerate(self.terminal_node_mapping[e_id]):
-                node_id = scdc_nodes.index(terminal_node)
+                node_id = scdc_subnodes.index(terminal_node)
                 element_state[terminal_id] = state[node_id]
                 element_state[terminal_id + e.num_terminals()] = state[node_no + current_offset + terminal_id]
                 node_currents[node_id] += state[node_no + current_offset + terminal_id]
