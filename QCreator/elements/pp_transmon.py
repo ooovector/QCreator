@@ -953,7 +953,7 @@ class PP_Squid_Fluxline:
         self.connection = None
         #for the terminals:
         self.g = g
-        self.w = w
+        self.w = t_m
         self.s = s
         self.extend = extend
         #pad parameters
