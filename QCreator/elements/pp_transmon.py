@@ -187,12 +187,11 @@ class PP_Transmon(DesignElement):
 
             #jj_pp_flux = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10}
 
-            hole1     = gdspy.Rectangle((self.center[0]-self.b_g/2-self.JJ_params['h_w']-self.b_w/2,self.center[1]+ self.h / 2-self.b_w/2),(self.center[0]-self.b_g/2-self.b_w/2,self.center[1]+self.JJ_params['h_d']+ self.h / 2-self.b_w/2))
             hole11 = gdspy.Rectangle((self.center[0] - self.b_g / 2 - self.JJ_params['h_d'],
-                                     self.center[1] + self.h / 2 - self.b_w / 2+self.JJ_params['loop_h']/2+0.95), (
+                                     self.center[1] + self.h / 2 ), (
                                     self.center[0] - self.b_g / 2,
-                                    self.center[1] + self.h / 2 - self.b_w / 2+self.JJ_params['loop_h']/2-self.JJ_params['h_w']+0.95))
-            hole12 = gdspy.copy(hole11,0,-self.JJ_params['loop_h']-1.9+self.JJ_params['h_w'])
+                                    self.center[1] + self.h / 2 - self.b_w / 2+self.JJ_params['loop_h']/2-0.95))
+            hole12 = gdspy.copy(hole11,0,-self.b_w/2-self.JJ_params['loop_h']/2+0.95)
             hole2 = gdspy.Rectangle(
                 (self.center[0] + self.b_g / 2, self.center[1] - self.JJ_params['h_w'] - 3*self.b_w  + self.h / 2),
                 (self.center[0] + self.b_g / 2 + 1.05, self.center[1] - 2*self.b_w + self.h / 2))
@@ -204,11 +203,11 @@ class PP_Transmon(DesignElement):
 
             if self.use_bandages:
                 bandage1 = gdspy.Rectangle((self.center[0] - self.b_g / 2 - self.JJ_params['h_d'] + 0.5,
-                                           self.center[1] + self.h / 2 - self.JJ_params['loop_h']/2 - self.b_w / 2 - 2.95), (
+                                           self.center[1] + self.h / 2 - self.JJ_params['loop_h']/2 - self.b_w / 2 - 2.95+2.5), (
                                               self.center[0] - self.b_g / 2,
-                                              self.center[1] + self.h / 2 - self.JJ_params['loop_h'] / 2 - self.b_w / 2 + 0.45))
+                                              self.center[1] + self.h / 2 - self.JJ_params['loop_h'] / 2 - self.b_w / 2 + 0.45+2.5))
 
-                bandage2 = gdspy.copy(bandage1,0,+self.JJ_params['loop_h']+2.5)
+                bandage2 = gdspy.copy(bandage1,0,+self.JJ_params['loop_h']-2.5)
 
                 bandage3 = gdspy.Rectangle(
                     (self.center[0] + self.b_g / 2-0.45, self.center[1] + self.h / 2 - 2 * self.b_w), (
