@@ -191,8 +191,10 @@ CCc = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'co
 
 l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 3, 5, 20, 50, resonator_gap
 flux_distance = 20
-flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4}
-#flux = {}
+flux1 = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4}
+#for coupler
+flux2 = {'l':150,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4}
+
 
 
 CC = [CC1_flux,CC2]
@@ -225,7 +227,7 @@ for i in range(Y):
                                            remove_ground={'left': 1, 'right': 1, 'top': 1, 'bottom': 1},
                                            shoes=shoes1,
                                            transformations=transformations,
-                                           fluxline_params = flux
+                                           fluxline_params = flux1
                                            )
         sample.add(element)
         qubits.append(element)
@@ -246,12 +248,12 @@ for i in range(Y):
                           ground_h = ground_h_tc,
                           ground_t = ground_t,
                           jj_params= jj_pp_c,
-                          fluxline_params =flux,
+                          fluxline_params =flux2,
                           layer_configuration = sample.layer_configuration,
                           Couplers = CCc,
                           calculate_capacitance = False,
-                          #transformations = {'rotate':(-np.pi/2,center1)},
-                          transformations={},
+                          transformations = {'rotate':(-np.pi/2,center1)},
+                          #transformations={},
                           remove_ground = {'left':1,'top':1,'bottom':1,'right':1},
                           shoes ={},
                           claw  = claw_tc,
@@ -273,8 +275,8 @@ for i in range(Y):
                                                            layer_configuration=sample.layer_configuration,
                                                            Couplers=[],
                                                            calculate_capacitance=False,
-                                                           #transformations={'rotate': (np.pi, center2)},
-                                                          transformations={},
+                                                           transformations={'rotate': (np.pi, center2)},
+                                                          #transformations={},
                                                            remove_ground={'left': 1, 'top': 1, 'bottom': 1, 'right': 1},
                                                            shoes={},
                                                            claw=claw_tc,
@@ -317,10 +319,11 @@ for i in all_inverted:
 
 sample.total_cell.add(one)
 
+
 logos=elements.WMILogos((1800,1000),(7800,1000),layers_configuration)
 sample.add(logos)
-sample.draw_design()
+#sample.draw_design()
 markers = elements.AlignmentMarkers((1000,1000),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),10,sample.layer_configuration)
 sample.add(markers)
 
-sample.draw_design()
+#sample.draw_design()

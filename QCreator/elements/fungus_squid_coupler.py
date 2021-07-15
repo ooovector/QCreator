@@ -572,7 +572,7 @@ class Fungus_Squid_C(DesignElement):
         b_ex = self.JJ_params['bandages_extension']
         c_p_w = self.JJ_params['connection_pad_width']
         c_p_g = self.JJ_params['connection_pad_gap']
-        
+
 
 
 
