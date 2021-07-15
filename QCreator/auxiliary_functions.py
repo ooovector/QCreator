@@ -654,7 +654,7 @@ def draw_rounded_single_resonator_plus_qubit(sample,
         object1 = elements.OpenEnd(name='open end',
                                      position=(closed_end_meander[-1].get_terminals()['port2'].position[0],
                                                closed_end_meander[-1].get_terminals()['port2'].position[1]
-                                               -np.cos(angle)*open_end_length),
+                                               -np.cos(angle)*open_end_length*0),
                                      w=[resonator_core],
                                      s=[resonator_gap, resonator_gap],
                                      g=resonator_ground,
