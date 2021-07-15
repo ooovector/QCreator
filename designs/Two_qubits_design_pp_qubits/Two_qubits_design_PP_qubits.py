@@ -317,10 +317,13 @@ for Q in couplers:
 for i in all_inverted:
     one = gdspy.boolean(one,i,'not',layer=layers_configuration['vertical gridlines'])
 
-#Logos
-sample.logo[0] = True
-
-sample.logo[2] = (1550,4730)
-sample.logo[1] = (8580,4730)
 
 sample.total_cell.add(one)
+
+logos=elements.WMILogos((1800,1000),(7800,1000),layers_configuration)
+sample.add(logos)
+sample.draw_design()
+markers = elements.AlignmentMarkers((1000,1000),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),10,sample.layer_configuration)
+sample.add(markers)
+
+sample.draw_design()
