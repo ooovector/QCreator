@@ -175,9 +175,13 @@ class PP_Transmon(DesignElement):
             P1_bridge = gdspy.boolean(P1_bridge, hole1, 'not', layer=8)
             P2_bridge = gdspy.boolean(P2_bridge, hole2, 'not', layer=8)
             #add bandages here
+            b_ex= self.JJ_params['bandages_extension']
+            c_p_w= self.JJ_params['connection_pad_width']
+            c_p_g = self.JJ_params['connection_pad_gap']
+
             if self.use_bandages:
-                bandage1 = gdspy.Rectangle((self.center[0]-self.b_g/2-1.4-self.b_w/2,self.center[1]),(self.center[0]-self.b_g/2-self.b_w/2+2.5,self.center[1]+self.JJ_params['h_d']-0.5))
-                bandage2 = gdspy.Rectangle((self.center[0] + self.b_g / 2, self.center[1]-self.b_w/2-2.5-self.JJ_params['h_w']),(self.center[0] + self.b_g / 2 + self.JJ_params['h_d']-0.5, self.center[1] - self.b_w/2+1.4-self.JJ_params['h_w']))
+                bandage1 = gdspy.Rectangle((self.center[0]-self.b_g/2-c_p_g-c_p_w-self.b_w/2,self.center[1]),(self.center[0]-self.b_g/2-self.b_w/2+b_ex,self.center[1]+self.JJ_params['h_d']-c_p_g))
+                bandage2 = gdspy.Rectangle((self.center[0] + self.b_g / 2, self.center[1]-self.b_w/2-b_ex-self.JJ_params['h_w']),(self.center[0] + self.b_g / 2 + self.JJ_params['h_d']-c_p_g, self.center[1] - self.b_w/2+c_p_g+c_p_w-self.JJ_params['h_w']))
                 bandages = gdspy.boolean(bandage1,bandage2, 'or', layer=self.layer_configuration.bandages_layer)
 
         if self.JJ_params['manhatten'] and self.JJ_params['squid'] == True:
@@ -185,13 +189,16 @@ class PP_Transmon(DesignElement):
                                         (self.center[0] - self.b_g / 2, self.center[1] + self.h / 2 - self.b_w))
             P2_bridge =gdspy.copy(P1_bridge,self.gap/2+self.b_g/2,- 2 * self.b_w)
 
-            #jj_pp_flux = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10}
+
+            b_ex = self.JJ_params['bandages_extension']#2.5
+            c_p_w = self.JJ_params['connection_pad_width']#0.9
+            c_p_g     = self.JJ_params['connection_pad_gap']#0.5
 
             hole11 = gdspy.Rectangle((self.center[0] - self.b_g / 2 - self.JJ_params['h_d'],
                                      self.center[1] + self.h / 2 ), (
                                     self.center[0] - self.b_g / 2,
-                                    self.center[1] + self.h / 2 - self.b_w / 2+self.JJ_params['loop_h']/2-0.95))
-            hole12 = gdspy.copy(hole11,0,-self.b_w/2-self.JJ_params['loop_h']/2+0.95)
+                                    self.center[1] + self.h / 2 - self.b_w / 2+self.JJ_params['loop_h']/2-c_p_w-c_p_g))
+            hole12 = gdspy.copy(hole11,0,-self.b_w/2-self.JJ_params['loop_h']/2+c_p_g+c_p_w)
             hole2 = gdspy.Rectangle(
                 (self.center[0] + self.b_g / 2, self.center[1] - self.JJ_params['h_w'] - 3*self.b_w  + self.h / 2),
                 (self.center[0] + self.b_g / 2 + 1.05, self.center[1] - 2*self.b_w + self.h / 2))
@@ -200,28 +207,27 @@ class PP_Transmon(DesignElement):
             P2_bridge = gdspy.boolean(P2_bridge, hole2, 'not', layer=8)
 
             #add bandages here
-
             if self.use_bandages:
-                bandage1 = gdspy.Rectangle((self.center[0] - self.b_g / 2 - self.JJ_params['h_d'] + 0.5,
-                                           self.center[1] + self.h / 2 - self.JJ_params['loop_h']/2 - self.b_w / 2 - 2.95+2.5), (
+                bandage1 = gdspy.Rectangle((self.center[0] - self.b_g / 2 - self.JJ_params['h_d'] + c_p_g,
+                                           self.center[1] + self.h / 2 - self.JJ_params['loop_h']/2 - self.b_w / 2 -c_p_g/2), (
                                               self.center[0] - self.b_g / 2,
-                                              self.center[1] + self.h / 2 - self.JJ_params['loop_h'] / 2 - self.b_w / 2 + 0.45+2.5))
+                                              self.center[1] + self.h / 2 - self.JJ_params['loop_h'] / 2 - self.b_w / 2 + c_p_g/2+b_ex))
 
-                bandage2 = gdspy.copy(bandage1,0,+self.JJ_params['loop_h']-2.5)
+                bandage2 = gdspy.copy(bandage1,0,+self.JJ_params['loop_h']-b_ex)
 
                 bandage3 = gdspy.Rectangle(
-                    (self.center[0] + self.b_g / 2-0.45, self.center[1] + self.h / 2 - 2 * self.b_w), (
-                        self.center[0] + self.b_g / 2 + self.JJ_params['a2']+2.95,
+                    (self.center[0] + self.b_g / 2-c_p_w/2, self.center[1] + self.h / 2 - 2 * self.b_w), (
+                        self.center[0] + self.b_g / 2 + self.JJ_params['a2']+b_ex+c_p_w/2,
                         self.center[1] + self.h / 2 - 2 * self.b_w-self.JJ_params['h_d']
                     ))
                 bandages = gdspy.boolean(bandage1,(bandage2,bandage3), 'or', layer=self.layer_configuration.bandages_layer)
 
 
             f = self.fluxline_params
-            l, t_m, t_r, gap, l_arm, h_arm, s_gap = f['l'],f['t_m'],f['t_r'],f['gap'],f['l_arm'],f['h_arm'],f['s_gap']
+            l, t_m, t_r, gap, l_arm, h_arm, s_gap,asymmetry = f['l'],f['t_m'],f['t_r'],f['gap'],f['l_arm'],f['h_arm'],f['s_gap'],f['asymmetry']
             flux_distance = f['flux_distance']
             #result_restricted, to ct off hanging parts from the fluxline, None for no cutoff
-            flux = PP_Squid_Fluxline(l, t_m, t_r, gap, l_arm, h_arm, s_gap,flux_distance,self.w,self.h,self.gap,self.b_w,self.b_g,ground = None,asymmetry = 0,g = f.get('g'),w = f.get('w'),s = f.get('s'),extend = f.get('extend_to_ground'))
+            flux = PP_Squid_Fluxline(l, t_m, t_r, gap, l_arm, h_arm, s_gap,flux_distance,self.w,self.h,self.gap,self.b_w,self.b_g,ground = None,asymmetry = asymmetry,g = f.get('g'),w = f.get('w'),s = f.get('s'),extend = f.get('extend_to_ground'))
 
             fluxline = flux.render(self.center, self.w, self.h,self.g_h,self.g_t)['positive']
 
@@ -237,13 +243,13 @@ class PP_Transmon(DesignElement):
             if ground_fluxline == False:
                 result = gdspy.boolean(result, gdspy.Rectangle(
                     (self.center[0] - l_arm / 2 - t_r - self.g_t, self.center[1] + self.h / 2 + 0.01),
-                    (self.center[0] + 3 * l_arm / 2 + t_r + t_m + self.g_t, self.center[1] + self.h / 2 + 250)), 'not',
+                    (self.center[0] + 3 * l_arm / 2 + t_r + t_m + self.g_t, self.center[1] + self.h / 2 + 250)).translate(asymmetry,0), 'not',
                                        layer=self.layer_configuration.total_layer)
             else:
 
                 result = gdspy.boolean(result, gdspy.Rectangle(
                     (self.center[0]+l_arm/2-s_gap, self.center[1] + self.h / 2 + 0.01),
-                    (self.center[0]+l_arm/2+t_m+s_gap , self.center[1] + self.h / 2 + 250)), 'not',
+                    (self.center[0]+l_arm/2+t_m+s_gap , self.center[1] + self.h / 2 + 250)).translate(asymmetry,0), 'not',
                                        layer=self.layer_configuration.total_layer)
 
 
@@ -963,10 +969,11 @@ class PP_Squid_Fluxline:
         self.b_g = b_g
         self.pad_g = pad_g
         self.ground = ground
+
     def render(self, center, width,height,ground_height,ground_t):
         if not self.extend:
             ground_t = ground_height/2
-        factor = 2.18
+        factor = 2.18*2
         #the shift is necessary for the diagonal parts to have the same thickness as the arms
         x1 = (self.l_arm-self.s_gap)/self.h_arm
         x2 =  (factor*self.l_arm-self.s_gap)/self.h_arm
@@ -1016,10 +1023,9 @@ class PP_Squid_Fluxline:
 
 
         # move fluxline to correct position
-        result.translate(center[0], center[1])
-        result.translate(0+(self.l_arm + self.t_m)/2,self.pad_h/2+self.flux_distance)#self.pad_g/2+self.pad_w-self.b_w/2+self.flux_distance,self.asymmetry+self.pad_h/2+3.5*self.b_w)
-
-        restrict.translate(center[0], center[1])
+        result.translate(center[0]+self.asymmetry, center[1])
+        result.translate(0+(self.l_arm + self.t_m)/2,self.pad_h/2+self.flux_distance)
+        restrict.translate(center[0]+self.asymmetry, center[1])
 
         restrict.translate(0+(self.l_arm + self.t_m)/2, self.pad_h / 2 + self.flux_distance)
 
@@ -1029,7 +1035,7 @@ class PP_Squid_Fluxline:
 
         self.result_coupler = result
 
-        point = (center[0]+(self.l_arm + self.t_m)/2,center[1]+self.pad_h / 2+self.flux_distance+self.t_r+self.l)
+        point = (center[0]+(self.l_arm + self.t_m)/2+self.asymmetry,center[1]+self.pad_h / 2+self.flux_distance+self.t_r+self.l)
         self.connection = point
 
         return {

@@ -114,12 +114,15 @@ ground_w = 710+ground_t*2
 ground_h = 750+ground_t*2
 
 #square junctions
-a1    = 0.17 #Junction height in um
-a2    = 0.3 # Junction width in um
+a1    = np.sqrt(0.17*0.3) #Junction height in um
+a2    = a1 # Junction width in um
 
 #jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':np.pi/2}
-jj_pp2 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10 }# hole sizes for the JJs
-jj_pp1 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False }# hole sizes for the JJs
+jj_pp2 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}# hole sizes for the JJs
+jj_pp1 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10 ,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}# hole sizes for the JJs
+
+jj_pp_c = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5  }# hole sizes for the JJs
+
 
 JJ_pad_offset_x = 10 # for JJ_manhatten
 JJ_pad_offset_y = 16 # JJ design
@@ -170,14 +173,9 @@ air = [-20,40,100]
 
 
 
-
-
 CC2 = [elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',heightr = -0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
       elements.pp_transmon.PP_Transmon_Coupler(10,10,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175),
       ]
-
-
-
 
 
 CC1_flux = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175),
@@ -188,14 +186,12 @@ CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type =
       ]
 
 
-
-
 CCc = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
       ]
 
 l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 3, 5, 20, 50, resonator_gap
 flux_distance = 20
-flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
+flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4}
 #flux = {}
 
 
@@ -249,12 +245,13 @@ for i in range(Y):
                           ground_w = ground_w_tc,
                           ground_h = ground_h_tc,
                           ground_t = ground_t,
-                          jj_params= jj_pp,
+                          jj_params= jj_pp_c,
                           fluxline_params =flux,
                           layer_configuration = sample.layer_configuration,
                           Couplers = CCc,
                           calculate_capacitance = False,
-                          transformations = {'rotate':(-np.pi/2,center1)},
+                          #transformations = {'rotate':(-np.pi/2,center1)},
+                          transformations={},
                           remove_ground = {'left':1,'top':1,'bottom':1,'right':1},
                           shoes ={},
                           claw  = claw_tc,
@@ -271,12 +268,13 @@ for i in range(Y):
                                                            ground_w=ground_w_tc,
                                                            ground_h=ground_h_tc,
                                                            ground_t=ground_t,
-                                                           jj_params=jj_pp,
+                                                           jj_params=jj_pp_c,
                                                            fluxline_params={},
                                                            layer_configuration=sample.layer_configuration,
                                                            Couplers=[],
                                                            calculate_capacitance=False,
-                                                           transformations={'rotate': (np.pi, center2)},
+                                                           #transformations={'rotate': (np.pi, center2)},
+                                                          transformations={},
                                                            remove_ground={'left': 1, 'top': 1, 'bottom': 1, 'right': 1},
                                                            shoes={},
                                                            claw=claw_tc,
@@ -316,11 +314,5 @@ for Q in couplers:
 
 for i in all_inverted:
     one = gdspy.boolean(one,i,'not',layer=layers_configuration['vertical gridlines'])
-
-#Logos
-sample.logo[0] = True
-
-sample.logo[2] = (1550,4730)
-sample.logo[1] = (8580,4730)
 
 sample.total_cell.add(one)
