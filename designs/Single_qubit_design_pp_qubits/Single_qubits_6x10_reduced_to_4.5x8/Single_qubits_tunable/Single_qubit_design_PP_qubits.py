@@ -122,17 +122,17 @@ a1    = np.sqrt(0.15*0.3) #Junction height in um
 a2    = a1 # Junction width in um
 
 
-jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False }# hole sizes for the JJs
+jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5 }# hole sizes for the JJs
 
 
 
 ###### define parameters for the tunable qubits
-jj_pp_flux = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':3 ,'h_d':8,'squid':True,'loop_h': 10}# hole sizes for the JJs
-
+jj_pp_flux = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':3 ,'h_d':8,'squid':True,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}# hole sizes for the JJs
 
 flux_distance = 15
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 150-3-flux_distance+15, resonator_core, 3, 5, 40, 50, resonator_gap
-flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
+#l, t_m, t_r, gp, l_arm, h_arm, s_gap = 150-3-flux_distance+15, resonator_core, 3, 5, 40, 50, resonator_gap
+l, t_m, t_r, gp, l_arm, h_arm, s_gap,asymmetry = 150-3-flux_distance+15, 5, 3, 5, 40/3, 50, resonator_gap,15
+flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':asymmetry,'loop_h': 10 }
 
 # draw 2 tunable qubits
 center=(3100,4500)
