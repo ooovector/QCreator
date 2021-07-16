@@ -137,8 +137,11 @@ class Inductor(TLSystemElement):
         return np.conj(mode) @ emat @ mode
 
     def scdc(self, submode):
-        return [(submode[1] - submode[0] + submode[2] * 1e-6 * np.real(self.L) / (hbar / (2 * e))),
-                (submode[2] + submode[3])]
+        return ([],
+               [-1, 1, 1e-6 * np.real(self.L) / (hbar / (2 * e)),
+                0, 0, 1, 1])
+        # return [(submode[1] - submode[0] + submode[2] * 1e-6 * np.real(self.L) / (hbar / (2 * e))),
+        #         (submode[2] + submode[3])]
 
     def is_scdc(self):
         return True
@@ -174,8 +177,8 @@ class Short(TLSystemElement):
         return a, b
 
     def scdc(self, submode):
-        return [submode[0]]
-        #return []
+        #return [submode[0]]
+        return ([], [1])
 
     def is_scdc(self):
         return True
@@ -204,7 +207,7 @@ class Port(TLSystemElement):
         return a, b
 
     def scdc(self, submode):
-        return [(submode[1] - self.idc)]
+        return ([(submode[1] - self.idc)], [])
 
     def is_scdc(self):
         return True
@@ -338,10 +341,18 @@ class TLCoupler(TLSystemElement):
         return a, b
 
     def scdc(self, submode):
-        dphi = submode[self.n:2*self.n] - submode[:self.n]
-        phi = self.l * (self.Ll @ submode[2*self.n:3*self.n]) / (hbar/(2*e)) * 1e-6
-        di = submode[2*self.n:3*self.n] + submode[3*self.n:4*self.n]
-        return np.hstack([(phi + dphi), di]).tolist()
+        # dphi = submode[self.n:2*self.n] - submode[:self.n]
+        # phi = self.l * (self.Ll @ submode[2*self.n:3*self.n]) / (hbar/(2*e)) * 1e-6
+        # di = submode[2*self.n:3*self.n] + submode[3*self.n:4*self.n]
+        # return np.hstack([(phi + dphi), di]).tolist()
+        #phi = [for conductor_id in range(self.n)]
+        equations_phase = np.zeros((self.n * 2, self.n * 4))
+        equations_phase[:self.n, :self.n] = -np.identity(self.n)
+        equations_phase[:self.n, self.n:self.n*2] = np.identity(self.n)
+        equations_phase[:self.n, self.n*2:self.n*3] = self.l * self.Ll / (hbar / (2 * e)) * 1e-6
+
+        #equations_phase[self.n:self.n*2, ]
+        return ([], [])
 
     def is_scdc(self):
         return True
@@ -887,7 +898,39 @@ class TLSystem:
 
         return JJ_kerr
 
+    def get_perturbation_nondiagonal(self, list_of_modes_numbers: list):
+        """
+        Calculate matrix of perturbation in basis of |g>, |e>, |f>, |h> states, truncate to n states
+        """
+        modes_ = self.normalization_of_modes(list_of_modes_numbers)  # here modes are normalized
 
+        number_of_modes = len(modes_)
+
+        JJ_kerr = np.zeros((2 * number_of_modes, 2 * number_of_modes, 2 * number_of_modes, 2 * number_of_modes))
+        for JJ_ in self.JJs:
+            for i in range(number_of_modes*2):
+                mode_i = self.get_element_submode(JJ_, modes_[i%number_of_modes])
+                if i > number_of_modes:
+                    mode_i = np.conj(mode_i)
+                for j in range(number_of_modes*2):
+                    mode_j = self.get_element_submode(JJ_, modes_[j])
+                    if j > number_of_modes:
+                        mode_j = np.conj(mode_j)
+                    submode_ij = np.kron(mode_i, mode_j)
+                    for k in range(number_of_modes*2):
+                        mode_k = self.get_element_submode(JJ_, modes_[k])
+                        if k > number_of_modes:
+                            mode_k = np.conj(mode_k)
+                        for l in range(number_of_modes*2):
+                            mode_l = self.get_element_submode(JJ_, modes_[l])
+                            if l > number_of_modes:
+                                mode_l = np.conj(mode_l)
+                            submode_kl = np.kron(mode_k, mode_l)
+                            JJ_kerr[i, j, k, l] += np.dot(submode_ij.T,
+                                                                   np.dot(JJ_.nonlinear_perturbation(),
+                                                                          submode_kl)) / 6
+
+        return JJ_kerr
 """
     def boundary_condition_matrix_det(self, omega):
         matrix = self.create_boundary_problem_matrix(omega)
