@@ -725,7 +725,7 @@ class RectFanout(DesignElement):
         else:
             self.kinetic_inductance = [0 for i in range(len(self.w))]
 
-        self.width_total, self.widths, self.offsets = widths_offsets(self.w, self.s, self.g)
+        self.width_total, self.widths, self.offsets, self.holes, self.holes_offsets = widths_offsets(self.w, self.s, self.g)
 
         if down_s_right is None:
             down_s_right = self.s[0]
@@ -760,7 +760,7 @@ class RectFanout(DesignElement):
         for group_exists, group_w, group_s, first_conductor in zip(self.groups_exist, self.groups_w, self.groups_s,
                                                                    self.groups_first_conductor):
             if group_exists:
-                group_width_total, group_widths, group_offsets = widths_offsets(group_w, group_s, self.g)
+                group_width_total, group_widths, group_offsets, group_holes, group_holes_offsets = widths_offsets(group_w, group_s, self.g)
                 group_global_offset = self.offsets[first_conductor + 1] - group_offsets[1]
             else:
                 group_width_total, group_widths, group_offsets = 0, [], []
