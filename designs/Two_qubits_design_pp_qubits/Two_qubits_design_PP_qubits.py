@@ -121,7 +121,7 @@ a2    = a1 # Junction width in um
 jj_pp2 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}# hole sizes for the JJs
 jj_pp1 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10 ,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}# hole sizes for the JJs
 
-jj_pp_c = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5  }# hole sizes for the JJs
+jj_pp_c = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'rotation':0}# hole sizes for the JJs
 
 
 JJ_pad_offset_x = 10 # for JJ_manhatten
@@ -193,7 +193,7 @@ l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 3, 5, 20, 50, resona
 flux_distance = 20
 flux1 = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4}
 #for coupler
-flux2 = {'l':150,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4}
+flux2 = {'l':150,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}
 
 
 
@@ -252,8 +252,8 @@ for i in range(Y):
                           layer_configuration = sample.layer_configuration,
                           Couplers = CCc,
                           calculate_capacitance = False,
-                          transformations = {'rotate':(-np.pi/2,center1)},
-                          #transformations={},
+                          #transformations = {'rotate':(-np.pi/2,center1)},
+                          transformations={},
                           remove_ground = {'left':1,'top':1,'bottom':1,'right':1},
                           shoes ={},
                           claw  = claw_tc,

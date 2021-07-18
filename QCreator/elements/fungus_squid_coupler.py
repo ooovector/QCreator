@@ -24,7 +24,7 @@ class Fungus_Squid_C(DesignElement):
     9) shoes - caps for the two pads
     """
     def __init__(self, name: str, center: Tuple[float, float],width: Tuple[float,float], height: Tuple[float,float],gap: float,bridge_gap:float,bridge_w:float, ground_w: float, ground_h: float,ground_t: float,layer_configuration: LayerConfiguration,
-                 jj_params: Dict,Couplers,transformations:Dict,fluxline_params= {},remove_ground = {},secret_shift = 0,calculate_capacitance = False,shoes = {},claw = [],asymmetry = 0,air_bridge=[]):
+                 jj_params: Dict,Couplers,transformations:Dict,fluxline_params= {},remove_ground = {},secret_shift = 0,calculate_capacitance = False,shoes = {},claw = [],asymmetry = 0,air_bridge=[],use_bandages = True):
         super().__init__(type='qubit', name=name)
         #qubit parameters
         self.transformations = transformations# to mirror the structure
@@ -73,6 +73,9 @@ class Fungus_Squid_C(DesignElement):
             # 'flux line': None,
             'qubit': None}
 
+
+        # use bandages?
+        self.use_bandages = use_bandages
 
         # remove ground on these sites
         self.remove_ground = remove_ground
@@ -214,6 +217,13 @@ class Fungus_Squid_C(DesignElement):
         # add couplers
         last_step_cap = [gdspy.boolean(gdspy.boolean(P2, P2_bridge, 'or'),gdspy.boolean(P1, P1_bridge, 'or'),'or')]
         self.layers.append(self.layer_configuration.total_layer)
+
+        # add junctions
+        if self.JJ_params is not None:
+            self.JJ_coordinates = (self.center[0], self.center[1])
+            JJ, bandages, holes = self.generate_JJ()
+            result = gdspy.boolean(result, holes, 'not')
+
 
         # Box for inverted Polygons
         box = gdspy.Rectangle((self.center[0] - self.g_w / 2, self.center[1] - self.g_h / 2),(self.center[0] + self.g_w / 2, self.center[1] + self.g_h / 2))
@@ -405,10 +415,6 @@ class Fungus_Squid_C(DesignElement):
 
         inverted = gdspy.boolean(box, result, 'not',layer=self.layer_configuration.inverted)
 
-        # add JJs
-        if self.JJ_params is not None:
-            self.JJ_coordinates = (self.center[0],self.center[1])
-            JJ = self.generate_JJ()
 
         qubit = deepcopy(result)
 
@@ -428,6 +434,7 @@ class Fungus_Squid_C(DesignElement):
                     'inverted': inverted.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
                     'airbridges': Air.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1])if Air is not None else None,
                     'pocket': pocket.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
+                    'bandages': bandages.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
                     }
 
         if 'rotate' in self.transformations:
@@ -440,6 +447,7 @@ class Fungus_Squid_C(DesignElement):
                     'inverted': inverted.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
                     'airbridges':Air.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1])if Air is not None else None,
                     'pocket': pocket.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
+                    'bandages': bandages.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
                     }
         elif self.transformations == {}:
             return {'positive': result,
@@ -450,6 +458,7 @@ class Fungus_Squid_C(DesignElement):
                     'inverted': inverted,
                     'airbridges': Air if Air is not None else None,
                     'pocket':pocket,
+                    'bandages': bandages,
                     }
 
     def generate_ground(self):
@@ -569,25 +578,54 @@ class Fungus_Squid_C(DesignElement):
         result = gdspy.boolean(result, result, 'or', layer=self.layer_configuration.jj_layer)
 
         #add bandages
-        b_ex = self.JJ_params['bandages_extension']
-        c_p_w = self.JJ_params['connection_pad_width']
-        c_p_g = self.JJ_params['connection_pad_gap']
+        if self.use_bandages:
+            b_ex = self.JJ_params['bandages_extension']
+            c_p_w = self.JJ_params['connection_pad_width']
+            c_p_g = self.JJ_params['connection_pad_gap']
 
+            bandage1 = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w - self.b_w,
+                             self.center[1] + self.h / 2 + 0.45 + self.asymmetry + 3 * self.b_w - self.b_w / 2), (
+                            self.center[0] + self.gap / 2 + self.w - self.b_w - self.JJ_params['h_d'] + 0.5,
+                            self.center[1] + self.h / 2 - self.b_w / 2 - 0.45 + self.asymmetry + 3 * self.b_w-b_ex))
 
+            bandage2 = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w - self.b_w / 2 - loop_h / 2 - 0.45,
+                             self.center[1] + self.h / 2 + self.asymmetry + 2 * self.b_w - self.b_g - self.JJ_params[
+                                 'h_d'] + 0.5),
+                            (self.center[0] + self.gap / 2 + self.w - self.b_w / 2 + 0.45 - loop_h / 2+b_ex,
+                             self.center[1] + self.h / 2 + self.asymmetry + 2 * self.b_w - self.b_g))
 
-
-
+            bandage3 = gdspy.copy(bandage2, +self.JJ_params['loop_h'] - b_ex, 0)
+            bandages = gdspy.boolean(bandage1, (bandage2, bandage3), 'or',
+                                     layer=self.layer_configuration.bandages_layer)
         #create rectangles for holes
+        hole1 = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w - self.b_w,
+                             self.center[1] + self.h / 2 + 0.45 + self.asymmetry + 3 * self.b_w), (
+                            self.center[0] + self.gap / 2 + self.w - self.b_w - self.JJ_params['h_d'] + 0.5-c_p_g,
+                            self.center[1] + self.h / 2 - self.b_w / 2 - 0.45 + self.asymmetry + 3 * self.b_w-c_p_g))
 
+        hole2 = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w - self.b_w,
+                             self.center[1] + self.h / 2 + self.asymmetry + 2 * self.b_w - self.b_g - self.JJ_params[
+                                 'h_d'] + 0.5-c_p_g),
+                            (self.center[0] + self.gap / 2 + self.w - self.b_w / 2 + 0.45 - loop_h / 2+c_p_g,
+                             self.center[1] + self.h / 2 + self.asymmetry + 2 * self.b_w - self.b_g))
+        hole3 = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w,
+                             self.center[1] + self.h / 2 + self.asymmetry + 2 * self.b_w - self.b_g - self.JJ_params[
+                                 'h_d'] + 0.5-c_p_g),
+                            (self.center[0] + self.gap / 2 + self.w - self.b_w / 2 - c_p_w/2 + loop_h / 2-c_p_g,
+                             self.center[1] + self.h / 2 + self.asymmetry + 2 * self.b_w - self.b_g))
+
+        holes =  gdspy.boolean(hole1, (hole2, hole3), 'or')
 
         #rotate all
-
-
-
+        if self.JJ_params['rotation'] is not None:
+            point =  (self.center[0] + self.gap / 2 + self.w- self.b_w/2,self.center[1] + self.h / 2 + self.asymmetry + 2 * self.b_w - self.b_g +self.JJ_params['loop_h']/2)
+            result   = result.rotate(self.JJ_params['rotation'],point)
+            bandages = bandages.rotate(self.JJ_params['rotation'], point)
+            holes    = holes.rotate(self.JJ_params['rotation'], point)
         #angle = self.JJ_params['angle_JJ']
         #result.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
 
-        return result
+        return result,bandages,holes
 
 
 
