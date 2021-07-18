@@ -136,12 +136,32 @@ class Inductor(TLSystemElement):
         ]) / 2
         return np.conj(mode) @ emat @ mode
 
-    def scdc(self, submode):
-        return ([],
-               [-1, 1, 1e-6 * np.real(self.L) / (hbar / (2 * e)),
-                0, 0, 1, 1])
-        # return [(submode[1] - submode[0] + submode[2] * 1e-6 * np.real(self.L) / (hbar / (2 * e))),
-        #         (submode[2] + submode[3])]
+    # def scdc(self, submode):
+    #     return [(submode[1] - submode[0] + submode[2] * 1e-6 * np.real(self.L) / (hbar / (2 * e))),
+    #             (submode[2] + submode[3])]
+    #
+    # def scdc_energy(self, submode):
+    #     return []
+    #
+    # def scdc_constrains(self):
+    #     return [-1, 1, 1e-6 * np.real(self.L) / (hbar / (2 * e)),
+    #              0, 0, 1, 1]
+    #
+    # def scdc_gradient(self, submode):
+    #     return []
+
+    def potential(self, submode):
+        return (submode[1] - submode[0])**2  / (2 * np.real(self.L)) * 1e-9
+
+    def potential_gradient(self, submode):
+        return [(submode[0] - submode[1]) /  np.real(self.L) * 1e-9,
+                (submode[1] - submode[0]) /  np.real(self.L) * 1e-9]
+
+    def potential_hessian(self, submode):
+        return np.asarray([[1, -1], [-1, 1]]) / np.real(self.L) * 1e-9
+
+    # def potential_constraints(self):
+    #     return []
 
     def is_scdc(self):
         return True
@@ -176,9 +196,29 @@ class Short(TLSystemElement):
         a = np.asarray([[1, 0]])  # current values
         return a, b
 
-    def scdc(self, submode):
-        #return [submode[0]]
-        return ([], [1])
+    # def scdc(self, submode):
+    #     #return [submode[0]]
+    #     return ([], [1])
+    #
+    # def scdc_energy(self, submode):
+    #     return []
+    #
+    # def scdc_constrains(self):
+    #     return [1, 0]
+    #
+    # def scdc_gradient(self, submode):
+    #     return []
+    def potential(self, submode):
+        return 0
+
+    def potential_gradient(self, submode):
+        return [0]
+
+    def potential_hessian(self, submode):
+        return [[0]]
+
+    # def potential_constraints(self):
+    #     return [[1]]
 
     def is_scdc(self):
         return True
@@ -206,8 +246,29 @@ class Port(TLSystemElement):
         a = np.asarray([[1, self.Z0, 0], [1, -self.Z0, 1]])  # current values
         return a, b
 
-    def scdc(self, submode):
-        return ([(submode[1] - self.idc)], [])
+    # def scdc(self, submode):
+    #     return [(submode[1] - self.idc)]
+    #
+    # def scdc_energy(self, submode):
+    #     return [(submode[1] - self.idc)**2/2]
+    #
+    # def scdc_constrains(self):
+    #     return []
+    #
+    # def scdc_gradient(self, submode):
+    #     return [(submode[1] - self.idc)]
+
+    def potential(self, submode):
+        return -submode[0]*self.idc/ (hbar / (2 * e)) * 1e-9
+
+    def potential_gradient(self, submode):
+        return [-self.idc/ (hbar / (2 * e)) * 1e-9]
+
+    def potential_hessian(self, submode):
+        return [[0]]
+
+    # def potential_constraints(self):
+    #     return []
 
     def is_scdc(self):
         return True
@@ -340,19 +401,44 @@ class TLCoupler(TLSystemElement):
             a[2 * n_eq_internal + self.n * 3 + k, -m:] = np.kron(c, mode_right)
         return a, b
 
-    def scdc(self, submode):
-        # dphi = submode[self.n:2*self.n] - submode[:self.n]
-        # phi = self.l * (self.Ll @ submode[2*self.n:3*self.n]) / (hbar/(2*e)) * 1e-6
-        # di = submode[2*self.n:3*self.n] + submode[3*self.n:4*self.n]
-        # return np.hstack([(phi + dphi), di]).tolist()
-        #phi = [for conductor_id in range(self.n)]
-        equations_phase = np.zeros((self.n * 2, self.n * 4))
-        equations_phase[:self.n, :self.n] = -np.identity(self.n)
-        equations_phase[:self.n, self.n:self.n*2] = np.identity(self.n)
-        equations_phase[:self.n, self.n*2:self.n*3] = self.l * self.Ll / (hbar / (2 * e)) * 1e-6
+    # def scdc(self, submode):
+    #     dphi = submode[self.n:2*self.n] - submode[:self.n]
+    #     phi = self.l * (self.Ll @ submode[2*self.n:3*self.n]) / (hbar/(2*e)) * 1e-6
+    #     di = submode[2*self.n:3*self.n] + submode[3*self.n:4*self.n]
+    #     return np.hstack([(phi + dphi), di]).tolist()
+    #
+    # def scdc_energy(self, submode):
+    #     return []
+    #
+    # def scdc_constrains(self):
+    #     equations_phase = np.zeros((self.n * 2, self.n * 4))
+    #     equations_phase[:self.n, :self.n] = -np.identity(self.n)
+    #     equations_phase[:self.n, self.n:self.n * 2] = np.identity(self.n)
+    #     equations_phase[:self.n, self.n * 2:self.n * 3] = self.l * self.Ll / (hbar / (2 * e)) * 1e-6
+    #
+    #     equations_phase[self.n:, self.n * 3:self.n * 4] = np.identity(self.n)
+    #     equations_phase[self.n:, self.n * 3:self.n * 4] = np.identity(self.n)
+    #     return equations_phase.tolist()
+    #
+    # def scdc_gradient(self, submode):
+    #     return []
 
-        #equations_phase[self.n:self.n*2, ]
-        return ([], [])
+    def potential(self, submode):
+        dphi = -submode[self.n:] + submode[:self.n]
+        potential = self.l * dphi @ np.linalg.inv(self.Ll) @ dphi / 2 * 1e-9
+        return potential
+
+    def potential_gradient(self, submode):
+        dphi = -submode[self.n:] + submode[:self.n]
+        gradient = self.l * np.linalg.inv(self.Ll) @ dphi * 1e-9
+        return np.kron([1, -1], gradient)
+
+    def potential_hessian(self, submode):
+        hessian = self.l * np.linalg.inv(self.Ll) * 1e-9
+        return np.kron([[1, -1], [-1, 1]], hessian)
+
+    # def potential_constraints(self):
+    #     return []
 
     def is_scdc(self):
         return True
@@ -409,9 +495,32 @@ class JosephsonJunction(TLSystemElement):
         ]) / 2
         return energy
 
-    def scdc(self, submode):
-        return [self.E_J / self.phi_0 * np.sin((submode[1] - submode[0])) * 1e6 + submode[2],
-                (submode[2] + submode[3])]
+    # def scdc(self, submode):
+    #     return [self.E_J / self.phi_0 * np.sin((submode[1] - submode[0])) * 1e6 + submode[2], ## TODO: fix JJ energy
+    #             (submode[2] + submode[3])]
+    #
+    # def scdc_energy(self, submode):
+    #     return [self.E_J / self.phi_0 * ]
+    #
+    # def scdc_constrains(self):
+    #     return [[0, 0, 1, 1]]
+    #
+    # def scdc_gradient(self, submode):
+    #     return []
+
+    def potential(self, submode):
+        return self.E_J * (1 - np.cos(submode[0] - submode[1])) / (hbar / (2 * e)) ** 2 * 1e-9
+
+    def potential_gradient(self, submode):
+        gradient = self.E_J * np.sin(submode[0] - submode[1]) / (hbar / (2 * e)) ** 2 * 1e-9
+        return gradient * np.asarray([1, -1])
+
+    def potential_hessian(self, submode):
+        hessian = self.E_J * np.cos(submode[0] - submode[1]) / (hbar / (2 * e)) ** 2 * 1e-9
+        return hessian * np.asarray([[1, -1], [-1, 1]])
+
+    # def potential_constraints(self):
+    #     return []
 
     def is_scdc(self):
         return True
@@ -516,6 +625,10 @@ class TLSystem:
         bound_scdc_nodes = []
         subsystems = []
         shorts = []
+        for element_id, element in enumerate(self.elements):
+            if type(element) is Short:
+                shorts.extend(self.terminal_node_mapping[element_id])
+        unbound_scdc_nodes = list(set(unbound_scdc_nodes).difference(set(shorts)))
 
         while len(unbound_scdc_nodes):
             subsystem_nodes = [unbound_scdc_nodes[0]]
@@ -529,17 +642,19 @@ class TLSystem:
                     if not element.is_scdc():
                         continue
                     for connection in connections:
-                        if connection in subsystem_nodes and connection not in shorts:
-                            subsystem_nodes = list(set(subsystem_nodes + connections))
+                        if connection in subsystem_nodes:
+                            if connection not in shorts:
+                                subsystem_nodes = list(set(subsystem_nodes + connections))
                             if element not in subsystem_elements:
-                                if type(element) is Short:
-                                    shorts.append(connection)
-                                subsystem_elements.append(element)
-                                elements_found = True
+                                if connection not in shorts or type(element) is Short:
+                                    subsystem_elements.append(element)
+                                    elements_found = True
                                 #print ('found ', element, connections)
                             bound_scdc_nodes = list(set(bound_scdc_nodes + subsystem_nodes))
                             unbound_scdc_nodes = list(set(unbound_scdc_nodes).difference(set(subsystem_nodes)))
-            subsystems.append((subsystem_nodes, subsystem_elements))
+            nodes_no_shorts = [node for node in subsystem_nodes if node not in shorts]
+            nodes_shorts = [node for node in subsystem_nodes if node in shorts]
+            subsystems.append((nodes_no_shorts, nodes_shorts, subsystem_elements))
         return subsystems
 
     def get_scdc_nodes(self):
@@ -553,70 +668,171 @@ class TLSystem:
         return [e for e in self.elements if e.is_scdc()]
 
     def set_phases(self, state, subsystem_id):
-        #scdc_nodes = self.get_scdc_nodes()
-        scdc_subnodes, scdc_subelements = self.get_scdc_subsystems()[subsystem_id]
+        scdc_subnodes, scdc_shorts, scdc_subelements = self.get_scdc_subsystems()[subsystem_id]
         for e_id, e in enumerate(self.elements):
-            #if not e.is_scdc():
             if e not in scdc_subelements:
                 continue
             if hasattr(e, 'set_stationary_phase'):
-                phase = state[scdc_subnodes.index(self.terminal_node_mapping[e_id][1])] - \
-                        state[scdc_subnodes.index(self.terminal_node_mapping[e_id][0])]
+                if self.terminal_node_mapping[e_id][1] in scdc_shorts:
+                    phase1 = 0
+                else:
+                    phase1 = state[scdc_subnodes.index(self.terminal_node_mapping[e_id][1])]
+
+                if self.terminal_node_mapping[e_id][0] in scdc_shorts:
+                    phase0 = 0
+                else:
+                    phase0 = state[scdc_subnodes.index(self.terminal_node_mapping[e_id][0])]
+                phase = phase1 - phase0
                 e.set_stationary_phase(phase)
 
-    def nonlinear_scdc_equations(self, state, subsystem_id):
-        from collections import defaultdict
+    def scdc_energy(self, state, subsystem_id):
         # number of nodes
-        scdc_subnodes, scdc_subelements = self.get_scdc_subsystems()[subsystem_id]
-        #scdc_nodes = self.get_scdc_nodes()
-        node_no = len(scdc_subnodes)
-        # number of terminals
-        terminal_no = np.sum([e.num_terminals() for e in scdc_subelements])
+        scdc_subnodes, scdc_shorts, scdc_subelements = self.get_scdc_subsystems()[subsystem_id]
+        energy = 0
 
-        dynamic_equation_no = terminal_no
-        # kinetic equations are Kirchhof's law that the sum of nodal currents is zero
-        kinetic_equation_no = node_no
-        num_equations = dynamic_equation_no + kinetic_equation_no
-
-        current_offset = 0
-        equations = []
-        node_currents = defaultdict(lambda: 0)
-        #scdc_elements = self.get_scdc_elements()
-        # decompress state
-        '''
-        decompressed_state = state[:node_no]
-        current_chains = []
-        for e_id, e in enumerate(self.elements):
-            if not e.is_scdc():
-                continue
-            if e.num_terminals() == 2:
-                current_chains
-        '''
         # work with decompressed state
         for e_id, e in enumerate(self.elements):
-            #if not e.is_scdc():
-            #    continue
             if e not in scdc_subelements:
                 continue
-            element_state_size = 2 * e.num_terminals()
-            element_state = np.zeros((element_state_size,))
+            element_state = np.zeros((e.num_terminals(),))
             for terminal_id, terminal_node in enumerate(self.terminal_node_mapping[e_id]):
-                node_id = scdc_subnodes.index(terminal_node)
-                element_state[terminal_id] = state[node_id]
-                element_state[terminal_id + e.num_terminals()] = state[node_no + current_offset + terminal_id]
-                node_currents[node_id] += state[node_no + current_offset + terminal_id]
+                if terminal_node not in scdc_shorts:
+                    node_id = scdc_subnodes.index(terminal_node)
+                    element_state[terminal_id] = state[node_id]
 
-            element_equations = e.scdc(element_state)
-            if element_equations is not None:
-                #print(e, element_state, element_equations)
-                equations.extend(element_equations)
-                current_offset += e.num_terminals()
+            energy += e.potential(element_state)
 
-        #print (node_currents)
-        for node, current in node_currents.items():
-            equations.append(current)
+        return energy
 
-        return equations
+    def scdc_energy_gradient(self, state, subsystem_id):
+        # number of nodes
+        scdc_subnodes, scdc_shorts, scdc_subelements = self.get_scdc_subsystems()[subsystem_id]
+        energy_gradient = np.zeros(len(scdc_subnodes))
+
+        for e_id, e in enumerate(self.elements):
+            if e not in scdc_subelements:
+                continue
+            element_state = np.zeros((e.num_terminals(),))
+            for terminal_id, terminal_node in enumerate(self.terminal_node_mapping[e_id]):
+                if terminal_node not in scdc_shorts:
+                    node_id = scdc_subnodes.index(terminal_node)
+                    element_state[terminal_id] = state[node_id]
+
+            element_gradient = np.asarray(e.potential_gradient(element_state))
+            matrix_indeces = [scdc_subnodes.index(node_id) for node_id in self.terminal_node_mapping[e_id] if node_id not in scdc_shorts]
+            submatrix_indeces = [i for i in range(len(self.terminal_node_mapping[e_id])) if self.terminal_node_mapping[e_id][i] not in scdc_shorts]
+            energy_gradient[matrix_indeces] += element_gradient[submatrix_indeces]
+
+        return energy_gradient
+
+    def scdc_energy_hessian(self, state, subsystem_id):
+        # number of nodes
+        scdc_subnodes, scdc_shorts, scdc_subelements = self.get_scdc_subsystems()[subsystem_id]
+        energy_hessian = np.zeros((len(scdc_subnodes), len(scdc_subnodes)))
+
+        for e_id, e in enumerate(self.elements):
+            if e not in scdc_subelements:
+                continue
+            element_state = np.zeros((e.num_terminals(),))
+            for terminal_id, terminal_node in enumerate(self.terminal_node_mapping[e_id]):
+                if terminal_node not in scdc_shorts:
+                    node_id = scdc_subnodes.index(terminal_node)
+                    element_state[terminal_id] = state[node_id]
+
+            element_hessian = np.asarray(e.potential_hessian(element_state))
+            matrix_indeces = [scdc_subnodes.index(node_id) for node_id in self.terminal_node_mapping[e_id] if node_id not in scdc_shorts]
+            submatrix_indeces = [i for i in range(len(self.terminal_node_mapping[e_id])) if self.terminal_node_mapping[e_id][i] not in scdc_shorts]
+            if len(matrix_indeces):
+                energy_hessian[np.meshgrid(matrix_indeces, matrix_indeces)] += element_hessian[np.meshgrid(submatrix_indeces, submatrix_indeces)]
+
+        return energy_hessian
+    #
+    #         element_equations = e.scdc(element_state)
+    #         if element_equations is not None:
+    #             #print(e, element_state, element_equations)
+    #             equations.extend(element_equations)
+    #             current_offset += e.num_terminals()
+    #
+    #     #print (node_currents)
+    #     for node, current in node_currents.items():
+    #         equations.append(current)
+    #
+    #     return equations
+
+    # def scdc_constraints(self, subsystem_id):
+    #     # number of nodes
+    #     scdc_subnodes, scdc_shorts, scdc_subelements = self.get_scdc_subsystems()[subsystem_id]
+    #     constraints = []
+    #
+    #     # work with decompressed state
+    #     for e_id, e in enumerate(self.elements):
+    #         if e not in scdc_subelements:
+    #             continue
+    #
+    #         constraints_submodes = e.potential_constraints()
+    #         print (constraints_submodes)
+    #         for constraint_submode in constraints_submodes:
+    #             constraint = np.zeros(len(scdc_subnodes))
+    #             for terminal_id, terminal_node in enumerate(self.terminal_node_mapping[e_id]):
+    #                 node_id = scdc_subnodes.index(terminal_node)
+    #                 constraint[node_id] = constraint_submode[terminal_id]
+    #             constraints.append(constraint)
+    #
+    #     return constraints
+
+    # def nonlinear_scdc_equations(self, state, subsystem_id):
+    #     from collections import defaultdict
+    #     # number of nodes
+    #     scdc_subnodes, scdc_subelements = self.get_scdc_subsystems()[subsystem_id]
+    #     #scdc_nodes = self.get_scdc_nodes()
+    #     node_no = len(scdc_subnodes)
+    #     # number of terminals
+    #     terminal_no = np.sum([e.num_terminals() for e in scdc_subelements])
+    #
+    #     dynamic_equation_no = terminal_no
+    #     # kinetic equations are Kirchhof's law that the sum of nodal currents is zero
+    #     kinetic_equation_no = node_no
+    #     num_equations = dynamic_equation_no + kinetic_equation_no
+    #
+    #     current_offset = 0
+    #     equations = []
+    #     node_currents = defaultdict(lambda: 0)
+    #     #scdc_elements = self.get_scdc_elements()
+    #     # decompress state
+    #     '''
+    #     decompressed_state = state[:node_no]
+    #     current_chains = []
+    #     for e_id, e in enumerate(self.elements):
+    #         if not e.is_scdc():
+    #             continue
+    #         if e.num_terminals() == 2:
+    #             current_chains
+    #     '''
+    #     # work with decompressed state
+    #     for e_id, e in enumerate(self.elements):
+    #         #if not e.is_scdc():
+    #         #    continue
+    #         if e not in scdc_subelements:
+    #             continue
+    #         element_state_size = 2 * e.num_terminals()
+    #         element_state = np.zeros((element_state_size,))
+    #         for terminal_id, terminal_node in enumerate(self.terminal_node_mapping[e_id]):
+    #             node_id = scdc_subnodes.index(terminal_node)
+    #             element_state[terminal_id] = state[node_id]
+    #             element_state[terminal_id + e.num_terminals()] = state[node_no + current_offset + terminal_id]
+    #             node_currents[node_id] += state[node_no + current_offset + terminal_id]
+    #
+    #         element_equations = e.scdc(element_state)
+    #         if element_equations is not None:
+    #             #print(e, element_state, element_equations)
+    #             equations.extend(element_equations)
+    #             current_offset += e.num_terminals()
+    #
+    #     #print (node_currents)
+    #     for node, current in node_currents.items():
+    #         equations.append(current)
+    #
+    #     return equations
 
     def get_element_energies_from_dynamic(self, state):
         # number of nodes
