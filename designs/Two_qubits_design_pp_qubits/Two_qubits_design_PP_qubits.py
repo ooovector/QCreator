@@ -121,7 +121,7 @@ a2    = a1 # Junction width in um
 jj_pp2 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}# hole sizes for the JJs
 jj_pp1 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10 ,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}# hole sizes for the JJs
 
-jj_pp_c = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'rotation':0}# hole sizes for the JJs
+jj_pp_c = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'rotation':np.pi/4,'translate':(-6.5,6.5),'loop_w_shift':10,'strip1_extension':20,'strip2_extension':35}# hole sizes for the JJs
 
 
 JJ_pad_offset_x = 10 # for JJ_manhatten
@@ -173,12 +173,12 @@ air = [-20,40,100]
 
 
 
-CC2 = [elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',heightr = -0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
-      elements.pp_transmon.PP_Transmon_Coupler(10,10,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175),
+CC2 = [elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',heightr = -0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0,tight = [True,6]),
+      elements.pp_transmon.PP_Transmon_Coupler(10,10,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175,tight = [True,6]),
       ]
 
 
-CC1_flux = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175),
+CC1_flux = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175,tight =[True,6]),
       # elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
       ]
 CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175),
@@ -189,11 +189,11 @@ CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type =
 CCc = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
       ]
 
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 3, 5, 20, 50, resonator_gap
+l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, resonator_core, 3, 5, 20, 50, resonator_gap
 flux_distance = 20
 flux1 = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4}
 #for coupler
-flux2 = {'l':150,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}
+flux2 = {'l':150,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'inverted_extension':0}
 
 
 
@@ -252,8 +252,8 @@ for i in range(Y):
                           layer_configuration = sample.layer_configuration,
                           Couplers = CCc,
                           calculate_capacitance = False,
-                          #transformations = {'rotate':(-np.pi/2,center1)},
-                          transformations={},
+                          transformations = {'rotate':(-np.pi/2,center1)},
+                          #transformations={},
                           remove_ground = {'left':1,'top':1,'bottom':1,'right':1},
                           shoes ={},
                           claw  = claw_tc,
@@ -291,34 +291,6 @@ for i in range(Y):
             couplers.append(T2)
 
 
-#lets do it smartly
-all_restricted = []
-for Q in qubits:
-    Qu = Q.render()
-    all_restricted.append(Qu['restrict'])
-for Q in couplers:
-    Qu = Q.render()
-    all_restricted.append(Qu['restrict'])
-
-one = gdspy.Rectangle((0,0),(0,0))
-for i in all_restricted:
-    one = gdspy.boolean(one,i,'or',layer=layers_configuration['air bridges'])
-
-all_inverted = []
-
-for Q in qubits:
-    Qu = Q.render()
-    all_inverted.append(Qu['pocket'])
-
-for Q in couplers:
-    Qu = Q.render()
-    all_inverted.append(Qu['pocket'])
-
-for i in all_inverted:
-    one = gdspy.boolean(one,i,'not',layer=layers_configuration['vertical gridlines'])
-
-sample.total_cell.add(one)
-
 
 logos=elements.WMILogos((1800,1000),(7800,1000),layers_configuration)
 sample.add(logos)
@@ -326,4 +298,51 @@ sample.add(logos)
 markers = elements.AlignmentMarkers((1000,1000),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),10,sample.layer_configuration)
 sample.add(markers)
 
-#sample.draw_design()
+
+def create_restricted(check = False):
+    if check:
+        print('already run restricted once')
+        return 0
+
+    all_restricted = []
+    for Q in qubits:
+        Qu = Q.render()
+        all_restricted.append(Qu['restrict'])
+    for Q in couplers:
+        Qu = Q.render()
+        all_restricted.append(Qu['restrict'])
+
+    restricted = gdspy.Rectangle((0,0),(0,0))
+    for i in all_restricted:
+        restricted = gdspy.boolean(restricted,i,'or',layer=layers_configuration['bandages'])
+
+    one = gdspy.Rectangle((0, 0), (0, 0))
+    for i in all_restricted:
+        one = gdspy.boolean(one, i, 'or', layer=layers_configuration['air bridges'])
+    #print(gdspy.Cell('Two-Qubits-PP').get_polygons())
+    sample_all = [i for i in sample.objects]
+    for object in sample_all:
+        if not hasattr(object.render()['positive'],'layers'):
+            continue
+        restricted = gdspy.boolean(restricted,object.render()['positive'],'not',layer=layers_configuration['bandages'])
+        one = gdspy.boolean(one,object.render()['positive'],'not',layer=layers_configuration['vertical gridlines'])
+
+
+    all_inverted = []
+
+    for Q in qubits:
+        Qu = Q.render()
+        all_inverted.append(Qu['pocket'])
+
+    for Q in couplers:
+        Qu = Q.render()
+        all_inverted.append(Qu['pocket'])
+
+    for i in all_inverted:
+        one = gdspy.boolean(one, i, 'not', layer=layers_configuration['vertical gridlines'])
+
+    restricted = gdspy.boolean(restricted,one,'not',layer=layers_configuration['bandages'])
+
+    sample.total_cell.add(one)
+    sample.total_cell.add(restricted)
+    return 0

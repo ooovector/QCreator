@@ -175,9 +175,18 @@ class PP_Transmon(DesignElement):
             P1_bridge = gdspy.boolean(P1_bridge, hole1, 'not', layer=8)
             P2_bridge = gdspy.boolean(P2_bridge, hole2, 'not', layer=8)
             #add bandages here
-            b_ex= self.JJ_params['bandages_extension']
-            c_p_w= self.JJ_params['connection_pad_width']
-            c_p_g = self.JJ_params['connection_pad_gap']
+            if 'bandages_extension' in  self.JJ_params:
+                b_ex= self.JJ_params['bandages_extension']
+            else:
+                b_ex = 2.5
+            if 'connection_pad_width' in  self.JJ_params:
+                c_p_w= self.JJ_params['connection_pad_width']
+            else:
+                c_p_w = 0.9
+            if 'connection_pad_gap' in  self.JJ_params:
+                c_p_g = self.JJ_params['connection_pad_gap']
+            else:
+                c_p_g = 0.5
 
             if self.use_bandages:
                 bandage1 = gdspy.Rectangle((self.center[0]-self.b_g/2-c_p_g-c_p_w-self.b_w/2,self.center[1]),(self.center[0]-self.b_g/2-self.b_w/2+b_ex,self.center[1]+self.JJ_params['h_d']-c_p_g))
@@ -513,10 +522,11 @@ class PP_Transmon(DesignElement):
                     extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1+l2+gap,self.center[1]+self.g_h/2),(self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1]+self.g_h/2+t+gap+gap)), 'or')
                     extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1] + self.g_h / 2 + t + gap + gap),(self.center[0]-self.g_w/2+l1+l2/2+gap+gap,self.center[1] + self.g_h / 2 + t + gap + gap + self.g_t)),'or')
                     extended.translate(0,-coupler.sctq)
+
                     # remove/add missing overhang:
                     # add missing piece
                     if coupler.sctq < 0:
-                        extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+ self.g_h / 2),(self.center[0]-self.g_w/2+l1-gap+l2/2,self.center[1]+self.g_h/2+coupler.sctq)),'or')
+                        extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+ self.g_h / 2),(self.center[0]-self.g_w/2+l1+gap+l2+self.g_t,self.center[1]+self.g_h/2-coupler.sctq)),'or')
 
                     # remove additional pieces
                     if coupler.sctq > self.g_t:
@@ -529,8 +539,7 @@ class PP_Transmon(DesignElement):
                     pocket = gdspy.boolean(pocket, gdspy.Rectangle(
                         (self.center[0] - self.g_w / 2 + l1 - gap - self.g_t, self.center[1] + self.g_h / 2), (
                         self.center[0] - self.g_w / 2 + l1 + l2 + self.g_t + gap,
-                        self.center[1] + self.g_h / 2 + t + gap + gap + self.g_t)).translate(0,-coupler.sctq), 'or',
-                                        layer=self.layer_configuration.inverted)
+                        self.center[1] + self.g_h / 2 + t + gap + gap + self.g_t)).translate(0,-coupler.sctq), 'or',layer=self.layer_configuration.inverted)
 
                 if side == 'bottom':
                     extended = gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]-self.g_h/2),(self.center[0]-self.g_w/2+l1-gap,self.center[1]-self.g_h/2-t-gap-gap))
@@ -562,7 +571,8 @@ class PP_Transmon(DesignElement):
 
                 result = gdspy.boolean(coupler_parts['positive'], result, 'or',layer=self.layer_configuration.total_layer)
                 pockets.append(pocket)
-                result_restricted = gdspy.boolean(pocket, result_restricted, 'or',layer=self.layer_configuration.total_layer)
+                result_restricted = gdspy.boolean(pocket, result_restricted, 'or',layer = self.layer_configuration.restricted_area_layer)
+
                 if coupler.coupler_type == 'coupler':
                         qubit_cap_parts.append(gdspy.boolean(coupler.result_coupler, coupler.result_coupler, 'or',layer=10+id+self.secret_shift))
                         self.layers.append(10+id+self.secret_shift)
@@ -570,10 +580,6 @@ class PP_Transmon(DesignElement):
         qubit_cap_parts.append(gdspy.boolean(result,last_step_cap,'not'))
 
         inverted = gdspy.boolean(box, result, 'not',layer=self.layer_configuration.inverted)
-
-        #for p in pockets:
-            #result_restricted = gdspy.boolean(p, result_restricted, 'or', layer=self.layer_configuration.total_layer)
-
 
         # add JJs
         if self.JJ_params is not None:
@@ -840,7 +846,7 @@ class PP_Transmon_Coupler:
                     center[1] + self.w / 2))  # modified here ;), remove ground_t
 
             else:
-                line   = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap-self.gap-self.ground_t-g_t,center[1]-self.w/2),(center[0]-g_w/2-self.t-self.gap,center[1]+self.w/2))#modified here ;), remove ground_t
+                line   = gdspy.Rectangle((center[0]-g_w/2-self.t-self.gap-self.gap-self.ground_t-g_t,center[1]-self.w/2),(center[0]-g_w/2-self.t-self.gap,center[1]+self.w/2))
 
 
             if self.height_left ==1:
@@ -853,6 +859,7 @@ class PP_Transmon_Coupler:
                 self.connection = (center[0] - g_w / 2 + g_t, center[1])
             else:
                 self.connection = (center[0]-g_w/2-self.t-self.gap-self.gap+self.sctq-g_t,center[1])
+
 
 
 
@@ -890,8 +897,6 @@ class PP_Transmon_Coupler:
             result = gdspy.boolean(result, line, 'or')
             result.translate(0,-self.sctq)
             self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]+g_h/2+self.gap+self.t+self.gap-self.sctq+g_t)
-
-
 
 
         if self.side == "bottom":
