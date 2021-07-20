@@ -526,8 +526,8 @@ class PP_Transmon(DesignElement):
 
                     extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1+coupler.l2+gap,self.center[1]+self.g_h/2),(self.center[0]-self.g_w/2+l1+coupler.l2+self.g_t+gap,self.center[1]+self.g_h/2+t+gap+gap)), 'or')
 
-                    extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1] + self.g_h / 2 + t + gap + gap),(self.center[0] - self.g_w / 2 + l1 + coupler.l2 / 2 +core / 2+gap,self.center[1] + self.g_h / 2 + t + gap + gap + self.g_t)),'or')
-
+                    extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1+coupler.l2+self.g_t+gap,self.center[1] + self.g_h / 2 + t + gap + gap),(self.center[0] - self.g_w / 2 + l1 + coupler.l2 / 2 +core / 2+gap,self.center[1] + self.g_h / 2 + t + gap + gap + self.g_t)),'or')
+                    
 
                     extended.translate(0,-coupler.sctq)
 
@@ -548,8 +548,7 @@ class PP_Transmon(DesignElement):
                     # box for inverted polygon
                     box = gdspy.boolean(box,gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+self.g_h/2),(self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1] + self.g_h / 2 + t + gap + gap + self.g_t)).translate(0,-coupler.sctq),'or', layer=self.layer_configuration.inverted)
                     pocket = gdspy.boolean(pocket, gdspy.Rectangle(
-                        (self.center[0] - self.g_w / 2 + l1 - gap - self.g_t, self.center[1] + self.g_h / 2), (
-                        self.center[0] - self.g_w / 2 + l1 + l2 + self.g_t + gap,
+                        (self.center[0] - self.g_w / 2 + l1 - gap - self.g_t, self.center[1] + self.g_h / 2), (self.center[0] - self.g_w / 2 + l1 + coupler.l2 + self.g_t + gap,
                         self.center[1] + self.g_h / 2 + t + gap + gap + self.g_t)).translate(0,-coupler.sctq), 'or',layer=self.layer_configuration.inverted)
 
                 if side == 'bottom':
