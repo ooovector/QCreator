@@ -497,7 +497,7 @@ class PP_Squid_Fluxline:
         self.connection = None
         #for the terminals:
         self.g = g
-        self.w = w
+        self.w = t_m
         self.s = s
 
     def render(self, center, width,height,ground_height,ground_t):
