@@ -124,7 +124,7 @@ jj_pp1 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid
 jj_pp_c = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'rotation':np.pi/4,'translate':(-6.5,6.5),'loop_w_shift':10,'strip1_extension':20,'strip2_extension':35}# hole sizes for the JJs
 
 
-JJ_pad_offset_x = 10 # for JJ_manhatten
+JJ_pad_offset_x = 20 # for JJ_manhatten
 JJ_pad_offset_y = 16 # JJ design
 
 
@@ -173,7 +173,8 @@ air = [-20,40,100]
 
 
 
-CC2 = [elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',heightr = -0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0,tight = [True,10]),
+CC2 = [elements.pp_transmon.PP_Transmon_Coupler(500,15,400,'top',coupler_type = 'coupler',heightr = -0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0,tight = [True,10]),
+
       elements.pp_transmon.PP_Transmon_Coupler(10,10,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175,tight = [True,10]),
       ]
 
@@ -191,7 +192,7 @@ CC1_flux = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type
 CCc = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
       ]
 
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, resonator_core, 3, 5, 20, 50, resonator_gap
+l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 4, 3, 5, 20, 50, resonator_gap
 flux_distance = 20
 flux1 = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4}
 #for coupler
