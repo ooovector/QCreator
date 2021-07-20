@@ -33,7 +33,8 @@ class PP_Transmon(DesignElement):
                  holes = False,
                  fluxline_params = [],
                  secret_shift = 0,
-                 use_bandages = True):
+                 use_bandages = True,
+                 return_inverted = True):
         super().__init__(type='qubit', name=name)
         #qubit parameters
         self.transformations = transformations# to mirror the structure
@@ -88,13 +89,15 @@ class PP_Transmon(DesignElement):
 
         #remove ground on these sites
         self.remove_ground = remove_ground
+        #check if inverted region should be returned
+        self.return_inverted = return_inverted
         #To introduce rectangular holes in the ground around the qubit
         self.holes = holes
 
         #for calculating capacities
         self.secret_shift = secret_shift
 
-    def render(self):
+    def render(self,inverted_ = True):
         """
         This function draws everything: qubit,ground,couplers
         """
@@ -517,21 +520,29 @@ class PP_Transmon(DesignElement):
                         pocket = gdspy.boolean(pocket,gdspy.Rectangle((self.center[0],self.center[1]+coupler.gap/2+coupler.w),(self.center[0]-self.g_w/2-1,self.center[1]-coupler.w-coupler.gap/2)),'or')
 
                 if side == 'top':
+
                     extended = gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+self.g_h/2),(self.center[0]-self.g_w/2+l1-gap,self.center[1]+self.g_h/2+t+gap+gap))
-                    extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+self.g_h/2+t+gap+gap),(self.center[0]-self.g_w/2+l1-gap+l2/2-gap,self.center[1]+self.g_h/2+t+gap+gap+self.g_t)),'or')
-                    extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1+l2+gap,self.center[1]+self.g_h/2),(self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1]+self.g_h/2+t+gap+gap)), 'or')
-                    extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1] + self.g_h / 2 + t + gap + gap),(self.center[0]-self.g_w/2+l1+l2/2+gap+gap,self.center[1] + self.g_h / 2 + t + gap + gap + self.g_t)),'or')
+                    extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+self.g_h/2+t+gap+gap),(self.center[0] - self.g_w / 2 + l1 + coupler.l2 / 2 -core / 2-gap,self.center[1]+self.g_h/2+t+gap+gap+self.g_t)),'or')
+
+                    extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1+coupler.l2+gap,self.center[1]+self.g_h/2),(self.center[0]-self.g_w/2+l1+coupler.l2+self.g_t+gap,self.center[1]+self.g_h/2+t+gap+gap)), 'or')
+
+                    extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1+l2+self.g_t+gap,self.center[1] + self.g_h / 2 + t + gap + gap),(self.center[0] - self.g_w / 2 + l1 + coupler.l2 / 2 +core / 2+gap,self.center[1] + self.g_h / 2 + t + gap + gap + self.g_t)),'or')
+
+
                     extended.translate(0,-coupler.sctq)
 
                     # remove/add missing overhang:
                     # add missing piece
                     if coupler.sctq < 0:
-                        extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+ self.g_h / 2),(self.center[0]-self.g_w/2+l1+gap+l2+self.g_t,self.center[1]+self.g_h/2-coupler.sctq)),'or')
-
+                        extended = gdspy.boolean(extended, gdspy.Rectangle(
+                            (self.center[0] - self.g_w / 2 + l1 - gap - self.g_t, self.center[1] + self.g_h / 2), (
+                                self.center[0] - self.g_w / 2 + l1 - gap + l2 / 2,
+                                self.center[1] + self.g_h / 2 + coupler.sctq)), 'or')
                     # remove additional pieces
                     if coupler.sctq > self.g_t:
-                        extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0] - self.g_t + self.g_w / 2, self.center[1] + self.g_t - self.g_h / 2),(self.center[0] + self.g_t - self.g_w / 2, self.center[1] - self.g_t + self.g_h / 2)),'not')
-
+                        extended = gdspy.boolean(extended, gdspy.Rectangle(
+                            (self.center[0] - self.g_t + self.g_w / 2, self.center[1] - self.g_t + self.g_h / 2),
+                            (self.center[0] + self.g_t - self.g_w / 2, self.center[1] + self.g_t - self.g_h / 2)),'not')
                     result = gdspy.boolean(result,extended,'or')
 
                     # box for inverted polygon
@@ -593,6 +604,8 @@ class PP_Transmon(DesignElement):
         if self.calculate_capacitance is False:
             qubit_cap_parts = None
             qubit = None
+        if not self.return_inverted:
+            inverted = gdspy.Rectangle((0,0),(0,0))
 
         if 'mirror' in self.transformations:
             return {'positive': result.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
@@ -859,10 +872,6 @@ class PP_Transmon_Coupler:
                 self.connection = (center[0] - g_w / 2 + g_t, center[1])
             else:
                 self.connection = (center[0]-g_w/2-self.t-self.gap-self.gap+self.sctq-g_t,center[1])
-
-
-
-
 
         if self.side == "right":
             result = gdspy.Rectangle((center[0]+g_w/2+self.t+self.gap,center[1]-self.height_right*g_h/2-self.gap),(center[0]+g_w/2+self.gap,center[1]+self.height_right*g_h/2+self.gap))

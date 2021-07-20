@@ -23,8 +23,30 @@ class Fungus_Squid_C(DesignElement):
     8) arms - the parameters for the squid arms for coupling left and right qubits
     9) shoes - caps for the two pads
     """
-    def __init__(self, name: str, center: Tuple[float, float],width: Tuple[float,float], height: Tuple[float,float],gap: float,bridge_gap:float,bridge_w:float, ground_w: float, ground_h: float,ground_t: float,layer_configuration: LayerConfiguration,
-                 jj_params: Dict,Couplers,transformations:Dict,fluxline_params= {},remove_ground = {},secret_shift = 0,calculate_capacitance = False,shoes = {},claw = [],asymmetry = 0,air_bridge=[],use_bandages = True):
+    def __init__(self, name: str,
+                 center: Tuple[float, float],
+                 width: Tuple[float,float],
+                 height: Tuple[float,float],
+                 gap: float,
+                 bridge_gap:float,
+                 bridge_w:float,
+                 ground_w: float,
+                 ground_h: float,
+                 ground_t: float,
+                 layer_configuration: LayerConfiguration,
+                 jj_params: Dict,
+                 Couplers,
+                 transformations:Dict,
+                 fluxline_params= {},
+                 remove_ground = {},
+                 secret_shift = 0,
+                 calculate_capacitance = False,
+                 shoes = {},
+                 claw = [],
+                 asymmetry = 0,
+                 air_bridge=[],
+                 use_bandages = True,
+                 return_inverted = True):
         super().__init__(type='qubit', name=name)
         #qubit parameters
         self.transformations = transformations# to mirror the structure
@@ -76,6 +98,8 @@ class Fungus_Squid_C(DesignElement):
 
         # use bandages?
         self.use_bandages = use_bandages
+        #check if inverted region should be returned
+        self.return_inverted = return_inverted
 
         # remove ground on these sites
         self.remove_ground = remove_ground
@@ -425,6 +449,8 @@ class Fungus_Squid_C(DesignElement):
         if self.fluxline_params != {} and f['inverted_extension'] is not None:
             inverted = gdspy.boolean(inverted, inverted_flux, 'not',layer=self.layer_configuration.inverted)
 
+        if not self.return_inverted:
+            inverted = gdspy.Rectangle((0,0),(0,0))
 
 
         qubit = deepcopy(result)

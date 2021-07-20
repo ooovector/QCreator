@@ -173,17 +173,19 @@ air = [-20,40,100]
 
 
 
-CC2 = [elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',heightr = -0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0,tight = [True,6]),
-      elements.pp_transmon.PP_Transmon_Coupler(10,10,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175,tight = [True,6]),
+CC2 = [elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',heightr = -0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0,tight = [True,10]),
+      elements.pp_transmon.PP_Transmon_Coupler(10,10,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175,tight = [True,10]),
       ]
 
 
-CC1_flux = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175,tight =[True,6]),
+CC1_flux = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175,tight =[True,10]),
       # elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
       ]
-CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175),
-      elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
-      ]
+
+
+#CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175),
+#      elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
+#      ]
 
 
 CCc = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
@@ -227,7 +229,8 @@ for i in range(Y):
                                            remove_ground={'left': 1, 'right': 1, 'top': 1, 'bottom': 1},
                                            shoes=shoes1,
                                            transformations=transformations,
-                                           fluxline_params = flux1
+                                           fluxline_params = flux1,
+                                           return_inverted= False,
                                            )
         sample.add(element)
         qubits.append(element)
@@ -259,6 +262,7 @@ for i in range(Y):
                           claw  = claw_tc,
                           asymmetry = a,
                           air_bridge=air,
+                          return_inverted=False,
                           )
 
         T2 = elements.fungus_squid_coupler.Fungus_Squid_C(name='PP_Coupler2', center=center2,
@@ -282,6 +286,7 @@ for i in range(Y):
                                                            claw=claw_tc,
                                                            asymmetry=a,
                                                            air_bridge=air,
+                                                           return_inverted=False,
                                                            )
         if(j!=X-1):
             sample.add(T1)
@@ -327,7 +332,6 @@ def create_restricted(check = False):
         restricted = gdspy.boolean(restricted,object.render()['positive'],'not',layer=layers_configuration['bandages'])
         one = gdspy.boolean(one,object.render()['positive'],'not',layer=layers_configuration['vertical gridlines'])
 
-
     all_inverted = []
 
     for Q in qubits:
@@ -341,8 +345,9 @@ def create_restricted(check = False):
     for i in all_inverted:
         one = gdspy.boolean(one, i, 'not', layer=layers_configuration['vertical gridlines'])
 
-    restricted = gdspy.boolean(restricted,one,'not',layer=layers_configuration['bandages'])
+    restricted = gdspy.boolean(restricted,one,'not',layer=layers_configuration['inverted'])
 
     sample.total_cell.add(one)
     sample.total_cell.add(restricted)
+
     return 0
