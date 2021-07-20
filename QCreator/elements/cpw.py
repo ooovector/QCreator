@@ -516,10 +516,16 @@ class RectGrounding(DesignElement):
                                              w=self.narrow_port_w, type='cpw')}
 
         else:
-            self.terminals = {
-                'wide': DesignTerminal(position=self.position, orientation=self.orientation,
-                                       g=self.g, s=self.s[0],
-                                       w=self.w[0], type='cpw', order=False)}
+            if len(self.w) == 1:
+                self.terminals = {
+                    'wide': DesignTerminal(position=self.position, orientation=self.orientation,
+                                           g=self.g, s=self.s[0],
+                                           w=self.w[0], type='cpw', order=False)}
+            else:
+                self.terminals = {
+                    'wide': DesignTerminal(position=self.position, orientation=self.orientation,
+                                           g=self.g, s=self.s,
+                                           w=self.w, type='mc-cpw', order=False)}
 
         self.widths_ground, self.offsets_ground = widths_offsets_for_ground(list_of_conductors, list_of_gaps)
         self.widths_of_cpw_new = widths_of_cpw_new
@@ -571,16 +577,16 @@ class RectGrounding(DesignElement):
         cache = []
 
         if len(self.terminals.keys()) == 1:
+            #print (self.name, self.w, terminal_mapping)
             if len(self.w) > 1 and ('wide', 0) in terminal_mapping:
                 for conductor_id in range(len(self.w)):  # loop over all conductors
-                    g = tlsim.Short()
-                    tls_instance.add_element(g, [
-                        terminal_mapping[('wide', conductor_id)]])  # tlsim.TLSystem.add_element(name, nodes)
-                    cache.append(g)
+                    zero_resistor = tlsim.Resistor(r=0, name=self.name + str(len(self.w)))
+                    tls_instance.add_element(zero_resistor, [0, terminal_mapping[('wide', conductor_id)]])
+                    cache.append(zero_resistor)
             else:
-                g = tlsim.Short()
-                cache.append(g)
-                tls_instance.add_element(g, [terminal_mapping['wide']])  # tlsim.TLSystem.add_element(name, nodes)
+                zero_resistor = tlsim.Resistor(r=0, name=self.name + str(len(self.w)))
+                tls_instance.add_element(zero_resistor, [0, terminal_mapping['wide']])
+                cache.append(zero_resistor)
 
             if track_changes:
                 self.tls_cache.append(cache)
