@@ -819,7 +819,7 @@ class PP_Transmon_Coupler:
     5) side - which side the coupler is on
     6) heightl / heightr - height as a fraction of total length
     """
-    def __init__(self, l1,l2,t,side = 'left',coupler_type = 'none',heightl = 1,heightr=1,w= None, g=None, s=None,shift_to_qubit=0,tight = [False]):
+    def __init__(self, l1,l2,t,side = 'left',coupler_type = 'none',heightl = 1,heightr=1,w= None, g=None, s=None,shift_to_qubit=0,tight = [False],line_same_as_coupler = False):
         self.l1 = l1
         self.l2 = l2
         self.t = t
@@ -843,6 +843,7 @@ class PP_Transmon_Coupler:
         self.s = s
         #put coupler closer to qubit
         self.sctq = shift_to_qubit
+        self.line_same_as_coupler = line_same_as_coupler
 
     def render(self, center, g_w,g_h,g_t = 0):
         result = 0
@@ -897,9 +898,14 @@ class PP_Transmon_Coupler:
 
         if self.side == "top":
             result = gdspy.Rectangle((center[0]-g_w/2+self.l1,center[1]+g_h/2+self.gap),(center[0]-g_w/2+self.l1+self.l2,center[1]+g_h/2+self.gap+self.t))
+            if self.line_same_as_coupler:
+                self.w = self.l2
+                w      = self.l2
+            else:
+                w = self.w
             line = gdspy.Rectangle(
-                (center[0] - g_w / 2 + self.l1 + self.l2 / 2 - self.w / 2, center[1] + g_h / 2 + self.gap + self.t), (
-                center[0] - g_w / 2 + self.l1 + self.l2 / 2 + self.w / 2,
+                (center[0] - g_w / 2 + self.l1 + self.l2 / 2 - w / 2, center[1] + g_h / 2 + self.gap + self.t), (
+                center[0] - g_w / 2 + self.l1 + self.l2 / 2 + w / 2,
                 center[1] + g_h / 2 + self.gap + self.t + self.gap+g_t))
 
             result = gdspy.boolean(result, line, 'or')
