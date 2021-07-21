@@ -130,8 +130,11 @@ JJ_pad_offset_x_flux = 20 # for JJ_manhatten
 JJ_pad_offset_y_flux = 10 # JJ design
 
 sh = (70,20)
-shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4}
-shoes2 = {}#{1:(70,50)}
+shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':4.124,'gap2':8.388,'claw_t':10,'l1':80,'l2':80,'box_l':80+80,'box_h':340,'position':'1110'}}#(gap1,gap2,claw_t,l1,l2,box_l,box_h,binary number indicating where the fake claws are top left top right bottom left bottm right)
+
+shoes2 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':4.124,'gap2':8.388,'claw_t':10,'l1':80,'l2':80,'box_l':80+80,'box_h':340,'position':'1011'}}#{1:(70,50)}
+
+shoes = [shoes1,shoes2]
 # how to place qubits
 spacing = 1000
 
@@ -232,7 +235,7 @@ for i in range(Y):
                                            Couplers=CC[j],
                                            calculate_capacitance=False,
                                            remove_ground={'left': 1, 'right': 1, 'top': 1, 'bottom': 1},
-                                           shoes=shoes1,
+                                           shoes=shoes[j],
                                            transformations=transformations,
                                            fluxline_params = flux1,
                                            return_inverted= False,

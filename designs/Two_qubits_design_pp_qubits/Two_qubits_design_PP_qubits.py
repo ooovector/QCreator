@@ -124,12 +124,12 @@ jj_pp1 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid
 jj_pp_c = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'rotation':np.pi/4,'translate':(-6.5,6.5),'loop_w_shift':10,'strip1_extension':20,'strip2_extension':35}# hole sizes for the JJs
 
 
-JJ_pad_offset_x = 20 # for JJ_manhatten
+JJ_pad_offset_x = 10 # for JJ_manhatten
 JJ_pad_offset_y = 16 # JJ design
 
 
 sh = (70,20)
-shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4}
+shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':4.124,'gap2':8.388,'claw_t':10,'l1':80,'l2':80,'box_l':80+80,'box_h':322,'position':'1110'}}#(gap1,gap2,claw_t,l1,l2,box_l,box_h,binary number indicating where the fake claws are top left top right bottom left bottm right)
 shoes2 = {}#{1:(70,50)}
 # how to place qubits
 spacing = 1000
@@ -173,7 +173,7 @@ air = [-20,40,100]
 
 
 
-CC2 = [elements.pp_transmon.PP_Transmon_Coupler(500,10,400,'top',coupler_type = 'coupler',heightr = -0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0,tight = [True,10],line_same_as_coupler= True),
+CC2 = [elements.pp_transmon.PP_Transmon_Coupler(500,4,20,'top',coupler_type = 'coupler',heightr = -0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0,tight = [True,10],line_same_as_coupler= True),
 
       elements.pp_transmon.PP_Transmon_Coupler(10,10,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175,tight = [True,10]),
       ]

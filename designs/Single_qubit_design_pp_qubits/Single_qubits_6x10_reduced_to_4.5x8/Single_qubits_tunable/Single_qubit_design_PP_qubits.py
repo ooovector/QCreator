@@ -115,7 +115,7 @@ ground_w = 680+40+30+30
 ground_h   = 680+40+30+30
 ground_t   = 50
 # b_g   = 19 # from JJ Design for JJ4q
-JJ_pad_offset_x = 20 # for JJ_manhatten #for the JJ connections pads between the PPs
+JJ_pad_offset_x = 10 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design
 
 a1    = np.sqrt(0.15*0.3) #Junction height in um
@@ -160,7 +160,7 @@ center=(6700+offset_x-1000+200,4500+offset_y)
 transmon2_right_flux = elements.pp_transmon.PP_Transmon(name='Q2_flux_right', center=center,
                                            width=width,
                                            height=height,
-                                           bridge_gap=JJ_pad_offset_x,
+                                           bridge_gap=JJ_pad_offset_x+10,
                                            bridge_w=JJ_pad_offset_y,
                                            gap=gap,
                                            ground_w=ground_w,
@@ -203,7 +203,7 @@ center = (6200+offset_x,1500+offset_y)
 transmon1_right_fixed = elements.pp_transmon.PP_Transmon(name='Q2_fixed',center=center,
                           width = width,
                           height = height,
-                          bridge_gap = JJ_pad_offset_x,
+                          bridge_gap = JJ_pad_offset_x+10,
                           bridge_w   = JJ_pad_offset_y ,
                           gap = gap,
                           ground_w = ground_w,

@@ -103,6 +103,8 @@ class PP_Transmon(DesignElement):
         """
         qubit_cap_parts=[]
         bandages = gdspy.Rectangle((0,0),(0,0))
+        box = gdspy.Rectangle((0,0),(0,0))
+        pocket = gdspy.Rectangle((0,0),(0,0))
         ground = self.generate_ground()
         # restricted area for a future grid lines
         result_restricted = gdspy.Rectangle((self.center[0]-self.g_w/2,self.center[1]-self.g_h/2),(self.center[0]+self.g_w/2,self.center[1]+self.g_h/2),layer=self.layer_configuration.restricted_area_layer)
@@ -113,45 +115,97 @@ class PP_Transmon(DesignElement):
         # adding the shoe caps here
         if self.shoes != {}:
             Rot = 0
+
             if 'R' in self.shoes:
                 Rot = self.shoes['R']
             for key in self.shoes:
+                #create the fake_claws
+                if 'fake_claws' in self.shoes:
+                    fc = self.shoes['fake_claws']
+                    fake_claw = gdspy.Rectangle((-fc['l1'], self.shoes[1][1] / 2 + fc['gap2']),
+                                                (0, self.shoes[1][1] / 2 + fc['gap2'] + fc['claw_t']))
+                    fake_claw2 = gdspy.Rectangle((-fc['l1'], -self.shoes[1][1] / 2 - fc['gap2']),
+                                                 (0, -self.shoes[1][1] / 2 - fc['gap2'] - fc['claw_t']))
+                    fake_claw3 = gdspy.Rectangle((0, -self.shoes[1][1] / 2 - fc['gap2'] - fc['claw_t']),
+                                                 (fc['l2'], self.shoes[1][1] / 2 + fc['gap2'] + fc['claw_t']))
+                    fake_claw = gdspy.boolean(fake_claw, [fake_claw2, fake_claw3], 'or')
+                    box_for_fake_claw = gdspy.Rectangle((-fc['l1'], -fc['box_h'] / 2), (fc['box_l'], fc['box_h'] / 2))
+
                 if 'R' not in self.shoes:
                     Rot = 0
                 if key == 1:
+                    endpoint = (self.center[0] - self.gap / 2 - self.w - self.shoes[key][0],self.center[1] + self.h / 2 - self.shoes[key][1])
                     Shoe = gdspy.Rectangle(
-                        (self.center[0] - self.gap / 2 - self.w+30, self.center[1] + self.h / 2), (
-                        self.center[0] - self.gap / 2 - self.w - self.shoes[key][0],
-                        self.center[1] + self.h / 2 - self.shoes[key][1]))
+                        (self.center[0] - self.gap / 2 - self.w+30, self.center[1] + self.h / 2), endpoint)
                     if 'R1' in self.shoes:
                         Rot = self.shoes['R1']
                     if 'R' in self.shoes:
                         Shoe.translate(0,self.shoes[key][1]/2)
                     Shoe.rotate(-Rot,(self.center[0] - self.gap / 2 - self.w, self.center[1] + self.h / 2))
                     P1 = gdspy.boolean(P1, Shoe, 'or')
+                    #fake claw here
+                    if 'fake_claws' in self.shoes:
+                        fc = self.shoes['fake_claws']
+                        if fc['position'][0] == '1':
+                            fake_claw         =  fake_claw.rotate(-np.pi).translate(endpoint[0]- fc['gap1'],endpoint[1]+self.shoes[key][1] / 2)
+                            box_for_fake_claw =  box_for_fake_claw.rotate(-np.pi).translate(endpoint[0]- fc['gap1'],endpoint[1]+self.shoes[key][1] / 2)
+
+                            fake_claw = fake_claw.translate(0,self.shoes[key][1]/2).rotate(-Rot,(self.center[0] - self.gap / 2 - self.w, self.center[1] + self.h / 2))
+                            box_for_fake_claw = box_for_fake_claw.translate(0, self.shoes[key][1] / 2).rotate(-Rot, (self.center[0] - self.gap / 2 - self.w, self.center[1] + self.h / 2))
+
+                            P1 = gdspy.boolean(P1, fake_claw, 'or')
+                            pocket = gdspy.boolean(pocket,box_for_fake_claw,'or')
+
+
+
                 if key == 2:
+                    endpoint = (self.center[0] - self.gap / 2 - self.w - self.shoes[key][0],self.center[1] - self.h / 2 + self.shoes[key][1])
                     Shoe = gdspy.Rectangle(
-                        (self.center[0] - self.gap / 2 - self.w+30, self.center[1] - self.h / 2), (
-                        self.center[0] - self.gap / 2 - self.w - self.shoes[key][0],
-                        self.center[1] - self.h / 2 + self.shoes[key][1]))
+                        (self.center[0] - self.gap / 2 - self.w+30, self.center[1] - self.h / 2), endpoint)
                     if 'R2' in self.shoes:
                         Rot = self.shoes['R2']
                     if 'R' in self.shoes:
                         Shoe.translate(0,-self.shoes[key][1]/2)
                     Shoe.rotate(Rot, (self.center[0] - self.gap / 2 - self.w, self.center[1] - self.h / 2))
                     P1 = gdspy.boolean(P1, Shoe, 'or')
+                    # fake claw here
+                    if 'fake_claws' in self.shoes:
+                        fc = self.shoes['fake_claws']
+                        if fc['position'][1] == '1':
+                            fake_claw = fake_claw.rotate(-np.pi).translate(endpoint[0]- fc['gap1'],endpoint[1]-self.shoes[key][1] / 2)
+                            box_for_fake_claw = box_for_fake_claw.rotate(-np.pi).translate(endpoint[0]- fc['gap1'],endpoint[1]-self.shoes[key][1] / 2)
+
+                            fake_claw = fake_claw.translate(0, -self.shoes[key][1] / 2).rotate(Rot, (self.center[0] - self.gap / 2 - self.w, self.center[1] - self.h / 2))
+                            box_for_fake_claw = box_for_fake_claw.translate(0, -self.shoes[key][1] / 2).rotate(Rot, (self.center[0] - self.gap / 2 - self.w, self.center[1] - self.h / 2))
+                            P1 = gdspy.boolean(P1, fake_claw, 'or')
+                            pocket = gdspy.boolean(pocket, box_for_fake_claw, 'or')
+
+
+
                 if key == 3:
+                    endpoint = (self.center[0] + self.gap / 2 + self.w + self.shoes[key][0],self.center[1] + self.h / 2 - self.shoes[key][1])
                     Shoe = gdspy.Rectangle(
-                        (self.center[0] + self.gap / 2 + self.w-30, self.center[1] + self.h / 2), (
-                        self.center[0] + self.gap / 2 + self.w + self.shoes[key][0],
-                        self.center[1] + self.h / 2 - self.shoes[key][1]))
+                        (self.center[0] + self.gap / 2 + self.w-30, self.center[1] + self.h / 2), endpoint)
                     if 'R3' in self.shoes :
                         Rot = self.shoes['R3']
                     if 'R' in self.shoes:
                         Shoe.translate(0,self.shoes[key][1]/2)
                     Shoe.rotate(+Rot, (self.center[0] + self.gap / 2 + self.w, self.center[1] + self.h / 2))
                     P2 = gdspy.boolean(P2, Shoe, 'or')
+                    # fake claw here
+                    if 'fake_claws' in self.shoes:
+                        fc = self.shoes['fake_claws']
+                        if fc['position'][2] == '1':
+                            fake_claw = fake_claw.rotate(0).translate(endpoint[0]+ fc['gap1'],endpoint[1]+self.shoes[key][1] / 2)
+                            box_for_fake_claw = box_for_fake_claw.rotate(-np.pi).translate(endpoint[0]+ fc['gap1'],endpoint[1]+self.shoes[key][1] / 2)
+
+                            fake_claw = fake_claw.translate(0,self.shoes[key][1]/2).rotate(+Rot, (self.center[0] + self.gap / 2 + self.w, self.center[1] + self.h / 2))
+                            box_for_fake_claw = box_for_fake_claw.translate(0,self.shoes[key][1]/2).rotate(+Rot, (self.center[0] + self.gap / 2 + self.w, self.center[1] + self.h / 2))
+                            P2 = gdspy.boolean(P2, fake_claw, 'or')
+                            pocket = gdspy.boolean(pocket, box_for_fake_claw, 'or')
+
                 if key == 4:
+                    endpoint = (self.center[0] + self.gap / 2 + self.w + self.shoes[key][0],self.center[1] - self.h / 2 + self.shoes[key][1])
                     Shoe =  gdspy.Rectangle(
                         (self.center[0] + self.gap / 2 + self.w-30, self.center[1] - self.h / 2), (
                         self.center[0] + self.gap / 2 + self.w + self.shoes[key][0],
@@ -163,6 +217,28 @@ class PP_Transmon(DesignElement):
 
                     Shoe.rotate(-Rot, (self.center[0] + self.gap / 2 + self.w, self.center[1] - self.h / 2))
                     P2 = gdspy.boolean(P2, Shoe, 'or')
+                    # fake claw here
+                    if 'fake_claws' in self.shoes:
+                        fc = self.shoes['fake_claws']
+                        if fc['position'][3] == '1':
+                            fake_claw = fake_claw.rotate(0).translate(endpoint[0]+ fc['gap1'],endpoint[1]-self.shoes[key][1] / 2)
+                            box_for_fake_claw = box_for_fake_claw.rotate(0).translate(endpoint[0]+fc['gap1'],endpoint[1]-self.shoes[key][1] / 2)
+
+                            fake_claw = fake_claw.translate(0,-self.shoes[key][1]/2).rotate(-Rot, (self.center[0] + self.gap / 2 + self.w, self.center[1] - self.h / 2))
+                            box_for_fake_claw = box_for_fake_claw.translate(0,-self.shoes[key][1]/2).rotate(-Rot, (self.center[0] + self.gap / 2 + self.w, self.center[1] - self.h / 2))
+                            P2 = gdspy.boolean(P2, fake_claw, 'or')
+                            pocket = gdspy.boolean(pocket, box_for_fake_claw, 'or')
+
+
+
+
+
+
+
+
+
+
+
 
         self.layers.append(9)
         result = gdspy.boolean(ground, P1, 'or', layer=self.layer_configuration.total_layer)
@@ -279,9 +355,9 @@ class PP_Transmon(DesignElement):
         self.layers.append(self.layer_configuration.total_layer)
 
         # Box for inverted Polygons
-        box = gdspy.Rectangle((self.center[0] - self.g_w / 2, self.center[1] - self.g_h / 2),(self.center[0] + self.g_w / 2, self.center[1] + self.g_h / 2))
-        pocket = gdspy.Rectangle((self.center[0] - self.g_w / 2 + self.g_t, self.center[1] - self.g_h / 2 + self.g_t),
-                                 (self.center[0] + self.g_w / 2 - self.g_t, self.center[1] + self.g_h / 2 - self.g_t))
+        box = gdspy.boolean(box,gdspy.Rectangle((self.center[0] - self.g_w / 2, self.center[1] - self.g_h / 2),(self.center[0] + self.g_w / 2, self.center[1] + self.g_h / 2)),'or')
+        pocket = gdspy.boolean(pocket,gdspy.Rectangle((self.center[0] - self.g_w / 2 + self.g_t, self.center[1] - self.g_h / 2 + self.g_t),
+                                 (self.center[0] + self.g_w / 2 - self.g_t, self.center[1] + self.g_h / 2 - self.g_t)),'or')
 
         if len(self.couplers) != 0:
             pockets = []
