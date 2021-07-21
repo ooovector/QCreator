@@ -209,11 +209,12 @@ class PP_Transmon(DesignElement):
             hole11 = gdspy.Rectangle((self.center[0] - self.b_g / 2 - self.JJ_params['h_d'],
                                      self.center[1] + self.h / 2 ), (
                                     self.center[0] - self.b_g / 2,
-                                    self.center[1] + self.h / 2 - self.b_w / 2+self.JJ_params['loop_h']/2-c_p_w-c_p_g))
-            hole12 = gdspy.copy(hole11,0,-self.b_w/2-self.JJ_params['loop_h']/2+c_p_g+c_p_w)
+                                    self.center[1] + self.h / 2 - self.b_w/2+self.JJ_params['loop_h']/2-c_p_w/2-c_p_g))
+            hole12 = gdspy.copy(hole11,0,-self.b_w/2-self.JJ_params['loop_h']/2+c_p_w/2+c_p_g)
+
             hole2 = gdspy.Rectangle(
                 (self.center[0] + self.b_g / 2, self.center[1] - self.JJ_params['h_w'] - 3*self.b_w  + self.h / 2),
-                (self.center[0] + self.b_g / 2 + 1.05, self.center[1] - 2*self.b_w + self.h / 2))
+                (self.center[0] + self.b_g / 2 + self.JJ_params['a2'] + c_p_w/2+c_p_g, self.center[1] - 2*self.b_w + self.h / 2))
 
             P1_bridge = gdspy.boolean(P1_bridge, (hole11,hole12), 'not', layer=8)
             P2_bridge = gdspy.boolean(P2_bridge, hole2, 'not', layer=8)
@@ -221,9 +222,9 @@ class PP_Transmon(DesignElement):
             #add bandages here
             if self.use_bandages:
                 bandage1 = gdspy.Rectangle((self.center[0] - self.b_g / 2 - self.JJ_params['h_d'] + c_p_g,
-                                           self.center[1] + self.h / 2 - self.JJ_params['loop_h']/2 - self.b_w / 2 -c_p_g/2), (
+                                           self.center[1] + self.h / 2 - self.JJ_params['loop_h']/2 - self.b_w / 2 -c_p_w/2), (
                                               self.center[0] - self.b_g / 2,
-                                              self.center[1] + self.h / 2 - self.JJ_params['loop_h'] / 2 - self.b_w / 2 + c_p_g/2+b_ex))
+                                              self.center[1] + self.h / 2 - self.JJ_params['loop_h'] / 2 - self.b_w / 2 + c_p_w/2+b_ex))
 
                 bandage2 = gdspy.copy(bandage1,0,+self.JJ_params['loop_h']-b_ex)
 
@@ -737,21 +738,27 @@ class PP_Transmon(DesignElement):
         #change here to allow Manhatten style junctions
         if self.JJ_params['manhatten']:
             if self.JJ_params['squid']:
-                reachy = 5
-                reachx = 15
+                reachx = self.JJ_params['strip1_extension']  if ('strip1_extension' in self.JJ_params) else 15
+                reachy = self.JJ_params['strip2_extension']  if ('strip2_extension' in self.JJ_params) else 5
+                c_p_w = self.JJ_params['connection_pad_width'] if ('connection_pad_width' in self.JJ_params) else 0.9
+                c_p_g = self.JJ_params['connection_pad_gap'] if ('connection_pad_gap' in self.JJ_params) else 0.5
                 loop_h = self.JJ_params['loop_h']
+
                 #first two lines
                 result1 = gdspy.Rectangle((self.center[0] - self.b_g / 2,
                                           self.center[1] + self.h / 2 - loop_h/2-self.b_w/2 + self.JJ_params['a1'] / 2), (
                                          self.center[0] +reachx,
                                          self.center[1] + self.h / 2 - loop_h/2 -self.b_w/2 - self.JJ_params['a1'] / 2))
-                connection1  = gdspy.Rectangle((self.center[0] - self.b_g / 2-self.JJ_params['h_d']+0.5,
+
+                connection1  = gdspy.Rectangle((self.center[0] - self.b_g / 2-self.JJ_params['h_d']+c_p_g,
                                           self.center[1] + self.h / 2 - loop_h/2-self.b_w/2 + 0.45), (
                                          self.center[0] - self.b_g / 2,
                                          self.center[1] + self.h / 2 - loop_h/2-self.b_w/2 - 0.45))
+
                 result2     = gdspy.copy(result1,0,loop_h)
                 connection2 = gdspy.copy(connection1,0,loop_h)
                 result = gdspy.boolean(result1, (result2,connection1,connection2), 'or')
+
                 #single line
                 result = gdspy.boolean(result, gdspy.Rectangle(
                     (self.center[0] + self.b_g / 2, self.center[1] + self.h / 2 - 2 * self.b_w), (

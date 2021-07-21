@@ -47,10 +47,10 @@ sample = creator.Sample('Single_qubits_PP_mw_lines',layers_configuration)
 sample.chip_geometry.sample_vertical_size=4.5e3
 sample.chip_geometry.sample_horizontal_size=8e3
 
-chip_edge_ground = elements.ChipEdgeGround(sample.chip_geometry, sample.layer_configuration, sample.pads,edge=10)
+chip_edge_ground = elements.ChipEdgeGround(sample.chip_geometry, sample.layer_configuration, sample.padscc)
 sample.add(chip_edge_ground)
 
-# 1. Create contact pads for 6*10 pcb WMI from Hans:
+# 1. Create contact pads for 4.5*8 pcb WMI from Hans:
 pads_left = []
 pads_right = []
 for pad_side_id in range(1):
