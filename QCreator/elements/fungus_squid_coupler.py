@@ -195,7 +195,7 @@ class Fungus_Squid_C(DesignElement):
         P1_bridge = gdspy.Rectangle((self.center[0]-self.gap/2,self.center[1]+self.h/2+self.asymmetry+3*self.b_w),(self.center[0]+self.gap/2+self.w-self.b_w,self.center[1]+self.h/2+self.asymmetry+2*self.b_w))
 
         P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2+self.w, self.center[1]+self.h/2+self.asymmetry),(self.center[0] + self.gap / 2+self.w-self.b_w, self.center[1]+self.h/2+self.asymmetry+2*self.b_w-self.b_g))
-        if 'roation' in self.JJ_params:
+        if 'rotation' in self.JJ_params:
             P1_bridge = gdspy.Rectangle(
             (self.center[0] - self.gap / 2, self.center[1] + self.h / 2 + self.asymmetry + 3 * self.b_w), (
             self.center[0] + self.gap / 2 + self.w - np.sqrt(2)*self.b_w,
