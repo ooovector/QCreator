@@ -254,7 +254,7 @@ class Fungus_Squid_C(DesignElement):
         last_step_cap = [gdspy.boolean(gdspy.boolean(P2, P2_bridge, 'or'),gdspy.boolean(P1, P1_bridge, 'or'),'or')]
         self.layers.append(self.layer_configuration.total_layer)
 
-        # add junctions
+        # add junctions, bandages and holes
         if self.JJ_params is not None:
             self.JJ_coordinates = (self.center[0], self.center[1])
             JJ, bandages, holes = self.generate_JJ()

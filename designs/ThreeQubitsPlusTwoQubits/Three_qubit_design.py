@@ -114,6 +114,10 @@ a2    = a1 # Junction width in um
 #jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':np.pi/2}
 jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}# hole sizes for the JJs
 
+
+
+jj_pp_rotated = { 'a1':a1,"a2":a2,'angle_JJ':-np.pi/4,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'rotation':np.pi/4,'translate':(-7,0),'bridge_translate':(-5,-12,0,0),'paddingx':0,'paddingy':10}# hole sizes for the JJs
+
 jj_pp_2 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'inverted_extension':0,'strip1_extension':20,'strip2_extension':25,'loop_h':10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}
 jj_pp_3 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}
 
@@ -266,7 +270,7 @@ Q3 = elements.pp_transmon.PP_Transmon(name='Q3', center=center3,
                                            ground_w=ground_w,
                                            ground_h=ground_h,
                                            ground_t=ground_t,
-                                           jj_params=jj_pp,
+                                           jj_params=jj_pp_rotated,
                                            layer_configuration=sample.layer_configuration,
                                            Couplers=CC[2],
                                            calculate_capacitance=False,

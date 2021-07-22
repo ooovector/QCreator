@@ -31,7 +31,7 @@ class PP_Transmon(DesignElement):
                  remove_ground = {},
                  shoes = {},
                  holes = False,
-                 fluxline_params = [],
+                 fluxline_params ={},
                  secret_shift = 0,
                  use_bandages = True,
                  return_inverted = True):
@@ -233,6 +233,48 @@ class PP_Transmon(DesignElement):
         result = gdspy.boolean(ground, P1, 'or', layer=self.layer_configuration.total_layer)
         result = gdspy.boolean(result, P2, 'or', layer=self.layer_configuration.total_layer)
 
+
+
+        ##########################################
+        if self.fluxline_params != {}:
+            f = self.fluxline_params
+            l, t_m, t_r, gap, l_arm, h_arm, s_gap, asymmetry = f['l'], f['t_m'], f['t_r'], f['gap'], f['l_arm'], f['h_arm'], \
+                                                               f['s_gap'], f['asymmetry']
+            flux_distance = f['flux_distance']
+            # result_restricted, to ct off hanging parts from the fluxline, None for no cutoff
+            flux = PP_Squid_Fluxline(l, t_m, t_r, gap, l_arm, h_arm, s_gap, flux_distance, self.w, self.h, self.gap,
+                                     self.b_w, self.b_g, ground=None, asymmetry=asymmetry, g=f.get('g'), w=f.get('w'),
+                                     s=f.get('s'), extend=f.get('extend_to_ground'))
+
+            fluxline = flux.render(self.center, self.w, self.h, self.g_h, self.g_t)['positive']
+
+            r_flux = flux.render(self.center, self.w, self.h, self.g_h, self.g_t)['restricted']
+            # adding fluxline restricted area
+            result_restricted = gdspy.boolean(result_restricted, r_flux, 'or',
+                                              layer=self.layer_configuration.restricted_area_layer)
+
+            self.couplers.append(flux)
+            result = gdspy.boolean(result, fluxline, 'or', layer=self.layer_configuration.total_layer)
+
+            # removing ground where the fluxline is
+            ground_fluxline = True
+            if ground_fluxline == False:
+                result = gdspy.boolean(result, gdspy.Rectangle(
+                    (self.center[0] - l_arm / 2 - t_r - self.g_t, self.center[1] + self.h / 2 + 0.01),
+                    (self.center[0] + 3 * l_arm / 2 + t_r + t_m + self.g_t, self.center[1] + self.h / 2 + 250)).translate(
+                    asymmetry, 0), 'not',
+                                       layer=self.layer_configuration.total_layer)
+            else:
+
+                result = gdspy.boolean(result, gdspy.Rectangle(
+                    (self.center[0] + l_arm / 2 - s_gap, self.center[1] + self.h / 2 + 0.01),
+                    (self.center[0] + l_arm / 2 + t_m + s_gap, self.center[1] + self.h / 2 + 250)).translate(asymmetry, 0),
+                                       'not',
+                                       layer=self.layer_configuration.total_layer)
+
+            result = gdspy.boolean(result, fluxline, 'or', layer=self.layer_configuration.total_layer)
+        '''
+
         #change here in case to allow Manhatten-style junctions
         if self.JJ_params['manhatten'] and self.JJ_params['squid'] == False:
             #create holes in the bridges
@@ -300,38 +342,17 @@ class PP_Transmon(DesignElement):
                     ))
                 bandages = gdspy.boolean(bandage1,(bandage2,bandage3), 'or', layer=self.layer_configuration.bandages_layer)
 
+        '''
+        # add junctions, bandages and holes
+        if self.JJ_params is not None:
+            self.JJ_coordinates = (self.center[0], self.center[1])
+            JJ, bandages, holes,P1_bridge,P2_bridge = self.generate_JJ()
+            result = gdspy.boolean(result, holes, 'not')
 
-            f = self.fluxline_params
-            l, t_m, t_r, gap, l_arm, h_arm, s_gap,asymmetry = f['l'],f['t_m'],f['t_r'],f['gap'],f['l_arm'],f['h_arm'],f['s_gap'],f['asymmetry']
-            flux_distance = f['flux_distance']
-            #result_restricted, to ct off hanging parts from the fluxline, None for no cutoff
-            flux = PP_Squid_Fluxline(l, t_m, t_r, gap, l_arm, h_arm, s_gap,flux_distance,self.w,self.h,self.gap,self.b_w,self.b_g,ground = None,asymmetry = asymmetry,g = f.get('g'),w = f.get('w'),s = f.get('s'),extend = f.get('extend_to_ground'))
-
-            fluxline = flux.render(self.center, self.w, self.h,self.g_h,self.g_t)['positive']
-
-            r_flux = flux.render(self.center, self.w, self.h,self.g_h,self.g_t)['restricted']
-            #adding fluxline restricted area
-            result_restricted = gdspy.boolean(result_restricted,r_flux,'or', layer=self.layer_configuration.restricted_area_layer)
-
-            self.couplers.append(flux)
-            result = gdspy.boolean(result, fluxline, 'or', layer=self.layer_configuration.total_layer)
-
-            # removing ground where the fluxline is
-            ground_fluxline = True
-            if ground_fluxline == False:
-                result = gdspy.boolean(result, gdspy.Rectangle(
-                    (self.center[0] - l_arm / 2 - t_r - self.g_t, self.center[1] + self.h / 2 + 0.01),
-                    (self.center[0] + 3 * l_arm / 2 + t_r + t_m + self.g_t, self.center[1] + self.h / 2 + 250)).translate(asymmetry,0), 'not',
-                                       layer=self.layer_configuration.total_layer)
-            else:
-
-                result = gdspy.boolean(result, gdspy.Rectangle(
-                    (self.center[0]+l_arm/2-s_gap, self.center[1] + self.h / 2 + 0.01),
-                    (self.center[0]+l_arm/2+t_m+s_gap , self.center[1] + self.h / 2 + 250)).translate(asymmetry,0), 'not',
-                                       layer=self.layer_configuration.total_layer)
+###################################################################################################################################
 
 
-            result = gdspy.boolean(result, fluxline, 'or', layer=self.layer_configuration.total_layer)
+
 
         qubit_cap_parts.append(gdspy.boolean(P1, P1_bridge, 'or', layer=8 + self.secret_shift))
         qubit_cap_parts.append(gdspy.boolean(P2, P2_bridge, 'or', layer=9 + self.secret_shift))
@@ -661,10 +682,12 @@ class PP_Transmon(DesignElement):
 
         inverted = gdspy.boolean(box, result, 'not',layer=self.layer_configuration.inverted)
 
+        '''
         # add JJs
         if self.JJ_params is not None:
             self.JJ_coordinates = (self.center[0],self.center[1])
             JJ = self.generate_JJ()
+        '''
 
         qubit=deepcopy(result)
 
@@ -804,6 +827,12 @@ class PP_Transmon(DesignElement):
         return self.terminals
 
     def generate_JJ(self):
+        paddingx = 0
+        paddingy = 0
+        if 'paddingx' in self.JJ_params:
+            paddingx =  self.JJ_params['paddingx']
+        if 'paddingy' in self.JJ_params:
+            paddingy = self.JJ_params['paddingy']
         #change here to allow Manhatten style junctions
         if self.JJ_params['manhatten']:
             if self.JJ_params['squid']:
@@ -836,9 +865,7 @@ class PP_Transmon(DesignElement):
                 result = gdspy.boolean(result,gdspy.Rectangle(
                     (self.center[0] + self.b_g / 2-0.45, self.center[1] + self.h / 2 - 2 * self.b_w), (
                         self.center[0] + self.b_g / 2 + self.JJ_params['a2']+0.45,
-                        self.center[1] + self.h / 2 - 2 * self.b_w-self.JJ_params['h_d']
-                    )), 'or')
-
+                        self.center[1] + self.h / 2 - 2 * self.b_w-self.JJ_params['h_d'])), 'or')
 
             else:
                 #JJ_2 is the manhatten junction style
@@ -854,10 +881,108 @@ class PP_Transmon(DesignElement):
 
         result = gdspy.boolean(result, result, 'or', layer=self.layer_configuration.jj_layer)
 
-        angle = self.JJ_params['angle_JJ']
-        result.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
+        #angle = self.JJ_params['angle_JJ']
+        #result.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
 
-        return result
+
+
+        #change here in case to allow Manhatten-style junctions
+        if self.JJ_params['manhatten'] and self.JJ_params['squid'] == False:
+            #create holes in the bridges
+            P1_bridge = gdspy.Rectangle((self.center[0]-self.gap/2,self.center[1]),(self.center[0]-self.b_g/2,self.center[1]+self.b_w))
+            P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2, self.center[1] ),(self.center[0] + self.b_g / 2, self.center[1] - self.b_w))
+            hole1     = gdspy.Rectangle((self.center[0]-self.b_g/2-self.JJ_params['h_w']-self.b_w/2-paddingx,self.center[1]-paddingy),(self.center[0]-self.b_g/2-self.b_w/2,self.center[1]+self.JJ_params['h_d']))
+            hole2     = gdspy.Rectangle((self.center[0] + self.b_g / 2-paddingy, self.center[1]-self.JJ_params['h_w']-self.b_w/2),(self.center[0] + self.b_g / 2 + self.JJ_params['h_d'], self.center[1] - self.b_w/2+paddingx))
+
+
+            holes = gdspy.boolean(hole1,hole2,'or')
+            #P1_bridge = gdspy.boolean(P1_bridge, hole1, 'not', layer=8)
+            #P2_bridge = gdspy.boolean(P2_bridge, hole2, 'not', layer=8)
+
+
+            #add bandages here
+            if 'bandages_extension' in  self.JJ_params:
+                b_ex= self.JJ_params['bandages_extension']
+            else:
+                b_ex = 2.5
+            if 'connection_pad_width' in  self.JJ_params:
+                c_p_w= self.JJ_params['connection_pad_width']
+            else:
+                c_p_w = 0.9
+            if 'connection_pad_gap' in  self.JJ_params:
+                c_p_g = self.JJ_params['connection_pad_gap']
+            else:
+                c_p_g = 0.5
+
+            if self.use_bandages:
+                bandage1 = gdspy.Rectangle((self.center[0]-self.b_g/2-c_p_g-c_p_w-self.b_w/2,self.center[1]),(self.center[0]-self.b_g/2-self.b_w/2+b_ex,self.center[1]+self.JJ_params['h_d']-c_p_g))
+                bandage2 = gdspy.Rectangle((self.center[0] + self.b_g / 2, self.center[1]-self.b_w/2-b_ex-self.JJ_params['h_w']),(self.center[0] + self.b_g / 2 + self.JJ_params['h_d']-c_p_g, self.center[1] - self.b_w/2+c_p_g+c_p_w-self.JJ_params['h_w']))
+                bandages = gdspy.boolean(bandage1,bandage2, 'or', layer=self.layer_configuration.bandages_layer)
+
+        if self.JJ_params['manhatten'] and self.JJ_params['squid'] == True:
+            P1_bridge = gdspy.Rectangle((self.center[0] - self.gap / 2, self.center[1] + self.h / 2),
+                                        (self.center[0] - self.b_g / 2, self.center[1] + self.h / 2 - self.b_w))
+            P2_bridge =gdspy.copy(P1_bridge,self.gap/2+self.b_g/2,- 2 * self.b_w)
+
+
+            b_ex = self.JJ_params['bandages_extension']#2.5
+            c_p_w = self.JJ_params['connection_pad_width']#0.9
+            c_p_g     = self.JJ_params['connection_pad_gap']#0.5
+
+            hole11 = gdspy.Rectangle((self.center[0] - self.b_g / 2 - self.JJ_params['h_d'],
+                                     self.center[1] + self.h / 2 ), (
+                                    self.center[0] - self.b_g / 2,
+                                    self.center[1] + self.h / 2 - self.b_w/2+self.JJ_params['loop_h']/2-c_p_w/2-c_p_g))
+            hole12 = gdspy.copy(hole11,0,-self.b_w/2-self.JJ_params['loop_h']/2+c_p_w/2+c_p_g)
+
+            hole2 = gdspy.Rectangle(
+                (self.center[0] + self.b_g / 2, self.center[1] - self.JJ_params['h_w'] - 3*self.b_w  + self.h / 2),
+                (self.center[0] + self.b_g / 2 + self.JJ_params['a2'] + c_p_w/2+c_p_g, self.center[1] - 2*self.b_w + self.h / 2))
+
+            #P1_bridge = gdspy.boolean(P1_bridge, (hole11,hole12), 'not', layer=8)
+            #P2_bridge = gdspy.boolean(P2_bridge, hole2, 'not', layer=8)
+            holes = gdspy.boolean(hole2, (hole11,hole12), 'or')
+            bandages = gdspy.Rectangle((0,0),(0,0))
+            #add bandages here
+            if self.use_bandages:
+                bandage1 = gdspy.Rectangle((self.center[0] - self.b_g / 2 - self.JJ_params['h_d'] + c_p_g,
+                                           self.center[1] + self.h / 2 - self.JJ_params['loop_h']/2 - self.b_w / 2 -c_p_w/2), (
+                                              self.center[0] - self.b_g / 2,
+                                              self.center[1] + self.h / 2 - self.JJ_params['loop_h'] / 2 - self.b_w / 2 + c_p_w/2+b_ex))
+
+                bandage2 = gdspy.copy(bandage1,0,+self.JJ_params['loop_h']-b_ex)
+
+                bandage3 = gdspy.Rectangle(
+                    (self.center[0] + self.b_g / 2-c_p_w/2, self.center[1] + self.h / 2 - 2 * self.b_w), (
+                        self.center[0] + self.b_g / 2 + self.JJ_params['a2']+b_ex+c_p_w/2,
+                        self.center[1] + self.h / 2 - 2 * self.b_w-self.JJ_params['h_d']))
+                bandages = gdspy.boolean(bandage1,(bandage2,bandage3), 'or', layer=self.layer_configuration.bandages_layer)
+
+
+
+        if 'rotation' in self.JJ_params:
+            point =  (self.center[0],self.center[1])
+            result   = result.rotate(self.JJ_params['rotation'],point)
+            bandages = bandages.rotate(self.JJ_params['rotation'], point)
+            holes    = holes.rotate(self.JJ_params['rotation'], point)
+
+        if 'translate' in self.JJ_params:
+            dx = self.JJ_params['translate'][0]
+            dy = self.JJ_params['translate'][1]
+            result = result.translate(dx,dy)
+            bandages = bandages.translate(dx,dy)
+            holes = holes.translate(dx,dy)
+        if 'bridge_translate' in self.JJ_params:
+            dx1 = self.JJ_params['bridge_translate'][0]
+            dy1 = self.JJ_params['bridge_translate'][1]
+            dx2 = self.JJ_params['bridge_translate'][2]
+            dy2 = self.JJ_params['bridge_translate'][3]
+            P1_bridge = P1_bridge.translate(dx1, dy1)
+            P2_bridge = P2_bridge.translate(dx2, dy2)
+
+        P1_bridge = gdspy.boolean(P1_bridge,holes,'not')
+        P2_bridge = gdspy.boolean(P2_bridge,holes,'not')
+        return result,bandages,holes,P1_bridge,P2_bridge
 
     #for the capacity
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True,
