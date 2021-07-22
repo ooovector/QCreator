@@ -195,7 +195,7 @@ class Fungus_Squid_C(DesignElement):
         P1_bridge = gdspy.Rectangle((self.center[0]-self.gap/2,self.center[1]+self.h/2+self.asymmetry+3*self.b_w),(self.center[0]+self.gap/2+self.w-self.b_w,self.center[1]+self.h/2+self.asymmetry+2*self.b_w))
 
         P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2+self.w, self.center[1]+self.h/2+self.asymmetry),(self.center[0] + self.gap / 2+self.w-self.b_w, self.center[1]+self.h/2+self.asymmetry+2*self.b_w-self.b_g))
-        if self.JJ_params['rotation'] is not None:
+        if 'roation' in self.JJ_params:
             P1_bridge = gdspy.Rectangle(
             (self.center[0] - self.gap / 2, self.center[1] + self.h / 2 + self.asymmetry + 3 * self.b_w), (
             self.center[0] + self.gap / 2 + self.w - np.sqrt(2)*self.b_w,
@@ -216,6 +216,7 @@ class Fungus_Squid_C(DesignElement):
         #change orientation of fluxline
         if self.fluxline_params != {}:
             f = self.fluxline_params
+            print(f)
             l, t_m, t_r, gap, l_arm, h_arm, s_gap = f['l'],f['t_m'],f['t_r'],f['gap'],f['l_arm'],f['h_arm'],f['s_gap']
             flux_distance = f['flux_distance']
             #result_restricted, to ct off hanging parts from the fluxline, None for no cutoff
@@ -595,7 +596,7 @@ class Fungus_Squid_C(DesignElement):
         reach1 = self.JJ_params['strip1_extension']#20
         reach2 = self.JJ_params['strip2_extension']#25
         loop_h = self.JJ_params['loop_h']
-        if self.JJ_params['loop_w_shift'] is not None:
+        if 'loop_w_shift' in self.JJ_params:
             loop_extension = self.JJ_params['loop_w_shift']
         else:
             loop_extension = 0
@@ -645,7 +646,7 @@ class Fungus_Squid_C(DesignElement):
                              self.center[1] + self.h / 2 - c_p_w/2 + self.asymmetry + 2 * self.b_w), (
                             self.center[0] + self.gap / 2 + self.w - self.b_w - self.JJ_params['h_d'] + 0.5-c_p_g,
                             self.center[1] + self.h / 2 + self.b_w / 2 + c_p_w/2 + self.asymmetry + 2 * self.b_w+c_p_g))
-        if self.JJ_params['rotation'] is not None:
+        if 'rotation' in self.JJ_params:
             hole1 = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w - self.b_w,
                                      self.center[1] + self.h / 2 - c_p_w / 2 + self.asymmetry + 2 * self.b_w-padding), (
                                         self.center[0] + self.gap / 2 + self.w - self.b_w - self.JJ_params['h_d'] + 0.5 - c_p_g,
@@ -668,13 +669,13 @@ class Fungus_Squid_C(DesignElement):
         holes =  gdspy.boolean(hole1, (hole2, hole3,hole4), 'or')
 
         #rotate all
-        if self.JJ_params['rotation'] is not None:
+        if 'rotation' in self.JJ_params:
             point =  (self.center[0] + self.gap / 2 + self.w- self.b_w/2,self.center[1] + self.h / 2 + self.asymmetry + 2 * self.b_w - self.b_g +self.JJ_params['loop_h']/2)
             result   = result.rotate(self.JJ_params['rotation'],point)
             bandages = bandages.rotate(self.JJ_params['rotation'], point)
             holes    = holes.rotate(self.JJ_params['rotation'], point)
 
-        if self.JJ_params['translate'] is not None:
+        if 'translate' in self.JJ_params:
             dx = self.JJ_params['translate'][0]
             dy = self.JJ_params['translate'][1]
             result = result.translate(dx,dy)
@@ -824,6 +825,7 @@ class PP_Squid_Fluxline:
         self.pad_g = pad_g
         self.ground = ground
         self.rotation = rotation
+        print(self.rotation)
     def render(self, center, width,height,ground_height,ground_t,inverted_extension = -1):
         g_t = ground_t
         g_h = ground_height
@@ -904,7 +906,7 @@ class PP_Squid_Fluxline:
 
         point = (center[0]+self.pad_g/2+self.pad_w-self.b_w/2+self.flux_distance+self.t_r+self.l,center[1]+self.asymmetry+self.pad_h/2+3.5*self.b_w)
 
-        self.connection =rotate_point(point, self.rotation,(point[0]-self.l-self.t_r,point[1]))
+        self.connection =point
 
         remove1 = gdspy.Rectangle(
             (center[0] + self.t_r / 2, center[1] + g_h / 2 - g_t),
@@ -913,14 +915,14 @@ class PP_Squid_Fluxline:
             (center[0] - 100, center[1] + g_h / 2),
             (center[0] + 100 + self.l_arm + self.t_m, center[1] + g_h / 2 + 2000))
 
-        if self.rotation != 0:
+        if self.rotation != 0 and self.rotation != None :
+            self.connection = rotate_point(point, self.rotation, (point[0] - self.l - self.t_r, point[1]))
             return {
                 'positive': result.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1])),
                 'restricted': restrict.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1])),
                 'remove_ground': [remove1.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1])), remove2.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))],
                 'inverted': inverted.rotate(self.rotation, (point[0] - self.l - self.t_r, point[1])),
             }
-
 
         return {
             'positive': result,

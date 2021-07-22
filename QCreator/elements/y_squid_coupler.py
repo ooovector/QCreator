@@ -24,7 +24,7 @@ class Y_Squid_C(DesignElement):
     9) shoes - caps for the two pads
     """
     def __init__(self, name: str, center: Tuple[float, float],width: Tuple[float,float], height: Tuple[float,float,float],gap: float,bridge_gap:float,bridge_w:float, ground_w: float, ground_h: float,ground_t: float,layer_configuration: LayerConfiguration,
-                 jj_params: Dict,Couplers,transformations:Dict,fluxline_params= {},remove_ground = {},secret_shift = 0,calculate_capacitance = False,shoes = {},claw = [],asymmetry = 0,asymmetry_coupler=0,air_bridge=[],y_gap=15,):
+                 jj_params: Dict,Couplers,transformations:Dict,fluxline_params= {},remove_ground = {},secret_shift = 0,calculate_capacitance = False,shoes = {},claw = [],asymmetry = 0,asymmetry_coupler=0,air_bridge=[],y_gap=15,return_inverted = True):
         super().__init__(type='qubit', name=name)
         #qubit parameters
         self.transformations = transformations# to mirror the structure
@@ -81,6 +81,7 @@ class Y_Squid_C(DesignElement):
 
         # remove ground on these sites
         self.remove_ground = remove_ground
+        self.return_inverted = return_inverted
 
         self.secret_shift = secret_shift
 
@@ -460,6 +461,8 @@ class Y_Squid_C(DesignElement):
             self.JJ_coordinates = (self.center[0],self.center[1])
             JJ = self.generate_JJ()
 
+        if not self.return_inverted:
+            inverted = gdspy.Rectangle((0,0),(0,0))
         qubit = deepcopy(result)
 
         # set terminals for couplers
