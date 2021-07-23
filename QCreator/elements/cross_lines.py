@@ -2,10 +2,14 @@ from .core import DesignElement, DesignTerminal, LayerConfiguration
 # from .. import transmission_line_simulator as tlsim
 import numpy as np
 import gdspy
-from typing import Tuple  # , Mapping, Any
+from typing import Tuple, List, Mapping, Dict, AnyStr
 from .airbridge import AirBridgeGeometry
 from .airbridge import AirbridgeOverCPW
 from .cpw import Narrowing
+from .. import conformal_mapping as cm
+from .. import transmission_line_simulator as tlsim
+from scipy.constants import epsilon_0
+
 
 
 class CrossLinesViaAirbridges(DesignElement):
@@ -42,6 +46,8 @@ class CrossLinesViaAirbridges(DesignElement):
                           'bottom_2': None,
                           'top_1': None,
                           'top_2': None}
+        self.elements_to_tlsim = []
+        self.tls_cache = []
 
     def render(self):
         """
@@ -71,6 +77,8 @@ class CrossLinesViaAirbridges(DesignElement):
                                 layer_configuration=self.geometry.layer_configuration,
                                 length=self.nar_len)
 
+        self.elements_to_tlsim.append(narrowing_1)
+
         positive = narrowing_1.render()['positive']
         restrict = narrowing_1.render()['restrict']
 
@@ -85,6 +93,8 @@ class CrossLinesViaAirbridges(DesignElement):
                                 layer_configuration=self.geometry.layer_configuration,
                                 length=self.nar_len)
 
+        self.elements_to_tlsim.append(narrowing_2)
+
         positive = gdspy.boolean(positive, narrowing_2.render()['positive'], 'or', layer=self.geometry.layer_configuration.total_layer)
         restrict = gdspy.boolean(restrict, narrowing_2.render()['restrict'], 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
 
@@ -96,6 +106,8 @@ class CrossLinesViaAirbridges(DesignElement):
                                          s=self.bot_s,
                                          g=self.bot_g,
                                          geometry=self.geometry)
+
+        self.elements_to_tlsim.append(bridge_center)
 
         positive = gdspy.boolean(positive, bridge_center.render()['positive'], 'or', layer=self.geometry.layer_configuration.total_layer)
         restrict = gdspy.boolean(restrict, bridge_center.render()['restrict'], 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
@@ -111,6 +123,8 @@ class CrossLinesViaAirbridges(DesignElement):
                                      g=self.bot_g,
                                      geometry=self.geometry)
 
+        self.elements_to_tlsim.append(bridge_up)
+
         positive = gdspy.boolean(positive, bridge_up.render()['positive'], 'or', layer=self.geometry.layer_configuration.total_layer)
         restrict = gdspy.boolean(restrict, bridge_up.render()['restrict'], 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
         contacts = gdspy.boolean(contacts, bridge_up.render()['airbridges_pads'], 'or', layer=self.geometry.layer_configuration.airbridges_pad_layer)
@@ -125,33 +139,16 @@ class CrossLinesViaAirbridges(DesignElement):
                                        g=self.bot_g,
                                        geometry=self.geometry)
 
+        self.elements_to_tlsim.append(bridge_down)
+
         positive = gdspy.boolean(positive, bridge_down.render()['positive'], 'or', layer=self.geometry.layer_configuration.total_layer)
         restrict = gdspy.boolean(restrict, bridge_down.render()['restrict'], 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
         contacts = gdspy.boolean(contacts, bridge_down.render()['airbridges_pads'], 'or', layer=self.geometry.layer_configuration.airbridges_pad_layer)
         contacts_sm = gdspy.boolean(contacts_sm, bridge_down.render()['airbridges_sm_pads'], 'or', layer=self.geometry.layer_configuration.airbridges_sm_pad_layer)
         bridges = gdspy.boolean(bridges, bridge_down.render()['airbridges'], 'or', layer=self.geometry.layer_configuration.airbridges_layer)
 
-        # There are blank spaces left between bridges, these aus rectangles fill them:
-        aux_g_1_up = gdspy.Rectangle((self.position[0] - self.bot_w/2 - self.bot_s - self.bot_g, self.position[1] + p_wid/2),
-                                     (self.position[0] - self.bot_w/2 - self.bot_s, self.position[1] + p_wid/2 + self.top_s))
-        aux_g_2_up = gdspy.Rectangle((self.position[0] + self.bot_w/2 + self.bot_s + self.bot_g, self.position[1] + p_wid/2),
-                                     (self.position[0] + self.bot_w/2 + self.bot_s, self.position[1] + p_wid/2 + self.top_s))
-        aux_g_up = gdspy.boolean(aux_g_1_up, aux_g_2_up, 'or')
-
-        aux_g_1_down = gdspy.Rectangle((self.position[0] - self.bot_w/2 - self.bot_s - self.bot_g, self.position[1] - p_wid/2),
-                                       (self.position[0] - self.bot_w/2 - self.bot_s, self.position[1] - p_wid/2 - self.top_s))
-        aux_g_2_down = gdspy.Rectangle((self.position[0] + self.bot_w/2 + self.bot_s + self.bot_g, self.position[1] - p_wid/2),
-                                       (self.position[0] + self.bot_w/2 + self.bot_s, self.position[1] - p_wid/2 - self.top_s))
-        aux_g_down = gdspy.boolean(aux_g_1_down, aux_g_2_down, 'or')
-
-        aux_g = gdspy.boolean(aux_g_down, aux_g_up, 'or')
-        positive = gdspy.boolean(positive, aux_g, 'or', layer=self.geometry.layer_configuration.total_layer)
-
-        aux_w_up = gdspy.Rectangle((self.position[0] - self.bot_w/2, self.position[1] + p_wid/2),
-                                   (self.position[0] + self.bot_w/2, self.position[1] + p_wid/2 + self.top_s))
-        aux_w_down = gdspy.Rectangle((self.position[0] - self.bot_w/2, self.position[1] - p_wid/2),
-                                     (self.position[0] + self.bot_w/2, self.position[1] - p_wid/2 - self.top_s))
-        aux_w = gdspy.boolean(aux_w_down, aux_w_up, 'or')
+        aux_w = gdspy.Rectangle((self.position[0]-self.bot_w/2, self.position[1]-3*p_wid/2-self.top_s),
+                                (self.position[0]+self.bot_w/2, self.position[1]+3*p_wid/2+self.top_s))
         positive = gdspy.boolean(positive, aux_w, 'or', layer=self.geometry.layer_configuration.total_layer)
 
         # Rotate everything if needed:
@@ -195,6 +192,63 @@ class CrossLinesViaAirbridges(DesignElement):
 
     def get_terminals(self) -> dict:
         return self.terminals
+
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int],
+                   track_changes: bool = True, cutoff: float = np.inf, epsilon: float = 11.45):
+
+        h = 2 * 1e-6  # bridge height 2 mu m # TODO: CONSTANTS IN CODE OMG REMOVE THIS
+        s = 1e-12*self.geometry.narrow_width*self.bot_w
+        epsilon = 1 # TODO: CONSTANTS IN CODE OMG REMOVE THIS
+        c_bridge_cpw = epsilon_0 * epsilon * s / h
+
+        cl_br, ll_br = cm.ConformalMapping([self.top_s+2*(self.geometry.pad_width-self.geometry.narrow_width),
+                                              self.geometry.narrow_width, self.top_s+2*(self.geometry.pad_width-
+                                                                                        self.geometry.narrow_width)],
+                                             epsilon=epsilon).cl_and_Ll()
+
+        cl_b, ll_b = cm.ConformalMapping([self.bot_s, self.bot_w, self.bot_s], epsilon=epsilon).cl_and_Ll()
+        l_b = tlsim.Inductor(l=ll_b[0, 0] * (3*self.geometry.pad_width+2*self.top_s),
+                             name='Bottom cpw {} L'.format(self.name))
+        c_b1g = tlsim.Capacitor(c=cl_b[0, 0]/2 * (3*self.geometry.pad_width+2*self.top_s)+c_bridge_cpw,
+                              name='{} C_bg'.format(self.name))
+        c_b2g = tlsim.Capacitor(c=cl_b[0, 0]/2 * (3*self.geometry.pad_width+2*self.top_s)+c_bridge_cpw,
+                              name='{} C_bg'.format(self.name))
+
+        c_b1t1 = tlsim.Capacitor(c=c_bridge_cpw/4, name='{}  C_b1t1'.format(self.name))
+        c_b1t2 = tlsim.Capacitor(c=c_bridge_cpw/4, name='{}  C_b1t2'.format(self.name))
+        c_b2t1 = tlsim.Capacitor(c=c_bridge_cpw/4, name='{}  C_b2t1'.format(self.name))
+        c_b2t2 = tlsim.Capacitor(c=c_bridge_cpw/4, name='{}  C_b2t2'.format(self.name))
+
+        cl_t1, ll_t1 = cm.ConformalMapping([self.top_s, self.top_w, self.top_s], epsilon=epsilon).cl_and_Ll()
+        cl_t2, ll_t2 = cm.ConformalMapping([self.top_s, self.geometry.pad_width, self.top_s], epsilon=epsilon).cl_and_Ll()
+        l_t = tlsim.Inductor(l=(ll_t1[0, 0]+ll_t2[0, 0])/2*2*(self.nar_len+self.geometry.pad_width)+
+                               ll_br*self.geometry.pad_distance,
+                             name='{} L_t'.format(self.name))
+        c_t1g = tlsim.Capacitor(c=(cl_t1[0, 0]+cl_t2[0,0])/2*(self.nar_len+self.geometry.pad_length)+
+                                  cl_br*self.geometry.pad_distance/2,
+                               name='{} C_t1g'.format(self.name))
+        c_t2g = tlsim.Capacitor(
+            c=(cl_t1[0, 0] + cl_t2[0, 0])/2 *(self.nar_len+self.geometry.pad_length) +
+              cl_br*self.geometry.pad_distance/ 2,
+            name='{} C_t2g'.format(self.name))
+
+        tls_instance.add_element(l_b, [terminal_mapping['bottom_1'], terminal_mapping['bottom_2']])
+        tls_instance.add_element(l_t, [terminal_mapping['top_1'], terminal_mapping['top_2']])
+        tls_instance.add_element(c_b1g, [terminal_mapping['bottom_1'], 0])
+        tls_instance.add_element(c_b2g, [terminal_mapping['bottom_2'], 0])
+        tls_instance.add_element(c_t1g, [terminal_mapping['top_1'], 0])
+        tls_instance.add_element(c_t2g, [terminal_mapping['top_2'], 0])
+        tls_instance.add_element(c_b1t1, [terminal_mapping['bottom_1'], terminal_mapping['top_1']])
+        tls_instance.add_element(c_b1t2, [terminal_mapping['bottom_1'], terminal_mapping['top_2']])
+        tls_instance.add_element(c_b2t1, [terminal_mapping['bottom_2'], terminal_mapping['top_1']])
+        tls_instance.add_element(c_b2t2, [terminal_mapping['bottom_2'], terminal_mapping['top_2']])
+
+        elements = [l_b, l_t, c_b1g, c_b2g, c_t1g, c_t2g, c_b1t1, c_b1t2, c_b2t1, c_b2t2]
+        if track_changes:
+            self.tls_cache.append(elements)
+
+        return elements
+
 
 
 def rotate_point(point, angle, origin):
