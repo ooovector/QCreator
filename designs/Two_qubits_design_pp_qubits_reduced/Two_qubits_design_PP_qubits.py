@@ -121,7 +121,7 @@ a2    = a1 # Junction width in um
 jj_pp2 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}# hole sizes for the JJs
 jj_pp1 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10 ,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}# hole sizes for the JJs
 
-jj_pp_c = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'rotation':np.pi/4,'translate':(-6.5,6.5),'loop_w_shift':10,'strip1_extension':20,'strip2_extension':35}# hole sizes for the JJs
+jj_pp_c = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'rotation':np.pi/4,'translate':(-6.5,6.5-3),'loop_w_shift':10,'strip1_extension':20,'strip2_extension':35,'padding':10}# hole sizes for the JJs
 
 
 JJ_pad_offset_x = 10 # for JJ_manhatten

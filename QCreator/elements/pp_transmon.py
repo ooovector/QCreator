@@ -829,6 +829,19 @@ class PP_Transmon(DesignElement):
     def generate_JJ(self):
         paddingx = 0
         paddingy = 0
+        if 'bandages_extension' in self.JJ_params:
+            b_ex = self.JJ_params['bandages_extension']
+        else:
+            b_ex = 2.5
+        if 'connection_pad_width' in self.JJ_params:
+            c_p_w = self.JJ_params['connection_pad_width']
+        else:
+            c_p_w = 0.9
+        if 'connection_pad_gap' in self.JJ_params:
+            c_p_g = self.JJ_params['connection_pad_gap']
+        else:
+            c_p_g = 0.5
+
         if 'paddingx' in self.JJ_params:
             paddingx =  self.JJ_params['paddingx']
         if 'paddingy' in self.JJ_params:
@@ -838,8 +851,6 @@ class PP_Transmon(DesignElement):
             if self.JJ_params['squid']:
                 reachx = self.JJ_params['strip1_extension']  if ('strip1_extension' in self.JJ_params) else 15
                 reachy = self.JJ_params['strip2_extension']  if ('strip2_extension' in self.JJ_params) else 5
-                c_p_w = self.JJ_params['connection_pad_width'] if ('connection_pad_width' in self.JJ_params) else 0.9
-                c_p_g = self.JJ_params['connection_pad_gap'] if ('connection_pad_gap' in self.JJ_params) else 0.5
                 loop_h = self.JJ_params['loop_h']
 
                 #first two lines
@@ -860,18 +871,17 @@ class PP_Transmon(DesignElement):
                 #single line
                 result = gdspy.boolean(result, gdspy.Rectangle(
                     (self.center[0] + self.b_g / 2, self.center[1] + self.h / 2 - 2 * self.b_w), (
-                    self.center[0] + self.b_g / 2 + self.JJ_params['a2'],self.center[1] + self.h / 2 - self.b_w / 3 + self.JJ_params['a1'] / 2+reachy
-                    )), 'or')
+                    self.center[0] + self.b_g / 2 + self.JJ_params['a2'],self.center[1] + self.h / 2 - self.b_w / 3 + self.JJ_params['a1'] / 2+reachy)), 'or')
                 result = gdspy.boolean(result,gdspy.Rectangle(
-                    (self.center[0] + self.b_g / 2-0.45, self.center[1] + self.h / 2 - 2 * self.b_w), (
-                        self.center[0] + self.b_g / 2 + self.JJ_params['a2']+0.45,
+                    (self.center[0] + self.b_g / 2-c_p_w/2+ self.JJ_params['a2']/2, self.center[1] + self.h / 2 - 2 * self.b_w), (
+                        self.center[0] + self.b_g / 2 + self.JJ_params['a2']/2+c_p_w/2,
                         self.center[1] + self.h / 2 - 2 * self.b_w-self.JJ_params['h_d'])), 'or')
 
             else:
                 #JJ_2 is the manhatten junction style
                 ##############################################################################
                 self.JJ = JJ4q.JJ_2(self.JJ_coordinates[0], self.JJ_coordinates[1],
-                                    self.JJ_params['a1'], self.JJ_params['a2'],self.JJ_params['h_w'],self.JJ_params['h_d'])
+                                    self.JJ_params['a1'], self.JJ_params['a2'],self.JJ_params['h_w'],self.JJ_params['h_d'],arm_t = c_p_w,c_p_g = c_p_g,bridge_width=self.b_w,bridge_gap=self.b_g)
                 result = self.JJ.generate_jj()
                 #############################################################################
         else:
@@ -892,7 +902,7 @@ class PP_Transmon(DesignElement):
             P1_bridge = gdspy.Rectangle((self.center[0]-self.gap/2,self.center[1]),(self.center[0]-self.b_g/2,self.center[1]+self.b_w))
             P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2, self.center[1] ),(self.center[0] + self.b_g / 2, self.center[1] - self.b_w))
             hole1     = gdspy.Rectangle((self.center[0]-self.b_g/2-self.JJ_params['h_w']-self.b_w/2-paddingx,self.center[1]-paddingy),(self.center[0]-self.b_g/2-self.b_w/2,self.center[1]+self.JJ_params['h_d']))
-            hole2     = gdspy.Rectangle((self.center[0] + self.b_g / 2-paddingy, self.center[1]-self.JJ_params['h_w']-self.b_w/2),(self.center[0] + self.b_g / 2 + self.JJ_params['h_d'], self.center[1] - self.b_w/2+paddingx))
+            hole2     = gdspy.Rectangle((self.center[0] + self.b_g / 2-paddingy, self.center[1]-self.b_w),(self.center[0] + self.b_g / 2 + self.JJ_params['h_d'], self.center[1] - self.b_w/2-self.JJ_params['h_w']+c_p_w+c_p_g))
 
 
             holes = gdspy.boolean(hole1,hole2,'or')
@@ -901,33 +911,15 @@ class PP_Transmon(DesignElement):
 
 
             #add bandages here
-            if 'bandages_extension' in  self.JJ_params:
-                b_ex= self.JJ_params['bandages_extension']
-            else:
-                b_ex = 2.5
-            if 'connection_pad_width' in  self.JJ_params:
-                c_p_w= self.JJ_params['connection_pad_width']
-            else:
-                c_p_w = 0.9
-            if 'connection_pad_gap' in  self.JJ_params:
-                c_p_g = self.JJ_params['connection_pad_gap']
-            else:
-                c_p_g = 0.5
-
             if self.use_bandages:
                 bandage1 = gdspy.Rectangle((self.center[0]-self.b_g/2-c_p_g-c_p_w-self.b_w/2,self.center[1]),(self.center[0]-self.b_g/2-self.b_w/2+b_ex,self.center[1]+self.JJ_params['h_d']-c_p_g))
-                bandage2 = gdspy.Rectangle((self.center[0] + self.b_g / 2, self.center[1]-self.b_w/2-b_ex-self.JJ_params['h_w']),(self.center[0] + self.b_g / 2 + self.JJ_params['h_d']-c_p_g, self.center[1] - self.b_w/2+c_p_g+c_p_w-self.JJ_params['h_w']))
+                bandage2 = gdspy.Rectangle((self.center[0] + self.b_g / 2, self.center[1]-self.b_w/2-self.JJ_params['h_w']),(self.center[0] + self.b_g / 2 + self.JJ_params['h_d']-c_p_g, self.center[1] - self.b_w/2+b_ex+c_p_g+c_p_w-self.JJ_params['h_w']))
                 bandages = gdspy.boolean(bandage1,bandage2, 'or', layer=self.layer_configuration.bandages_layer)
 
         if self.JJ_params['manhatten'] and self.JJ_params['squid'] == True:
             P1_bridge = gdspy.Rectangle((self.center[0] - self.gap / 2, self.center[1] + self.h / 2),
                                         (self.center[0] - self.b_g / 2, self.center[1] + self.h / 2 - self.b_w))
             P2_bridge =gdspy.copy(P1_bridge,self.gap/2+self.b_g/2,- 2 * self.b_w)
-
-
-            b_ex = self.JJ_params['bandages_extension']#2.5
-            c_p_w = self.JJ_params['connection_pad_width']#0.9
-            c_p_g     = self.JJ_params['connection_pad_gap']#0.5
 
             hole11 = gdspy.Rectangle((self.center[0] - self.b_g / 2 - self.JJ_params['h_d'],
                                      self.center[1] + self.h / 2 ), (
@@ -937,7 +929,7 @@ class PP_Transmon(DesignElement):
 
             hole2 = gdspy.Rectangle(
                 (self.center[0] + self.b_g / 2, self.center[1] - self.JJ_params['h_w'] - 3*self.b_w  + self.h / 2),
-                (self.center[0] + self.b_g / 2 + self.JJ_params['a2'] + c_p_w/2+c_p_g, self.center[1] - 2*self.b_w + self.h / 2))
+                (self.center[0] + self.b_g / 2 + self.JJ_params['a2']/2 + c_p_w/2+c_p_g, self.center[1] - 2*self.b_w + self.h / 2))
 
             #P1_bridge = gdspy.boolean(P1_bridge, (hole11,hole12), 'not', layer=8)
             #P2_bridge = gdspy.boolean(P2_bridge, hole2, 'not', layer=8)
@@ -953,8 +945,8 @@ class PP_Transmon(DesignElement):
                 bandage2 = gdspy.copy(bandage1,0,+self.JJ_params['loop_h']-b_ex)
 
                 bandage3 = gdspy.Rectangle(
-                    (self.center[0] + self.b_g / 2-c_p_w/2, self.center[1] + self.h / 2 - 2 * self.b_w), (
-                        self.center[0] + self.b_g / 2 + self.JJ_params['a2']+b_ex+c_p_w/2,
+                    (self.center[0] + self.b_g / 2-c_p_w/2+ self.JJ_params['a2']/2, self.center[1] + self.h / 2 - 2 * self.b_w), (
+                        self.center[0] + self.b_g / 2 + self.JJ_params['a2']/2+b_ex+c_p_w/2,
                         self.center[1] + self.h / 2 - 2 * self.b_w-self.JJ_params['h_d']))
                 bandages = gdspy.boolean(bandage1,(bandage2,bandage3), 'or', layer=self.layer_configuration.bandages_layer)
 

@@ -590,7 +590,7 @@ class Fungus_Squid_C(DesignElement):
     #change for new design
     def generate_JJ(self):
         #parameter to remove overhanging bridge parts
-        padding = self.JJ_params['padding']  if ('padding' in self.JJ_params) else 20
+        padding = self.JJ_params['padding']  if ('padding' in self.JJ_params) else 0
 
         #cheap Manhatten style
         reach1 = self.JJ_params['strip1_extension']#20

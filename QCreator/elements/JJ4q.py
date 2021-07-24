@@ -93,7 +93,7 @@ class JJ_1:
 
 #manhatten style junctions
 class JJ_2:#hw,hd is the hole width, hole depth of the hole in the bridge between the two Plates of the ParallelPlate Transmon
-    def __init__(self, x0, y0, parameter1, parameter2,hw,hd,l=20,arm_t = 0.9):
+    def __init__(self, x0, y0, parameter1, parameter2,hw,hd,l=20,arm_t = 0.9,c_p_g = 0.5,bridge_gap = 10,bridge_width = 16):
         self._x0=x0
         self._y0=y0
         self.hw = hw
@@ -103,6 +103,9 @@ class JJ_2:#hw,hd is the hole width, hole depth of the hole in the bridge betwee
 
         self._parameter1=parameter1
         self._parameter2=parameter2
+        self.c_p_g = c_p_g
+        self.bridge_gap = bridge_gap
+        self.bridge_width = bridge_width
 
     def generate_jj(self):
         #parameters
@@ -115,9 +118,9 @@ class JJ_2:#hw,hd is the hole width, hole depth of the hole in the bridge betwee
         #bridge_gap = 10 um, bridge_width = 16
         #junction material and bridge gap is set to 0.5um
         #l is the length of the thin materia piece extending beynd the initial block
-        bg = 10
-        bw = 16
-        jg = 0.5
+        bg = self.bridge_gap#10
+        bw = self.bridge_width#16
+        jg = self.c_p_g
         l  = self.l #standard 20
         #left arm
         p0 = gdspy.Rectangle((x0-bg/2-bw/2-jg-arm_t,y0+hd-jg),(x0-bg/2-bw/2-jg,y0-hd/2-jg))

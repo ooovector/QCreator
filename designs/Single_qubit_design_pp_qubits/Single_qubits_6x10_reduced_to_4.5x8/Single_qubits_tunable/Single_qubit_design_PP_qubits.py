@@ -96,21 +96,29 @@ sample.add(pad)
 p1 = pads_left[0]
 p2 = pads_right[0]
 
+
+
+
+#laserwriter subtracts 0.5 um, so we add that to all structures where it matters, coplers,Junction region and Fluxline
+d = 0.5
+
+
+
 ################################
-tight = [True,6]
-Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.4,
+tight = [True,6-d]
+Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,25+2*d,'left',coupler_type = 'coupler',heightl = 0.4,
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46,tight =tight)]
 
-Couplers_flux=[elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.4,
+Couplers_flux=[elements.pp_transmon.PP_Transmon_Coupler(0,0,25+2*d,'right',coupler_type = 'coupler',heightr = 0.4,
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46,tight = tight)]
 
 
-width = 250
-height= 450
-gap   = 50
-ground_w = 680+40+30+30
-ground_h   = 680+40+30+30
-ground_t   = 50
+width = 250+2*d
+height= 450+2*d
+gap   = 50-2*d
+ground_w = 680+40+30+30-2*d
+ground_h   = 680+40+30+30-2*d
+ground_t   = 50+2*d
 # b_g   = 19 # from JJ Design for JJ4q
 JJ_pad_offset_x = 10 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design
@@ -119,16 +127,16 @@ a1    = np.sqrt(0.15*0.3)*1.065 #Junction height in um
 a2    = a1 # Junction width in um
 
 
-jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5 }# hole sizes for the JJs
+jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 +2*d,'h_d':8+2*d,'squid':False,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5-d }# hole sizes for the JJs
 
 
 
 ###### define parameters for the tunable qubits
-jj_pp_flux = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':3 ,'h_d':8,'squid':True,'loop_h': 12,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'strip1_extension':15,'strip2_extension':8}# hole sizes for the JJs
+jj_pp_flux = { 'a1':a1/np.sqrt(2),"a2":a2/np.sqrt(2),'angle_JJ':0,'manhatten':True,'h_w':3+2*d ,'h_d':8+2*d,'squid':True,'loop_h': 12,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5-d,'strip1_extension':15,'strip2_extension':8}# hole sizes for the JJs
 
-flux_distance = 15
+flux_distance = 15+2*d
 #l, t_m, t_r, gp, l_arm, h_arm, s_gap = 150-3-flux_distance+15, resonator_core, 3, 5, 40, 50, resonator_gap
-l, t_m, t_r, gp, l_arm, h_arm, s_gap,asymmetry = 150-3-flux_distance+15, 5, 3, 5, 40/3, 50, resonator_gap,15-4.7
+l, t_m, t_r, gp, l_arm, h_arm, s_gap,asymmetry = 160-flux_distance, 5, 3+2*d, 5, 40/3, 50, resonator_gap,15-4.7
 flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':asymmetry,'loop_h': 10 }
 
 # draw 2 tunable qubits
