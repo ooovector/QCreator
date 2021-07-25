@@ -223,6 +223,11 @@ transmon1_right_fixed = elements.pp_transmon.PP_Transmon(name='Q2_fixed',center=
                           )
 sample.add(transmon1_right_fixed)
 
+logos=elements.WMILogos((700,3500),(7300,3500),layers_configuration)
+sample.add(logos)
+#sample.draw_design()
+markers = elements.AlignmentMarkers((500,500),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),10,sample.layer_configuration)
+sample.add(markers)
 
 sample.draw_design()
 #sample.watch()
