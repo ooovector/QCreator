@@ -123,16 +123,18 @@ ground_t   = 50+2*d
 JJ_pad_offset_x = 10 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design
 
-a1    = np.sqrt(0.15*0.3)*1.065 #Junction height in um
+a1    = np.sqrt(0.15*0.3)*1.03 #Junction height in um
 a2    = a1 # Junction width in um
 
 
 jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 +2*d,'h_d':8+2*d,'squid':False,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5-d }# hole sizes for the JJs
 
 
-
+a11 = 0.477297
+a12 = 0.1002324
+a2  = 0.1
 ###### define parameters for the tunable qubits
-jj_pp_flux = { 'a1':a1/np.sqrt(2),"a2":a2/np.sqrt(2),'angle_JJ':0,'manhatten':True,'h_w':3+2*d ,'h_d':8+2*d,'squid':True,'loop_h': 12,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5-d,'strip1_extension':15,'strip2_extension':8}# hole sizes for the JJs
+jj_pp_flux = { 'a11':a11,"a12":a12,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':3+2*d ,'h_d':8+2*d,'squid':True,'loop_h': 12,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5-d,'strip1_extension':15,'strip2_extension':8}# hole sizes for the JJs
 
 flux_distance = 15+2*d
 #l, t_m, t_r, gp, l_arm, h_arm, s_gap = 150-3-flux_distance+15, resonator_core, 3, 5, 40, 50, resonator_gap
@@ -184,7 +186,7 @@ sample.add(transmon1_left_flux)
 sample.add(transmon2_right_flux)
 
 ### add fixed frequency transmon qubit without microwave line
-center = (2000,1500+offset_y)
+center = (2000,1700+offset_y)
 
 transmon1_left_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=center,
                           width = width,
@@ -203,7 +205,7 @@ transmon1_left_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=c
                           )
 sample.add(transmon1_left_fixed)
 
-center = (6200+offset_x,1500+offset_y)
+center = (6200+offset_x,1700+offset_y)
 
 transmon1_right_fixed = elements.pp_transmon.PP_Transmon(name='Q2_fixed',center=center,
                           width = width,
@@ -223,11 +225,59 @@ transmon1_right_fixed = elements.pp_transmon.PP_Transmon(name='Q2_fixed',center=
                           )
 sample.add(transmon1_right_fixed)
 
+
+#add test structures + a Test SNAIL
+shiftx = 600
+shifty = -180
+center=(6400+shiftx,1200+shifty)
+JJ_test_structure = elements.pp_transmon.PP_Transmon(name='JJ_test',center=center,
+                          width = 300,
+                          height = 300,
+                          bridge_gap = JJ_pad_offset_x,
+                          bridge_w   = JJ_pad_offset_y ,
+                          gap = gap,
+                          ground_w = 700,
+                          ground_h = 600,
+                          ground_t = 10,
+                          jj_params= jj_pp,
+                          layer_configuration = sample.layer_configuration,
+                          Couplers = [],
+                          calculate_capacitance = False,
+                          transformations = {'rotate':[np.pi/2,center]},
+                          )
+sample.add(JJ_test_structure)
+center=(5900+shiftx,1200+shifty)
+JJ_test_structure1 = elements.pp_transmon.PP_Transmon(name='JJ_test1',center=center,
+                          width = 300,
+                          height = 300,
+                          bridge_gap = JJ_pad_offset_x,
+                          bridge_w   = JJ_pad_offset_y ,
+                          gap = gap,
+                          ground_w = 700,
+                          ground_h = 600,
+                          ground_t = 10,
+                          jj_params= jj_pp,
+                          layer_configuration = sample.layer_configuration,
+                          Couplers = [],
+                          calculate_capacitance = False,
+                          transformations = {'rotate':[np.pi/2,center]},
+                          )
+sample.add(JJ_test_structure1)
+
+
+
+
 logos=elements.WMILogos((700,3500),(7300,3500),layers_configuration)
 sample.add(logos)
 #sample.draw_design()
-markers = elements.AlignmentMarkers((500,500),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),10,sample.layer_configuration)
+markers = elements.AlignmentMarkers((470,470),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),10,sample.layer_configuration)
 sample.add(markers)
+markers2 = elements.AlignmentMarkers((485,485),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),4,sample.layer_configuration)
+sample.add(markers2)
+markers3 = elements.AlignmentMarkers((500,500),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),1,sample.layer_configuration)
+sample.add(markers3)
 
-sample.draw_design()
+
+
+#sample.draw_design()
 #sample.watch()

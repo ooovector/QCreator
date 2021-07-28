@@ -849,29 +849,40 @@ class PP_Transmon(DesignElement):
         #change here to allow Manhatten style junctions
         if self.JJ_params['manhatten']:
             if self.JJ_params['squid']:
+                if 'a11' not in self.JJ_params:
+                    self.JJ_params['a11'] = self.JJ_params['a1']
+                    self.JJ_params['a12'] = self.JJ_params['a1']
                 reachx = self.JJ_params['strip1_extension']  if ('strip1_extension' in self.JJ_params) else 15
                 reachy = self.JJ_params['strip2_extension']  if ('strip2_extension' in self.JJ_params) else 5
                 loop_h = self.JJ_params['loop_h']
 
                 #first two lines
                 result1 = gdspy.Rectangle((self.center[0] - self.b_g / 2,
-                                          self.center[1] + self.h / 2 - loop_h/2-self.b_w/2 + self.JJ_params['a1'] / 2), (
+                                          self.center[1] + self.h / 2 - loop_h/2-self.b_w/2 + self.JJ_params['a11'] / 2), (
                                          self.center[0] +reachx,
-                                         self.center[1] + self.h / 2 - loop_h/2 -self.b_w/2 - self.JJ_params['a1'] / 2))
+                                         self.center[1] + self.h / 2 - loop_h/2 -self.b_w/2 - self.JJ_params['a11'] / 2))
 
                 connection1  = gdspy.Rectangle((self.center[0] - self.b_g / 2-self.JJ_params['h_d']+c_p_g,
                                           self.center[1] + self.h / 2 - loop_h/2-self.b_w/2 + 0.45), (
                                          self.center[0] - self.b_g / 2,
                                          self.center[1] + self.h / 2 - loop_h/2-self.b_w/2 - 0.45))
 
-                result2     = gdspy.copy(result1,0,loop_h)
+                #result2     = gdspy.copy(result1,0,loop_h)
+                result2 = gdspy.Rectangle((self.center[0] - self.b_g / 2,
+                                           self.center[1] + self.h / 2 + loop_h / 2 - self.b_w / 2 + self.JJ_params[
+                                               'a12'] / 2), (
+                                              self.center[0] + reachx,
+                                              self.center[1] + self.h / 2 + loop_h / 2 - self.b_w / 2 - self.JJ_params[
+                                                  'a12'] / 2))
+
+
                 connection2 = gdspy.copy(connection1,0,loop_h)
                 result = gdspy.boolean(result1, (result2,connection1,connection2), 'or')
 
                 #single line
                 result = gdspy.boolean(result, gdspy.Rectangle(
                     (self.center[0] + self.b_g / 2, self.center[1] + self.h / 2 - 2 * self.b_w), (
-                    self.center[0] + self.b_g / 2 + self.JJ_params['a2'],self.center[1] + self.h / 2 - self.b_w / 3 + self.JJ_params['a1'] / 2+reachy)), 'or')
+                    self.center[0] + self.b_g / 2 + self.JJ_params['a2'],self.center[1] + self.h / 2 - self.b_w / 3 + self.JJ_params['a2'] / 2+reachy)), 'or')
                 result = gdspy.boolean(result,gdspy.Rectangle(
                     (self.center[0] + self.b_g / 2-c_p_w/2+ self.JJ_params['a2']/2, self.center[1] + self.h / 2 - 2 * self.b_w), (
                         self.center[0] + self.b_g / 2 + self.JJ_params['a2']/2+c_p_w/2,
