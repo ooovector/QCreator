@@ -1147,6 +1147,70 @@ class TLSystem:
                                                                           submode_kl)) / 6
 
         return JJ_kerr
+
+    def get_second_order_perturbation(self, list_of_modes_numbers: list):
+        """
+        Calculate second order correction to energy with perturbation operator
+        """
+
+        from collections import defaultdict
+        from itertools import product
+
+
+        omega, kappa, modes = self.get_modes()
+
+        modes_ = self.normalization_of_modes(list_of_modes_numbers)  # here modes are normalized
+
+        number_of_modes = len(modes_)  # number of modes in the system
+
+        s = [i for i in range(1, number_of_modes + 1)]
+        state = defaultdict(int)  # ground state of the system corresponding to M modes
+        for k in s:
+            state[k] = 0
+
+        operators = []
+        for i in range(1, number_of_modes + 1):
+            operators.extend([i, -i])
+
+        # create a list with perturbation terms: 'n' -- creation operator of mode n,
+        # '-n' -- annihilation operator of mode n
+
+        perturbation_terms = []
+        for i in product(operators, repeat=4):
+            perturbation_terms.append(i)
+
+        for t in perturbation_terms:
+            for operator in t[::-1]:
+
+                if np.sign(operator) == 1:
+                    state[np.abs(operator)] += 1
+
+                elif np.sign(operator) == -1:
+
+                    if state[np.abs(operator)] > 0:
+                        state[np.abs(operator)] -= 1
+
+                    elif state[np.abs(operator)] == 0:
+
+                        state[np.abs(operator)] = 0
+
+                    else:
+                        print('Problem')
+
+            print(state)
+
+            # clear state
+            for k in s:
+                state[k] = 0
+
+
+
+
+
+
+
+
+
 """
     def boundary_condition_matrix_det(self, omega):
         matrix = self.create_boundary_problem_matrix(omega)
