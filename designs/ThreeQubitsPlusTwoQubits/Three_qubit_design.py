@@ -93,8 +93,11 @@ pad = elements.Pad('pad-top-' + str(pad_side_id),
 pads_bottom.append(pad)
 sample.add(pad)
 
-p1 = pads_top[0]
-p2 = pads_top[1]
+p11 = pads_top[0]
+p12 = pads_left[0]
+p21 = pads_top[1]
+p22 = pads_right[0]
+
 
 ################################
 
