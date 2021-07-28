@@ -127,19 +127,28 @@ a1    = np.sqrt(0.15*0.3)*1.03 #Junction height in um
 a2    = a1 # Junction width in um
 
 
-jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 +2*d,'h_d':8+2*d,'squid':False,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5-d }# hole sizes for the JJs
+jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 +2*d,'h_d':8+2*d,'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'bandages_edge_shift':3.5, }# hole sizes for the JJs
 
 
 a11 = 0.477297
 a12 = 0.1002324
 a2  = 0.1
 ###### define parameters for the tunable qubits
-jj_pp_flux = { 'a11':a11,"a12":a12,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':3+2*d ,'h_d':8+2*d,'squid':True,'loop_h': 12,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5-d,'strip1_extension':15,'strip2_extension':8}# hole sizes for the JJs
+jj_pp_flux = { 'a12':a11,"a11":a12,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':3+2*d ,'h_d':8+2*d,'squid':True,'loop_h': 12,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'strip1_extension':15,'strip2_extension':8,'bandages_edge_shift':3.5}# hole sizes for the JJs
 
 flux_distance = 15+2*d
-#l, t_m, t_r, gp, l_arm, h_arm, s_gap = 150-3-flux_distance+15, resonator_core, 3, 5, 40, 50, resonator_gap
 l, t_m, t_r, gp, l_arm, h_arm, s_gap,asymmetry = 160-flux_distance, 5, 3+2*d, 5, 40/3, 50, resonator_gap,15-4.7
 flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':asymmetry,'loop_h': 10 }
+
+#define parameters for test SNAIl
+a11 = 0.4
+
+a2  = 0.4
+
+a12 = a11*0.3
+
+jj_pp_snail = { 'a11':a11,"a12":a12,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':3+2*d ,'h_d':8+2*d,'snail':True,'loop_h': 12,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'strip1_extension':15,'strip2_extension':8,'bandages_edge_shift':3.5,'snail_extension':2,'snail_reach':10}# hole sizes for the JJs
+
 
 # draw 2 tunable qubits
 offset_x=-1000
@@ -228,18 +237,18 @@ sample.add(transmon1_right_fixed)
 
 #add test structures + a Test SNAIL
 shiftx = 600
-shifty = -180
+shifty = -530
 center=(6400+shiftx,1200+shifty)
 JJ_test_structure = elements.pp_transmon.PP_Transmon(name='JJ_test',center=center,
                           width = 300,
                           height = 300,
-                          bridge_gap = JJ_pad_offset_x,
+                          bridge_gap = JJ_pad_offset_x+13,
                           bridge_w   = JJ_pad_offset_y ,
                           gap = gap,
                           ground_w = 700,
-                          ground_h = 600,
+                          ground_h = 500,
                           ground_t = 10,
-                          jj_params= jj_pp,
+                          jj_params= jj_pp_flux,
                           layer_configuration = sample.layer_configuration,
                           Couplers = [],
                           calculate_capacitance = False,
@@ -254,7 +263,7 @@ JJ_test_structure1 = elements.pp_transmon.PP_Transmon(name='JJ_test1',center=cen
                           bridge_w   = JJ_pad_offset_y ,
                           gap = gap,
                           ground_w = 700,
-                          ground_h = 600,
+                          ground_h = 500,
                           ground_t = 10,
                           jj_params= jj_pp,
                           layer_configuration = sample.layer_configuration,
@@ -264,6 +273,23 @@ JJ_test_structure1 = elements.pp_transmon.PP_Transmon(name='JJ_test1',center=cen
                           )
 sample.add(JJ_test_structure1)
 
+center=(6400+shiftx,1900+shifty)
+JJ_test_structure2 = elements.pp_transmon.PP_Transmon(name='JJ_test1',center=center,
+                          width = 300,
+                          height = 300,
+                          bridge_gap = JJ_pad_offset_x+13,
+                          bridge_w   = JJ_pad_offset_y ,
+                          gap = gap,
+                          ground_w = 700,
+                          ground_h = 500,
+                          ground_t = 10,
+                          jj_params= jj_pp_snail,
+                          layer_configuration = sample.layer_configuration,
+                          Couplers = [],
+                          calculate_capacitance = False,
+                          transformations = {'rotate':[np.pi/2,center]},
+                          )
+sample.add(JJ_test_structure2)
 
 
 
