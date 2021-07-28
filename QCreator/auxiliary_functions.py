@@ -1,50 +1,49 @@
 import numpy as np
 from copy import deepcopy
 from . import elements
+import math
 
 def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
                           resonator_core,resonator_gap, resonator_ground,
                           tl_core, tl_gap, tl_ground, grounding_width,
                           closed_end_meander_length=None, length_left=None, length_right=None,
-                        open_end_length_left=None, open_end_length_right=None,
+                        open_end_length_left=None, open_end_length_right=None,open_end_first_step_orientation = 'right',
                           min_bridge_spacing = None,
                           airbridge = None,
                           open_end_length = None,
                           port_orientation='left', direction_orientation='down', meander_r=None,
                  first_step_orientation='left', end_point_closed_end = None, end_orientation_closed_end=None,
                  coupler2_length=None, closed_end_res_meander_length=None, res_length_left=None,
-                                              res_length_right=None,object1=None, port=None):
+                                              res_length_right=None,object1=None, port=None, push_resonator=False,
+                 narrow_length_left=None, narrow_length_right=None, bridge_part_decimation=1, open_end_angle = None):
 
-    coupler_w = [resonator_core, resonator_ground, tl_core]
-    coupler_s = [resonator_gap, resonator_gap, tl_gap, tl_gap]
+    coupler_w = [resonator_core, tl_core]
+    coupler_s = [resonator_gap, tl_gap, tl_gap]
 
     # 2. Create main coupler:
     angle = 0
-    open_end_angle = 3*np.pi/2
-    if port_orientation == 'right':
+    if open_end_angle is None:
         open_end_angle = np.pi/2
+        if direction_orientation == 'up':
+            open_end_angle = -np.pi / 2
     if direction_orientation == 'up':
         coupler_start_x, coupler_length = coupler_start_x + coupler_length, -coupler_length
         angle = np.pi
 
-    if (port_orientation=='right' and direction_orientation=='down') or\
-            (port_orientation=='left' and direction_orientation=='up'):
-        open_end_first_step_orientation = 'right'
-    else:
-        open_end_first_step_orientation = 'left'
+
 
     main_coupler = elements.CPWCoupler('TL-purcell coupler',
                                        [(coupler_start_x, coupler_start_y),
                                         (coupler_start_x + coupler_length, coupler_start_y)],
-                                       coupler_w, coupler_s, tl_ground, sample.layer_configuration, r=meander_r)
+                                       coupler_w, coupler_s, resonator_ground, sample.layer_configuration, r=meander_r)
     sample.add(main_coupler)
     total_length = [coupler_length]
 
     # 3. Create fanout to create closed and opened ends of resonator
-    fanout1 = sample.fanout(o=main_coupler, port='port1', name='closed end purcell fanout', grouping=[1, 3])
-    g1 = sample.ground(o=fanout1, port='center', name='cl1', grounding_width=grounding_width, grounding_between=[(2, 3)])
-    fanout2 = sample.fanout(o=main_coupler, port='port2', name='open end purcell fanout', grouping=[1, 3])
-    g2 = sample.ground(o=fanout2, port='center', name='cl2', grounding_width=grounding_width, grounding_between=[(0, 1)])
+    fanout1 = sample.fanout(o=main_coupler, port='port1', name='closed end purcell fanout', grouping=[1, 2])
+    # g1 = sample.ground(o=fanout1, port='center', name='cl1', grounding_width=grounding_width, grounding_between=[(0, 0)])
+    fanout2 = sample.fanout(o=main_coupler, port='port2', name='open end purcell fanout', grouping=[1, 2])
+    # g2 = sample.ground(o=fanout2, port='center', name='cl2', grounding_width=grounding_width, grounding_between=[(0, 0)])
     fanout1_port = 'up'
     fanout2_port = 'down'
 
@@ -65,14 +64,16 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
                                                 meander_type='round',
                                                 airbridge=airbridge,
                                                 min_spacing=min_bridge_spacing, r=meander_r,
-                                                end_point= end_point_closed_end, end_orientation=end_orientation_closed_end)
+                                                end_point=end_point_closed_end, end_orientation=end_orientation_closed_end,
+                                                bridge_part_decimation=bridge_part_decimation)
 
     total_length.append(sum([line.length for line in closed_end_meander]))
 
-    coupler2_w = [resonator_core, resonator_ground, resonator_core]
+    coupler2_w = [resonator_core, 2*resonator_ground, resonator_core]
     coupler2_s = [resonator_gap, resonator_gap, resonator_gap, resonator_gap]
 
     coupler2_orientation = closed_end_meander[-1].get_terminals()['port2'].orientation
+
     coupler2_start_y = closed_end_meander[-1].get_terminals()['port2'].position[1] -\
                        np.cos(angle)*(2*meander_r+2*resonator_gap+resonator_core)
     coupler2_start_x = closed_end_meander[-1].get_terminals()['port2'].position[0] + \
@@ -92,16 +93,9 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
     g3 = sample.ground(o=fanout3, port='center', name='cl2', grounding_width=grounding_width,
                        grounding_between=[(0, 1)])
 
-    fanout4 = sample.fanout(o=main_coupler2, port='port2', name='closed end resonator fanout', grouping=[0, 3])
-    g4 = sample.ground(o=fanout4, port='center', name='cl2', grounding_width=grounding_width,
-                       grounding_between=[(0,4)])
 
-
-    # main_coupler_ground = sample.ground(main_coupler2, 'port2', 'closed end purcell coupler', grounding_width,
-    #                                         [(0, 4)])
-
-
-    ####С ДЛИНОЙ НЕПОНЯТКИ
+    main_coupler2_ground = sample.ground(main_coupler2, 'port2', 'closed end purcell coupler', grounding_width,
+                                            [(0, 4)])
 
     coupler_connection = sample.connect_cpw(closed_end_meander[-1], g3, 'port2', 'narrow',
                                              name='coupler-meander connection',
@@ -117,43 +111,67 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
                                                 meander_orientation=open_end_angle,
                                                 meander_type='round',
                                                 airbridge=airbridge,
-                                                min_spacing=min_bridge_spacing, r=meander_r)
+                                                min_spacing=min_bridge_spacing, r=meander_r,
+                                              bridge_part_decimation=bridge_part_decimation)
 
-
+    total_length.append(sum([line.length for line in open_end_meander]))
     open_end = sample.open_end(open_end_meander[-1], 'port2', 'open end purcell')
 
-    #####
+    if push_resonator==True:
+        num_turns = coupler2_length / 2 / meander_r
+        num_turns = math.ceil(num_turns)
+        if num_turns % 2 == 0:
+            num_turns = num_turns + 1
+        narrow_length = np.pi * meander_r * (num_turns+0.5) + 2*(narrow_length_left+narrow_length_right)
 
-    closed_end_res_meander = sample.connect_meander(name='closed end resonator', o1=fanout3, port1='down',
-                                              meander_length=closed_end_res_meander_length,
-                                              length_left=res_length_left,
-                                              length_right=res_length_right,
-                                              first_step_orientation='left',
-                                              meander_orientation=-fanout3.get_terminals()['down'].orientation,
-                                              meander_type='round',
-                                              airbridge=airbridge,
-                                              min_spacing=min_bridge_spacing, r=meander_r)
+        closed_end_res_meander_narrow = sample.connect_meander(name='I closed end resonator', o1=fanout3, port1='down',
+                                                            meander_length=narrow_length,
+                                                            length_left=narrow_length_left,
+                                                            length_right=narrow_length_right,
+                                                            first_step_orientation='left',
+                                                            meander_orientation=-fanout3.get_terminals()['down'].orientation,
+                                                            meander_type='round',
+                                                            airbridge=airbridge,
+                                                            min_spacing=min_bridge_spacing, r=meander_r,
+                                                            end_orientation=angle,
+                                                               bridge_part_decimation=bridge_part_decimation)
+        closed_end_res_meander = sample.connect_meander(name='II closed end resonator', o1=closed_end_res_meander_narrow[-1],
+                                                             port1='port2',
+                                                             meander_length=closed_end_res_meander_length-narrow_length,
+                                                             length_left=res_length_left,
+                                                             length_right=res_length_right,
+                                                             first_step_orientation='right',
+                                                             meander_orientation= angle-np.pi/2,
+                                                             meander_type='round',
+                                                             airbridge=airbridge,
+                                                             min_spacing=min_bridge_spacing, r=meander_r,
+                                                        bridge_part_decimation=bridge_part_decimation)
 
-    # total_length.append(sum([line.length for line in open_end_meander]))
+        total_length.append(sum([line.length for line in closed_end_res_meander_narrow]))
+        total_length.append(sum([line.length for line in closed_end_res_meander]))
+
+    else:
+        closed_end_res_meander = sample.connect_meander(name='closed end resonator', o1=fanout3, port1='down',
+                                                  meander_length=closed_end_res_meander_length,
+                                                  length_left=res_length_left,
+                                                  length_right=res_length_right,
+                                                  first_step_orientation='left',
+                                                  meander_orientation=-fanout3.get_terminals()['down'].orientation,
+                                                  meander_type='round',
+                                                  airbridge=airbridge,
+                                                  min_spacing=min_bridge_spacing, r=meander_r,
+                                                        bridge_part_decimation=bridge_part_decimation)
+
+        total_length.append(sum([line.length for line in closed_end_res_meander]))
 
     if object1 is None:
         object1 = sample.open_end(closed_end_res_meander[-1], 'port2', 'open end')
+    else:
+        open_end_res = sample.connect_cpw(closed_end_res_meander[-1], object1, 'port2', port, name='open end connection',
+                                      points=[], airbridge=airbridge, min_spacing=min_bridge_spacing, r=meander_r)
+        total_length.append(open_end_res[0].length)
 
-    # cl, ll = open_end[0].cm(sample.epsilon)
-    # total_length.append(sum([line.length for line in open_end]))
-    # z01 = np.sqrt(ll[0] / cl[0])[0]
-    # res_params = (sum(total_length), z01, cl[0, 0])
-    #######
-
-
-    cl, ll = open_end_meander[0].cm(sample.epsilon)
-    total_length.append(sum([line.length for line in open_end_meander]))
-    z01 = np.sqrt(ll[0] / cl[0])[0]
-    res_params = (sum(total_length), z01, cl[0, 0])
-    if direction_orientation == 'up':
-        g1, g2 = g2, g1
-
-    return g1, g2, res_params, main_coupler2,g3, fanout3, fanout4, g4
+    return fanout1, fanout2,g3, fanout3, main_coupler
 
 def draw_purcelled_single_resonator_plus_qubit(sample,
                           coupler_start_x, coupler_start_y, coupler_length,

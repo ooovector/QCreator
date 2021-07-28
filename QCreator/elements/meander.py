@@ -47,7 +47,7 @@ def meander_creation(name: str, initial_position: Tuple[(float, float)], w: floa
                             corner_type=meander_type)
 
     if rendering_meander.length > meander_length:
-        raise ValueError('length is too small, change first step meander length to %f' %(meander_length-indent_length))
+        print('length is too small, change first step meander length to %f' %(meander_length-indent_length))
 
     # lets fill the whole rectangular
     default_bend_diameter = bend_radius * 2 + 5
@@ -59,7 +59,7 @@ def meander_creation(name: str, initial_position: Tuple[(float, float)], w: floa
 
     N = int((meander_length - rendering_meander.length) // meander_step)
 
-    if N == 0:
+    if N == 0 and (meander_length-rendering_meander.length)==0:
        return rendering_meander
     # subtract one to connect to the end point, here i assume that the distance
     # from the end of the meander is less than the meander step
