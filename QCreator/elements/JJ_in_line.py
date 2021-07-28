@@ -27,6 +27,7 @@ class JJInLine(DesignElement):
                                         self.cpw_port.position[1]+np.sin(self.orientation)*self.length],
                               orientation=self.orientation-np.pi,
                                                   type='cpw', w=self.w, s=self.s, g=self.g, disconnected='short')}
+        self.tls_cache = []
 
     def render(self):
         self.jj_params['x'] = self.cpw_port.position[0] + np.cos(self.orientation)*self.length/2
@@ -121,6 +122,9 @@ class JJInLine(DesignElement):
 
         tls_instance.add_element(jj, [terminal_mapping['port1'], terminal_mapping['port2']])
         tls_instance.add_element(c, [terminal_mapping['port1'], terminal_mapping['port2']])
+
+        if track_changes:
+            self.tls_cache.append(cache)
 
         return cache
 
