@@ -340,39 +340,6 @@ T2 = elements.y_squid_coupler.Y_Squid_C(name='Y_Coupler', center=center2tc,
 sample.add(T2)
 couplers.append(T2)
 
-"""
-#lets do it smartly
-all_restricted = []
-all_inverted = []
-all_positive = []
-for Q in qubits:
-    Qu = Q.render()
-    all_restricted.append(Qu['restrict'])
-    all_inverted.append(Qu['pocket'])
-    all_positive.append(Qu['positive'])
-for Q in couplers:
-    Qu = Q.render()
-    all_restricted.append(Qu['restrict'])
-    all_inverted.append(Qu['pocket'])
-    all_positive.append(Qu['positive'])
-
-one = gdspy.Rectangle((0,0),(0,0))
-for i in all_restricted:
-    one = gdspy.boolean(one,i,'or',layer=layers_configuration['vertical gridlines'])
-
-
-for i in all_inverted:
-    one = gdspy.boolean(one,i,'not',layer=layers_configuration['vertical gridlines'])
-
-for i in all_positive:
-    one = gdspy.boolean(one,i,'not',layer=layers_configuration['vertical gridlines'])
-
-#removes the middle island
-
-#island = gdspy.Polygon([(center1[0]-15,center1[1]),center1tc,(center2[0]-15,center2[1]),center2tc])
-#one = gdspy.boolean(one, island, 'not', layer=layers_configuration['vertical gridlines'])
-sample.total_cell.add(one)
-"""
 
 print('uploaded')
 

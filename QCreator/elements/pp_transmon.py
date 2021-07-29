@@ -894,8 +894,7 @@ class PP_Transmon(DesignElement):
             P1_bridge = gdspy.Rectangle((self.center[0]-self.gap/2,self.center[1]),(self.center[0]-self.b_g/2,self.center[1]+self.b_w))
             P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2, self.center[1] ),(self.center[0] + self.b_g / 2, self.center[1] - self.b_w))
             hole1     = gdspy.Rectangle((self.center[0]-self.b_g/2-self.JJ_params['h_w']-self.b_w/2-paddingx,self.center[1]-paddingy),(self.center[0]-self.b_g/2-self.b_w/2,self.center[1]+self.JJ_params['h_d']))
-            hole2     = gdspy.Rectangle((self.center[0] + self.b_g / 2-paddingy, self.center[1]-self.b_w),(self.center[0] + self.b_g / 2 + self.JJ_params['h_d'], self.center[1] - self.b_w/2-self.JJ_params['h_w']+c_p_w+c_p_g))
-
+            hole2     = gdspy.Rectangle((self.center[0] + self.b_g / 2-paddingy, self.center[1]-self.b_w),(self.center[0] + self.b_g / 2 + self.JJ_params['h_d'], self.center[1] - self.b_w/2-self.JJ_params['h_w']+c_p_w+2*c_p_g))
 
             holes = gdspy.boolean(hole1,hole2,'or')
             #P1_bridge = gdspy.boolean(P1_bridge, hole1, 'not', layer=8)
@@ -905,7 +904,8 @@ class PP_Transmon(DesignElement):
             #add bandages here
             if self.use_bandages:
                 bandage1 = gdspy.Rectangle((self.center[0]-self.b_g/2-c_p_g-c_p_w-self.b_w/2,self.center[1]+b_es),(self.center[0]-self.b_g/2-self.b_w/2+b_ex,self.center[1]+self.JJ_params['h_d']-c_p_g))
-                bandage2 = gdspy.Rectangle((self.center[0] + self.b_g / 2+b_es, self.center[1]-self.b_w/2-self.JJ_params['h_w']),(self.center[0] + self.b_g / 2 + self.JJ_params['h_d']-c_p_g, self.center[1] - self.b_w/2+b_ex+c_p_g+c_p_w-self.JJ_params['h_w']))
+
+                bandage2 = gdspy.Rectangle((self.center[0] + self.b_g / 2+b_es, self.center[1]-self.b_w/2-self.JJ_params['h_w']+c_p_g),(self.center[0] + self.b_g / 2 + self.JJ_params['h_d']-c_p_g, self.center[1] - self.b_w/2+b_ex+c_p_g+c_p_w-self.JJ_params['h_w']))
                 bandages = gdspy.boolean(bandage1,bandage2, 'or', layer=self.layer_configuration.bandages_layer)
 
         if self.JJ_params['manhatten'] and (self.JJ_params['squid'] == True or self.JJ_params['snail'] == True):
