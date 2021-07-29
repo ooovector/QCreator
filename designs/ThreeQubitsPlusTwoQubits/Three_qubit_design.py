@@ -137,10 +137,10 @@ jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid
 
 
 
-jj_pp_rotated = { 'a1':a1,"a2":a2,'angle_JJ':-np.pi/4,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'rotation':np.pi/4,'translate':(-7,0),'bridge_translate':(-5,-12,0,0),'paddingx':0,'paddingy':10}# hole sizes for the JJs
+jj_pp_rotated = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.,'rotation':np.pi/4,'translate':(-5,-6),'bridge_translate':(-5,-16,0,0),'paddingx':0,'paddingy':10,'bandages_edge_shift':3.5}# hole sizes for the JJs
 
-jj_pp_2 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'inverted_extension':0,'strip1_extension':20,'strip2_extension':25,'loop_h':10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}
-jj_pp_3 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}
+jj_pp_2 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'inverted_extension':0,'strip1_extension':20,'strip2_extension':25,'loop_h':10,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.,'bandages_edge_shift':3.5}
+jj_pp_3 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.,'bandages_edge_shift':3.5}
 
 
 
