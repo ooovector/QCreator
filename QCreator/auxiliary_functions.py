@@ -89,9 +89,19 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
     sample.add(main_coupler2)
     total_length.append(coupler2_length)
 
-    fanout3 = sample.fanout(o=main_coupler2, port='port1', name='open end resonator fanout', grouping=[0, 2])
+    if (direction_orientation=='down' and coupler2_orientation ==0) or \
+            (direction_orientation=='up' and coupler2_orientation !=0):
+        fanout3_grouping = [1, 3]
+        fanout3_grouinding = [(2, 3)]
+        fanout3_port = 'up'
+    else:
+        fanout3_grouping = [0,2]
+        fanout3_grouinding = [(0, 1)]
+        fanout3_port = 'down'
+
+    fanout3 = sample.fanout(o=main_coupler2, port='port1', name='open end resonator fanout', grouping=fanout3_grouping)
     g3 = sample.ground(o=fanout3, port='center', name='cl2', grounding_width=grounding_width,
-                       grounding_between=[(0, 1)])
+                       grounding_between=fanout3_grouinding)
 
 
     main_coupler2_ground = sample.ground(main_coupler2, 'port2', 'closed end purcell coupler', grounding_width,
@@ -116,7 +126,6 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
 
     total_length.append(sum([line.length for line in open_end_meander]))
     open_end = sample.open_end(open_end_meander[-1], 'port2', 'open end purcell')
-
     if push_resonator==True:
         num_turns = coupler2_length / 2 / meander_r
         num_turns = math.ceil(num_turns)
@@ -124,12 +133,14 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
             num_turns = num_turns + 1
         narrow_length = np.pi * meander_r * (num_turns+0.5) + 2*(narrow_length_left+narrow_length_right)
 
-        closed_end_res_meander_narrow = sample.connect_meander(name='I closed end resonator', o1=fanout3, port1='down',
+
+        closed_end_res_meander_narrow = sample.connect_meander(name='I closed end resonator', o1=fanout3,
+                                                               port1=fanout3_port,
                                                             meander_length=narrow_length,
                                                             length_left=narrow_length_left,
                                                             length_right=narrow_length_right,
                                                             first_step_orientation='left',
-                                                            meander_orientation=-fanout3.get_terminals()['down'].orientation,
+                                                            meander_orientation=-fanout3.get_terminals()[fanout3_port].orientation,
                                                             meander_type='round',
                                                             airbridge=airbridge,
                                                             min_spacing=min_bridge_spacing, r=meander_r,
@@ -151,12 +162,12 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
         total_length.append(sum([line.length for line in closed_end_res_meander]))
 
     else:
-        closed_end_res_meander = sample.connect_meander(name='closed end resonator', o1=fanout3, port1='down',
+        closed_end_res_meander = sample.connect_meander(name='closed end resonator', o1=fanout3, port1=fanout3_port,
                                                   meander_length=closed_end_res_meander_length,
                                                   length_left=res_length_left,
                                                   length_right=res_length_right,
                                                   first_step_orientation='left',
-                                                  meander_orientation=-fanout3.get_terminals()['down'].orientation,
+                                                  meander_orientation=-fanout3.get_terminals()[fanout3_port].orientation,
                                                   meander_type='round',
                                                   airbridge=airbridge,
                                                   min_spacing=min_bridge_spacing, r=meander_r,
@@ -171,7 +182,7 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
                                       points=[], airbridge=airbridge, min_spacing=min_bridge_spacing, r=meander_r)
         total_length.append(open_end_res[0].length)
 
-    return fanout1, fanout2,g3, fanout3, main_coupler
+    return fanout1, fanout2, fanout3, main_coupler, main_coupler2
 
 def draw_purcelled_single_resonator_plus_qubit(sample,
                           coupler_start_x, coupler_start_y, coupler_length,
@@ -527,8 +538,8 @@ def search_for_resonators_qubits(f,delta,min_freq,max_freq):
     qs=f/delta/2
     min_freq=min_freq*1e9*2*np.pi
     max_freq=max_freq*1e9*2*np.pi
-    min_Q=1e3
-    max_Q=1e9
+    min_Q=0#1e3
+    max_Q=1e12#1e9
     for mode_id in range(len(qs)):
         if min_Q<=qs[mode_id]<=max_Q and min_freq<=f[mode_id]/2/np.pi<=max_freq:
             res_modes.append(mode_id)

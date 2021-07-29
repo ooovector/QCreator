@@ -9,23 +9,20 @@ from QCreator import general_sample_creator as creator
 from QCreator import meshing
 reload(gdspy)
 
-### to have 50 Oms impedance with eps=11.75
-tl_core = 20.
-tl_gap = 12.
 ### to have 50 Oms impedance with eps=11.45
-tl_core = 21.
-tl_gap = 12.
+#wet etching subtracts 0.5 um, so we add that to all structures where it matters, coplers,Junction region and Fluxline
+d = 0.5
+tl_core = 21+2*d
+tl_gap = 12-2*d
 tl_ground = 6.#<-- changed from 10. to 5.
 
-resonator_core = 15
-resonator_gap = 10
-resonator_ground = 15 #5
-resonator_tl_ground=13
-
+resonator_core = 15+2*d
+resonator_gap = 10-2*d
+resonator_ground = 15#5
+resonator_tl_ground=13+2*d
 pad_offset = 550
 
-
-jc = 1e-6 # uA/um^2
+jc = 0.5
 
 layers_configuration = {
     'total':0,
@@ -47,7 +44,7 @@ sample = creator.Sample('Single_qubits_PP_mw_lines',layers_configuration)
 sample.chip_geometry.sample_vertical_size=4.5e3
 sample.chip_geometry.sample_horizontal_size=8e3
 
-chip_edge_ground = elements.ChipEdgeGround(sample.chip_geometry, sample.layer_configuration, sample.padscc)
+chip_edge_ground = elements.ChipEdgeGround(sample.chip_geometry, sample.layer_configuration, sample.pads,edge=10)
 sample.add(chip_edge_ground)
 
 # 1. Create contact pads for 4.5*8 pcb WMI from Hans:
@@ -100,44 +97,39 @@ p1 = pads_left[0]
 p2 = pads_right[0]
 
 ################################
-tight = [True,6]
-Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46,tight=tight)]
+tight = [True,6-d]
+Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50+2*d,'left',coupler_type = 'coupler',heightl = 0.6+2*d,
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46-d,tight=tight)]
 
-CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46,tight=tight),
-      elements.pp_transmon.PP_Transmon_Coupler(500,15,10,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-70),
+CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50+2*d,'right',coupler_type = 'coupler',heightr = 0.6+2*d,
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46-d,tight=tight),
+      elements.pp_transmon.PP_Transmon_Coupler(500,15,10,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-70-d),
       ]
 
-CC1_mw_first_qubit = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46,tight=tight),
-      elements.pp_transmon.PP_Transmon_Coupler(500,15,10,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-70),
+CC1_mw_first_qubit = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50+2*d,'left',coupler_type = 'coupler',heightl = 0.6+2*d,
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46-d,tight=tight),
+      elements.pp_transmon.PP_Transmon_Coupler(500,15,10+2*d,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-70-d),
       ]
 
-width = 250
-height= 450
-gap   = 50
-ground_w = 680+40+30+30
-ground_h   = 680+40+30+30
-ground_t   = 50
+width = 250+2*d
+height= 450+2*d
+gap   = 50-2*d
+ground_w = 680+40+30+30-2*d
+ground_h   = 680+40+30+30-2*d
+ground_t   = 50+2*d
 # b_g   = 19 # from JJ Design for JJ4q
 JJ_pad_offset_x = 10 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design
 
-a1    = 0.17 #Junction height in um
-a2    = 0.3 # Junction width in um
+a1    = 0.226 #Junction height in um
+a2    = 0.226 # Junction width in um
 
 
-jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False }# hole sizes for the JJs
+jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 +2*d,'h_d':8+2*d,'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'bandages_edge_shift':3.5, }# hole sizes for the JJs
 
 
 
 
-###### define parameters for the tunable qubits
-jj_pp_flux = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True }# hole sizes for the JJs
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, resonator_core, 3, 5, 20, 50, resonator_gap
-flux_distance = 20
-flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap}
 
 # draw 2 tunable qubits
 offset_x=-1000
@@ -224,48 +216,47 @@ transmon1_right_fixed = elements.pp_transmon.PP_Transmon(name='Q2_fixed',center=
                           )
 sample.add(transmon1_right_fixed)
 ################# add them for testing
+shiftx = 600
+shifty = -530
+center=(5900+shiftx,1200+shifty)
+JJ_test_structure1 = elements.pp_transmon.PP_Transmon(name='JJ_test1',center=center,
+                          width = 300,
+                          height = 300,
+                          bridge_gap = JJ_pad_offset_x,
+                          bridge_w   = JJ_pad_offset_y ,
+                          gap = gap,
+                          ground_w = 700,
+                          ground_h = 500,
+                          ground_t = 10,
+                          jj_params= jj_pp,
+                          layer_configuration = sample.layer_configuration,
+                          Couplers = [],
+                          calculate_capacitance = False,
+                          transformations = {'rotate':[np.pi/2,center]},
+                          )
+sample.add(JJ_test_structure1)
 
-# center = (4000,1500)
-#
-# transmon1_left_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=center,
-#                           width = width,
-#                           height = height,
-#                           bridge_gap = JJ_pad_offset_x,
-#                           bridge_w   = JJ_pad_offset_y ,
-#                           gap = gap,
-#                           ground_w = ground_w,
-#                           ground_h = ground_h,
-#                           ground_t = ground_t,
-#                           jj_params= jj_pp,
-#                           layer_configuration = sample.layer_configuration,
-#                           Couplers = Couplers,
-#                           calculate_capacitance = False,
-#                           transformations = {'rotate':[-np.pi/2,center]}
-#                           )
-# sample.add(transmon1_left_fixed)
-#
-# center = (4900,4500)
-
-# transmon1_left_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=center,
-#                           width = width,
-#                           height = height,
-#                           bridge_gap = JJ_pad_offset_x,
-#                           bridge_w   = JJ_pad_offset_y ,
-#                           gap = gap,
-#                           ground_w = ground_w,
-#                           ground_h = ground_h,
-#                           ground_t = ground_t,
-#                           jj_params= jj_pp,
-#                           layer_configuration = sample.layer_configuration,
-#                           Couplers = Couplers,
-#                           calculate_capacitance = False,
-#                           transformations = {'rotate':[np.pi/2,center]}
-#                           )
-# sample.add(transmon1_left_fixed)
-
+center=(6400+shiftx,1200+shifty)
+JJ_test_structure = elements.pp_transmon.PP_Transmon(name='JJ_test',center=center,
+                          width = 300,
+                          height = 300,
+                          bridge_gap = JJ_pad_offset_x+13,
+                          bridge_w   = JJ_pad_offset_y ,
+                          gap = gap,
+                          ground_w = 700,
+                          ground_h = 500,
+                          ground_t = 10,
+                          jj_params= jj_pp,
+                          layer_configuration = sample.layer_configuration,
+                          Couplers = [],
+                          calculate_capacitance = False,
+                          transformations = {'rotate':[np.pi/2,center]},
+                          )
+sample.add(JJ_test_structure)
 
 
-logos=elements.WMILogos((-1500,-1500),(-1500,5000),layers_configuration)
+
+logos=elements.WMILogos((700,3500),(7300,3500),layers_configuration)
 sample.add(logos)
 sample.draw_design()
 markers = elements.AlignmentMarkers((500,500),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),10,sample.layer_configuration)
