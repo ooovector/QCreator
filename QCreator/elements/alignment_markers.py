@@ -29,7 +29,7 @@ class AlignmentMarkers(DesignElement):
         for edge in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
             sq = gdspy.Rectangle(-np.asarray(pos)*edge+np.asarray(chip_d)*edge/2-size+np.asarray(chip_d)/2,-np.asarray(pos)*edge+np.asarray(chip_d)*edge/2+size+np.asarray(chip_d)/2)
             R  = gdspy.Rectangle(-np.asarray(pos)*edge+np.asarray(chip_d)*edge/2-size+np.asarray(chip_d)/2,-np.asarray(pos)*edge+np.asarray(chip_d)*edge/2+size+np.asarray(chip_d)/2)
-            markers = gdspy.boolean(markers, sq, 'or', layer=self.layer_configuration.total_layer)
+            markers = gdspy.boolean(markers, sq, 'or', layer=self.layer_configuration.inverted)
             Restricted = gdspy.boolean(Restricted, R, 'or', layer=self.layer_configuration.restricted_area_layer)
 
         return {'positive': markers, 'restrict': Restricted}

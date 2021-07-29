@@ -102,10 +102,10 @@ p2 = pads_right[0]
 
 ################################
 tight = [True,6-d]
-Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,25+2*d,'left',coupler_type = 'coupler',heightl = 0.4+2*d,
+Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,25+2*d,'left',coupler_type = 'coupler',heightl = 0.4,
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46+d,tight =tight)]
 
-Couplers_flux=[elements.pp_transmon.PP_Transmon_Coupler(0,0,25+2*d,'right',coupler_type = 'coupler',heightr = 0.4+2*d,
+Couplers_flux=[elements.pp_transmon.PP_Transmon_Coupler(0,0,25+2*d,'right',coupler_type = 'coupler',heightr = 0.4,
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46+d,tight = tight)]
 
 

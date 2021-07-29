@@ -98,15 +98,15 @@ p2 = pads_right[0]
 
 ################################
 tight = [True,6-d]
-Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50+2*d,'left',coupler_type = 'coupler',heightl = 0.6+2*d,
+Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50+2*d,'left',coupler_type = 'coupler',heightl = 0.6,
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46-d,tight=tight)]
 
-CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50+2*d,'right',coupler_type = 'coupler',heightr = 0.6+2*d,
+CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50+2*d,'right',coupler_type = 'coupler',heightr = 0.6,
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46-d,tight=tight),
       elements.pp_transmon.PP_Transmon_Coupler(500,15,10,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-70-d),
       ]
 
-CC1_mw_first_qubit = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50+2*d,'left',coupler_type = 'coupler',heightl = 0.6+2*d,
+CC1_mw_first_qubit = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50+2*d,'left',coupler_type = 'coupler',heightl = 0.6,
                                                    w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46-d,tight=tight),
       elements.pp_transmon.PP_Transmon_Coupler(500,15,10+2*d,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-70-d),
       ]
@@ -259,8 +259,11 @@ sample.add(JJ_test_structure)
 logos=elements.WMILogos((700,3500),(7300,3500),layers_configuration)
 sample.add(logos)
 sample.draw_design()
-markers = elements.AlignmentMarkers((500,500),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),10,sample.layer_configuration)
+markers = elements.AlignmentMarkers((470,470),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),10,sample.layer_configuration)
 sample.add(markers)
-
+markers2 = elements.AlignmentMarkers((485,485),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),4,sample.layer_configuration)
+sample.add(markers2)
+markers3 = elements.AlignmentMarkers((500,500),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),1,sample.layer_configuration)
+sample.add(markers3)
 
 #sample.watch()
