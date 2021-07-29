@@ -15,7 +15,8 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
                  first_step_orientation='left', end_point_closed_end = None, end_orientation_closed_end=None,
                  coupler2_length=None, closed_end_res_meander_length=None, res_length_left=None,
                                               res_length_right=None,object1=None, port=None, push_resonator=False,
-                 narrow_length_left=None, narrow_length_right=None, bridge_part_decimation=1, open_end_angle = None):
+                 narrow_length_left=None, narrow_length_right=None, bridge_part_decimation=1, open_end_angle = None,
+                 pr_coupler_offset = 0):
 
     coupler_w = [resonator_core, tl_core]
     coupler_s = [resonator_gap, tl_gap, tl_gap]
@@ -77,8 +78,7 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
     coupler2_start_y = closed_end_meander[-1].get_terminals()['port2'].position[1] -\
                        np.cos(angle)*(2*meander_r+2*resonator_gap+resonator_core)
     coupler2_start_x = closed_end_meander[-1].get_terminals()['port2'].position[0] + \
-                       np.cos(coupler2_orientation)*(resonator_core + 2*resonator_gap + grounding_width)
-
+                       np.cos(coupler2_orientation)*(resonator_core + 2*resonator_gap + grounding_width - pr_coupler_offset)
 
     main_coupler2 = elements.CPWCoupler('purcell-resonator coupler',
                                        [(coupler2_start_x, coupler2_start_y),
@@ -107,7 +107,22 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
     main_coupler2_ground = sample.ground(main_coupler2, 'port2', 'closed end purcell coupler', grounding_width,
                                             [(0, 4)])
 
-    coupler_connection = sample.connect_cpw(closed_end_meander[-1], g3, 'port2', 'narrow',
+    if pr_coupler_offset > 0:
+        points = [closed_end_meander[-1].get_terminals()['port2'].position,
+                  (g3.terminals['narrow'].position[0], closed_end_meander[-1].get_terminals()['port2'].position[1])]
+        extra_cpw = elements.CPW('Purcell after-short-meander extension 2', points,
+                                 closed_end_meander[-1].w[0], closed_end_meander[-1].s[0], closed_end_meander[-1].g,
+                                 closed_end_meander[-1].layer_configuration, r=closed_end_meander[-1].r,
+                                 corner_type='round',
+                                 orientation1=closed_end_meander[-1].terminals['port2'].orientation+np.pi,
+                                 orientation2=closed_end_meander[-1].terminals['port2'].orientation)
+        sample.add(extra_cpw)
+        sample.connect(closed_end_meander[-1], 'port2', extra_cpw, 'port1')
+        coupler_connection_object = extra_cpw
+    else:
+        coupler_connection_object = closed_end_meander[-1]
+
+    coupler_connection = sample.connect_cpw(coupler_connection_object, g3, 'port2', 'narrow',
                                              name='coupler-meander connection',
                                     points=[], r=meander_r)
 
