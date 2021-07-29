@@ -492,7 +492,7 @@ class Sample:
         return topology
 
     def generate_bridge_over_cpw(self, name: str, o: elements.DesignElement, geometry: elements.AirBridgeGeometry,
-                                 min_spacing: float):
+                                 min_spacing: float, bridge_part_decimation=1):
         """
         This method add air bridges on CPW line.
         :param name:
@@ -513,6 +513,7 @@ class Sample:
         airbridges = []
         last_port = None
         current_cpw_points = []
+        segment_counter = 0
         for segment in o.segments:
             if segment['type'] == 'turn':
                 current_cpw_points.append(segment['instead_point'])
@@ -520,7 +521,6 @@ class Sample:
             if len(current_cpw_points) == 0 and segment['type'] == 'endpoint':
                 current_cpw_points.append(segment['endpoint'])
                 continue
-
 
             num_bridges = int(np.floor(segment['length'] / (geometry.pad_width + min_spacing)))
             if num_bridges < 1:
@@ -531,8 +531,9 @@ class Sample:
             direction = segment['endpoint'] - segment['startpoint']
             direction = direction/np.sqrt(np.sum(direction**2))
             orientation = np.arctan2(direction[1], direction[0])
-
             begin = segment['startpoint']
+
+            segment_counter = segment_counter+1
             for bridge_id in range(num_bridges):
                 midpoint = begin + direction * (spacing * (bridge_id + 0.5) + geometry.pad_width * bridge_id)
                 current_cpw_points.append(midpoint)
@@ -540,19 +541,34 @@ class Sample:
                 cpw = elements.CPW(name=name + 's{}'.format(len(cpws)),
                                    points=current_cpw_points, w=w, s=s, g=g,
                                    layer_configuration=self.layer_configuration, r=radius)
-                airbridge = elements.AirbridgeOverCPW(name=name + 'b{}'.format(len(cpws)),
-                                                      position=midpoint+direction * geometry.pad_width/2,
-                                                      orientation=orientation, w=w, s=s, g=g,
-                                                      geometry=geometry)
+
                 self.add(cpw)
-                self.add(airbridge)
+
+                if (bridge_id + segment_counter%2) % bridge_part_decimation == 0:
+                    airbridge = elements.AirbridgeOverCPW(name=name + 'b{}'.format(len(cpws)),
+                                                          position=midpoint+direction * geometry.pad_width/2,
+                                                          orientation=orientation, w=w, s=s, g=g,
+                                                          geometry=geometry)
+                    self.add(airbridge)
+                    self.connect(cpw, 'port2', airbridge, 'port1')
+                    airbridges.append(airbridge)
+                else:
+                    current_cpw_points.append(midpoint+direction * geometry.pad_width)
+                    bridge_cpw = elements.CPW(name=name + 's{}'.format(len(cpws)),
+                                       points=current_cpw_points, w=w, s=s, g=g,
+                                       layer_configuration=self.layer_configuration, r=radius)
+                    self.add(bridge_cpw)
+                    self.connect(cpw, 'port2', bridge_cpw, 'port1')
+                    cpws.append(bridge_cpw)
+
                 if last_port is not None:
                     self.connect(last_port, 'port2', cpw, 'port1')
-                self.connect(cpw, 'port2', airbridge, 'port1')
-                last_port = airbridge
-
+                if (bridge_id + segment_counter%2) % bridge_part_decimation == 0:
+                    last_port = airbridge
+                else:
+                    last_port=bridge_cpw
                 cpws.append(cpw)
-                airbridges.append(airbridge)
+
                 current_cpw_points = [midpoint + direction * geometry.pad_width]
 
 
@@ -574,7 +590,7 @@ class Sample:
                         meander_orientation: float,
                         end_point=None, end_orientation=None, meander_type='round',
                         airbridge: elements.AirBridgeGeometry = None, min_spacing: float = None,
-                        r = None
+                        r = None, bridge_part_decimation=1
                         ):
 
         t1 = o1.get_terminals()[port1]
@@ -594,7 +610,8 @@ class Sample:
         if airbridge is not None:
             meander_with_bridges = self.generate_bridge_over_cpw(name=name, o=meander,
                                                                  geometry=airbridge,
-                                                                 min_spacing=min_spacing)
+                                                                 min_spacing=min_spacing,
+                                                                 bridge_part_decimation=bridge_part_decimation)
 
             self.connect(meander_with_bridges[0], 'port1', o1, port1)
 

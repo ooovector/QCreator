@@ -46,7 +46,6 @@ class CrossLinesViaAirbridges(DesignElement):
                           'bottom_2': None,
                           'top_1': None,
                           'top_2': None}
-        self.elements_to_tlsim = []
         self.tls_cache = []
 
     def render(self):
@@ -77,7 +76,6 @@ class CrossLinesViaAirbridges(DesignElement):
                                 layer_configuration=self.geometry.layer_configuration,
                                 length=self.nar_len)
 
-        self.elements_to_tlsim.append(narrowing_1)
 
         positive = narrowing_1.render()['positive']
         restrict = narrowing_1.render()['restrict']
@@ -93,7 +91,6 @@ class CrossLinesViaAirbridges(DesignElement):
                                 layer_configuration=self.geometry.layer_configuration,
                                 length=self.nar_len)
 
-        self.elements_to_tlsim.append(narrowing_2)
 
         positive = gdspy.boolean(positive, narrowing_2.render()['positive'], 'or', layer=self.geometry.layer_configuration.total_layer)
         restrict = gdspy.boolean(restrict, narrowing_2.render()['restrict'], 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
@@ -107,7 +104,6 @@ class CrossLinesViaAirbridges(DesignElement):
                                          g=self.bot_g,
                                          geometry=self.geometry)
 
-        self.elements_to_tlsim.append(bridge_center)
 
         positive = gdspy.boolean(positive, bridge_center.render()['positive'], 'or', layer=self.geometry.layer_configuration.total_layer)
         restrict = gdspy.boolean(restrict, bridge_center.render()['restrict'], 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
@@ -123,7 +119,6 @@ class CrossLinesViaAirbridges(DesignElement):
                                      g=self.bot_g,
                                      geometry=self.geometry)
 
-        self.elements_to_tlsim.append(bridge_up)
 
         positive = gdspy.boolean(positive, bridge_up.render()['positive'], 'or', layer=self.geometry.layer_configuration.total_layer)
         restrict = gdspy.boolean(restrict, bridge_up.render()['restrict'], 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
@@ -139,7 +134,6 @@ class CrossLinesViaAirbridges(DesignElement):
                                        g=self.bot_g,
                                        geometry=self.geometry)
 
-        self.elements_to_tlsim.append(bridge_down)
 
         positive = gdspy.boolean(positive, bridge_down.render()['positive'], 'or', layer=self.geometry.layer_configuration.total_layer)
         restrict = gdspy.boolean(restrict, bridge_down.render()['restrict'], 'or', layer=self.geometry.layer_configuration.restricted_area_layer)

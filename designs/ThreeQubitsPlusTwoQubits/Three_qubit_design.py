@@ -93,8 +93,11 @@ pad = elements.Pad('pad-top-' + str(pad_side_id),
 pads_bottom.append(pad)
 sample.add(pad)
 
-p1 = pads_top[0]
-p2 = pads_top[1]
+p11 = pads_top[0]
+p12 = pads_left[0]
+p21 = pads_top[1]
+p22 = pads_right[0]
+
 
 ################################
 
@@ -134,10 +137,10 @@ jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid
 
 
 
-jj_pp_rotated = { 'a1':a1,"a2":a2,'angle_JJ':-np.pi/4,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'rotation':np.pi/4,'translate':(-7,0),'bridge_translate':(-5,-12,0,0),'paddingx':0,'paddingy':10}# hole sizes for the JJs
+jj_pp_rotated = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.,'rotation':np.pi/4,'translate':(-5,-6),'bridge_translate':(-5,-16,0,0),'paddingx':0,'paddingy':10,'bandages_edge_shift':3.5}# hole sizes for the JJs
 
-jj_pp_2 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'inverted_extension':0,'strip1_extension':20,'strip2_extension':25,'loop_h':10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}
-jj_pp_3 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}
+jj_pp_2 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'inverted_extension':0,'strip1_extension':20,'strip2_extension':25,'loop_h':10,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.,'bandages_edge_shift':3.5}
+jj_pp_3 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.,'bandages_edge_shift':3.5}
 
 
 
@@ -200,7 +203,7 @@ CC2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'co
       ]
 
 CC3 = [#elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = 'coupler',heightr = 0.06*0,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25,tight = tight),
-     elements.pp_transmon.PP_Transmon_Coupler(450,160,25,'bottom',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=100,tight = tight),
+     elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=100,tight = tight),
       ]
 
 
@@ -337,39 +340,6 @@ T2 = elements.y_squid_coupler.Y_Squid_C(name='Y_Coupler', center=center2tc,
 sample.add(T2)
 couplers.append(T2)
 
-"""
-#lets do it smartly
-all_restricted = []
-all_inverted = []
-all_positive = []
-for Q in qubits:
-    Qu = Q.render()
-    all_restricted.append(Qu['restrict'])
-    all_inverted.append(Qu['pocket'])
-    all_positive.append(Qu['positive'])
-for Q in couplers:
-    Qu = Q.render()
-    all_restricted.append(Qu['restrict'])
-    all_inverted.append(Qu['pocket'])
-    all_positive.append(Qu['positive'])
-
-one = gdspy.Rectangle((0,0),(0,0))
-for i in all_restricted:
-    one = gdspy.boolean(one,i,'or',layer=layers_configuration['vertical gridlines'])
-
-
-for i in all_inverted:
-    one = gdspy.boolean(one,i,'not',layer=layers_configuration['vertical gridlines'])
-
-for i in all_positive:
-    one = gdspy.boolean(one,i,'not',layer=layers_configuration['vertical gridlines'])
-
-#removes the middle island
-
-#island = gdspy.Polygon([(center1[0]-15,center1[1]),center1tc,(center2[0]-15,center2[1]),center2tc])
-#one = gdspy.boolean(one, island, 'not', layer=layers_configuration['vertical gridlines'])
-sample.total_cell.add(one)
-"""
 
 print('uploaded')
 
