@@ -1,5 +1,5 @@
 import sys
-sys.path.append('..\\..\\..')
+sys.path.append('..\\..\\..\\..')
 import gdspy
 import numpy as np
 from importlib import reload
