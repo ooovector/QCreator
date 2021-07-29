@@ -9,23 +9,20 @@ from QCreator import general_sample_creator as creator
 from QCreator import meshing
 reload(gdspy)
 
-### to have 50 Oms impedance with eps=11.75
-tl_core = 20.
-tl_gap = 12.
 ### to have 50 Oms impedance with eps=11.45
-tl_core = 21.
-tl_gap = 12.
+#wet etching subtracts 0.5 um, so we add that to all structures where it matters, coplers,Junction region and Fluxline
+d = 0.5
+tl_core = 21+2*d
+tl_gap = 12-2*d
 tl_ground = 6.#<-- changed from 10. to 5.
 
-resonator_core = 15
-resonator_gap = 10
-resonator_ground = 15 #5
-resonator_tl_ground=13
-
+resonator_core = 15+2*d
+resonator_gap = 10-2*d
+resonator_ground = 15#5
+resonator_tl_ground=13+2*d
 pad_offset = 550
 
-
-jc = 1e-6 # uA/um^2
+jc = 0.5
 
 layers_configuration = {
     'total':0,
@@ -100,35 +97,35 @@ p1 = pads_left[0]
 p2 = pads_right[0]
 
 ################################
-tight = [True,6]
-Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46,tight=tight)]
+tight = [True,6-d]
+Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50+2*d,'left',coupler_type = 'coupler',heightl = 0.6+2*d,
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46-d,tight=tight)]
 
-CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'right',coupler_type = 'coupler',heightr = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46,tight=tight),
-      elements.pp_transmon.PP_Transmon_Coupler(500,15,10,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-70),
+CC1_mw = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50+2*d,'right',coupler_type = 'coupler',heightr = 0.6+2*d,
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46-d,tight=tight),
+      elements.pp_transmon.PP_Transmon_Coupler(500,15,10,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-70-d),
       ]
 
-CC1_mw_first_qubit = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50,'left',coupler_type = 'coupler',heightl = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46,tight=tight),
-      elements.pp_transmon.PP_Transmon_Coupler(500,15,10,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-70),
+CC1_mw_first_qubit = [elements.pp_transmon.PP_Transmon_Coupler(0,0,50+2*d,'left',coupler_type = 'coupler',heightl = 0.6+2*d,
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46-d,tight=tight),
+      elements.pp_transmon.PP_Transmon_Coupler(500,15,10+2*d,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-70-d),
       ]
 
-width = 250
-height= 450
-gap   = 50
-ground_w = 680+40+30+30
-ground_h   = 680+40+30+30
-ground_t   = 50
+width = 250+2*d
+height= 450+2*d
+gap   = 50-2*d
+ground_w = 680+40+30+30-2*d
+ground_h   = 680+40+30+30-2*d
+ground_t   = 50+2*d
 # b_g   = 19 # from JJ Design for JJ4q
 JJ_pad_offset_x = 10 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design
 
-a1    = 0.17 #Junction height in um
-a2    = 0.3 # Junction width in um
+a1    = 0.226 #Junction height in um
+a2    = 0.226 # Junction width in um
 
 
-jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False }# hole sizes for the JJs
+jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 +2*d,'h_d':8+2*d,'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'bandages_edge_shift':3.5, }# hole sizes for the JJs
 
 
 

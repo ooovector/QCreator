@@ -14,7 +14,7 @@ reload(gdspy)
 # tl_gap = 12.
 ### to have 50 Oms impedance with eps=11.45
 #wet etching subtracts 0.5 um, so we add that to all structures where it matters, coplers,Junction region and Fluxline
-d = 0.5*0
+d = 0.5
 tl_core = 21+2*d
 tl_gap = 12-2*d
 tl_ground = 6.#<-- changed from 10. to 5.
@@ -27,7 +27,7 @@ resonator_tl_ground=13+2*d
 pad_offset = 550
 
 
-jc = 1e-6 # uA/um^2
+jc = 0.5
 
 layers_configuration = {
     'total':0,
@@ -88,7 +88,7 @@ gap   = 50-2*d
 ground_w = 680+40+30+30-2*d
 ground_h   = 680+40+30+30-2*d
 ground_t   = 50+2*d
-# b_g   = 19 # from JJ Design for JJ4q
+
 JJ_pad_offset_x = 10 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design
 
@@ -99,11 +99,11 @@ a2    = 0.226 # Junction width in um
 jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 +2*d,'h_d':8+2*d,'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'bandages_edge_shift':3.5, }# hole sizes for the JJs
 
 
-# draw 2 tunable qubits
+# draw 4 fixed frequency qubits
 offset_x=-1000
 offset_y=-750
 center=(3300,4500+offset_y)
-transmon1_left_flux = elements.pp_transmon.PP_Transmon(name='Q1_left', center=center,
+transmon1_left_top = elements.pp_transmon.PP_Transmon(name='left_top', center=center,
                                            width=width,
                                            height=height,
                                            bridge_gap=JJ_pad_offset_x,
@@ -119,10 +119,9 @@ transmon1_left_flux = elements.pp_transmon.PP_Transmon(name='Q1_left', center=ce
                                            remove_ground={'left': 0, 'right': 0, 'top': 0, 'bottom': 0},
                                            shoes=[],
                                            transformations={'rotate':[np.pi/2,center]},
-                                           # fluxline_params=flux
                                            )
 center=(6700+offset_x-1000+200,4500+offset_y)
-transmon2_right_flux = elements.pp_transmon.PP_Transmon(name='Q2_flux_right', center=center,
+transmon2_right_top = elements.pp_transmon.PP_Transmon(name='right_top', center=center,
                                            width=width,
                                            height=height,
                                            bridge_gap=JJ_pad_offset_x,
@@ -138,16 +137,14 @@ transmon2_right_flux = elements.pp_transmon.PP_Transmon(name='Q2_flux_right', ce
                                            remove_ground={'left': 0, 'right': 0, 'top': 0, 'bottom': 0},
                                            shoes=[],
                                            transformations={'rotate':[np.pi/2,center]},
-                                           # fluxline_params=flux
                                            )
 
-sample.add(transmon1_left_flux)
-sample.add(transmon2_right_flux)
+sample.add(transmon1_left_top)
+sample.add(transmon2_right_top)
 
-### add fixed frequency transmon qubit without microwave line
 center = (2000,1500+offset_y)
 
-transmon1_left_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=center,
+transmon3_left_bottom = elements.pp_transmon.PP_Transmon(name='left_bottom',center=center,
                           width = width,
                           height = height,
                           bridge_gap = JJ_pad_offset_x,
@@ -162,11 +159,11 @@ transmon1_left_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=c
                           calculate_capacitance = False,
                           transformations = {'rotate':[-np.pi/2,center]}
                           )
-sample.add(transmon1_left_fixed)
+sample.add(transmon3_left_bottom)
 
 center = (6200+offset_x,1500+offset_y)
 
-transmon1_right_fixed = elements.pp_transmon.PP_Transmon(name='Q2_fixed',center=center,
+transmon4_right_bottom = elements.pp_transmon.PP_Transmon(name='right_bottom',center=center,
                           width = width,
                           height = height,
                           bridge_gap = JJ_pad_offset_x,
@@ -180,10 +177,9 @@ transmon1_right_fixed = elements.pp_transmon.PP_Transmon(name='Q2_fixed',center=
                           Couplers = Couplers,
                           calculate_capacitance = False,
                           transformations = {'rotate':[-np.pi/2,center]},
-                          # fluxline_params=flux
                           )
-sample.add(transmon1_right_fixed)
-################# add them for testing
+sample.add(transmon4_right_bottom)
+################# add 2 test structures to measure the resistance of JJs
 shiftx = 600
 shifty = -530
 center=(5900+shiftx,1200+shifty)
@@ -229,6 +225,3 @@ sample.add(logos)
 sample.draw_design()
 markers = elements.AlignmentMarkers((500,500),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),10,sample.layer_configuration)
 sample.add(markers)
-
-
-#sample.watch()
