@@ -513,7 +513,7 @@ class Sample:
         airbridges = []
         last_port = None
         current_cpw_points = []
-        segment_counter = 0
+        bridge_counter = -1
         for segment in o.segments:
             if segment['type'] == 'turn':
                 current_cpw_points.append(segment['instead_point'])
@@ -533,8 +533,8 @@ class Sample:
             orientation = np.arctan2(direction[1], direction[0])
             begin = segment['startpoint']
 
-            segment_counter = segment_counter+1
             for bridge_id in range(num_bridges):
+                bridge_counter += 1
                 midpoint = begin + direction * (spacing * (bridge_id + 0.5) + geometry.pad_width * bridge_id)
                 current_cpw_points.append(midpoint)
 
@@ -544,7 +544,7 @@ class Sample:
 
                 self.add(cpw)
 
-                if (bridge_id + segment_counter%2) % bridge_part_decimation == 0:
+                if bridge_counter % bridge_part_decimation == 0:
                     airbridge = elements.AirbridgeOverCPW(name=name + 'b{}'.format(len(cpws)),
                                                           position=midpoint+direction * geometry.pad_width/2,
                                                           orientation=orientation, w=w, s=s, g=g,
@@ -565,7 +565,7 @@ class Sample:
 
                 if last_port is not None:
                     self.connect(last_port, 'port2', cpw, 'port1')
-                if (bridge_id + segment_counter%2) % bridge_part_decimation == 0:
+                if bridge_counter % bridge_part_decimation == 0:
                     last_port = airbridge
                 else:
                     last_port=bridge_cpw
