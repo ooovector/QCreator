@@ -115,8 +115,6 @@ resonator_ground = 10
 origin = [2200,1400]
 
 
-width = 250
-height= 400
 
 gap   = 50
 
@@ -125,8 +123,8 @@ height = 2*width+gap
 
 
 ground_t = 48
-ground_w = 660+ground_t*2
-ground_h = 660+ground_t*2
+ground_w = 660+ground_t*2-20
+ground_h = 660+ground_t*2-20
 
 #square junctions
 a1    = np.sqrt(0.15*0.3) #Junction height in um
@@ -141,23 +139,21 @@ jj_pp_rotated = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8
 
 jj_pp_2 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'inverted_extension':0,'strip1_extension':20,'strip2_extension':25,'loop_h':10,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.,'bandages_edge_shift':3.5}
 
-jj_pp_3 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':3 ,'h_d':8,'squid':True,'loop_h': 12,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0,'strip1_extension':15,'strip2_extension':8,'bandages_edge_shift':3.5}# hole sizes for the JJs
-
-#jj_pp_3 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':True,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.,'bandages_edge_shift':3.5}
-
+jj_pp_3 = { 'a11':a1,"a12":a2,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':3 ,'h_d':8,'squid':True,'loop_h': 13,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0,'strip1_extension':17,'strip2_extension':26,'bandages_edge_shift':3.5}# hole sizes for the JJs
 
 
 JJ_pad_offset_x = 10 # for JJ_manhatten
 JJ_pad_offset_y = 16 # JJ design
 
 
-sh = (70,20)
+sh = (70*2.6+25,25)
+sh_klein = (60,10)
 
-shoes1 = {1:sh,2:sh,3:sh,4:sh,'R1':np.pi/2,'R2':np.pi/4,'R3':np.pi/4,'R4':np.pi/4}
+shoes1 = {1:sh_klein,2:sh_klein,3:sh,4:sh_klein,'R1':np.pi/2,'R2':np.pi/4,'R3':np.pi/4,'R4':np.pi/4}
 
-shoes2 = {1:sh,2:sh,3:sh,4:sh,'R1':np.pi/4,'R2':np.pi/2,'R3':np.pi/4,'R4':np.pi/4}
+shoes2 = {1:sh_klein,2:sh_klein,3:sh_klein,4:sh,'R1':np.pi/4,'R2':np.pi/2,'R3':np.pi/4,'R4':np.pi/4}
 
-shoes3 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4}
+shoes3 = {1:sh_klein,2:sh_klein,3:sh,4:sh_klein,'R1':np.pi/4,'R2':np.pi/4,'R3':np.pi/4,'R4':np.pi/4}
 
 spacing = 740
 
@@ -177,10 +173,10 @@ height_tc2 = [860+3*28,280,1200+3*28]
 
 gap_tc      = 70
 ground_w_tc = 325+2*ground_t
-ground_h_tc = 950+2*ground_t
+ground_h_tc = 950+2*ground_t+600
 
 
-claw_tc = [10,50]
+claw_tc = [26,80*2.6]
 
 shift_y =gap_tc/2+width_tc[0]/2+claw_tc[0]
 
@@ -210,23 +206,35 @@ CC3 = [#elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = '
       ]
 
 
-
+"""
 l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, fluxline_core, 3, 5, 20, 50, fluxline_gap
 
 fluxline_core, fluxline_gap, fluxline_ground=9,5,10
 flux_distance = 7
 flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':fluxline_ground,'w':fluxline_core,'s':fluxline_gap,'rotation':0,'inverted_extension':0}
+"""
+l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 4, 3, 5, 40, 50, resonator_gap
+flux_distance = 20
+#for coupler
+flux2 = {'l':150,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4,
+         'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'inverted_extension':0}
+
+
+
+
+
+
+
 
 CC = [CC1,CC2,CC3]
 
-CC_tc1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=60,tight = tight),]
+#CC_tc1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=20,tight = tight),]
 
-CC_tc2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.13,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=60,tight = tight),
-      ]
-
+CC_tc2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,18,'left',coupler_type = 'coupler',heightl = 0.13,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=28,tight = tight),]
 
 
-CC_tc = [CC_tc1,CC_tc2]
+
+CC_tc = [CC_tc2]
 
 X = 2
 Y = 1
@@ -235,7 +243,11 @@ couplers = []
 
 x_offset=1500
 y_offset=-800
-center1 = (3860-120+x_offset,3000+20+y_offset)
+
+s1 = 100
+s2 = 4/np.sqrt(2)
+center1 = (3860-120+x_offset+s1+s2,3000+20+y_offset+s1-s2)
+
 Q1 = elements.pp_transmon.PP_Transmon(name='Q1', center=center1,
                                            width=width,
                                            height=height,
@@ -258,8 +270,9 @@ Q1 = elements.pp_transmon.PP_Transmon(name='Q1', center=center1,
 sample.add(Q1)
 qubits.append(Q1)
 
-
-center2 = (3860-120+x_offset,1600-70+y_offset)
+s1 = 40+79/np.sqrt(2)
+s2= 6.5-9+13/np.sqrt(2)
+center2 = (3860-120+x_offset+s1+s2,1600-70+y_offset-s1+s2)
 Q2 = elements.pp_transmon.PP_Transmon(name='Q2', center=center2,
                                            width=width,
                                            height=height,
@@ -282,10 +295,7 @@ Q2 = elements.pp_transmon.PP_Transmon(name='Q2', center=center2,
 sample.add(Q2)
 qubits.append(Q2)
 
-
-
-
-center3 = (2258-170+x_offset,2298-20+y_offset)
+center3 = (2258-170+x_offset-122-10,2298-20+y_offset+13)
 
 Q3 = elements.pp_transmon.PP_Transmon(name='Q3', center=center3,
                                            width=width,
@@ -310,24 +320,24 @@ sample.add(Q3)
 qubits.append(Q3)
 
 
-center2tc = (origin[0] +1*(spacing+ground_h)/2+width_tc[0]/2-3+x_offset, origin[1] +(spacing+ground_h)/2+shift_y-claw_tc[0]+y_offset)
+center2tc = (origin[0] +1*(spacing+ground_h)/2+width_tc[0]/2-3+x_offset, origin[1] +(spacing+ground_h)/2+shift_y-claw_tc[0]+y_offset-10)
 
 
 a2 = -300
 a_coupl = -300
 T2 = elements.y_squid_coupler.Y_Squid_C(name='Y_Coupler', center=center2tc,
-                                                  width=[60,110],
+                                                  width=[100,110],
                                                   height=height_tc2,
-                                                  bridge_gap=JJ_pad_offset_x,
+                                                  bridge_gap=JJ_pad_offset_x+5,
                                                   bridge_w=JJ_pad_offset_y,
                                                   gap=gap_tc,
                                                   ground_w=ground_w_tc,
                                                   ground_h=ground_h_tc,
                                                   ground_t=ground_t,
                                                   jj_params=jj_pp_3,
-                                                  fluxline_params=flux,
+                                                  fluxline_params=flux2,
                                                   layer_configuration=sample.layer_configuration,
-                                                  Couplers=CC_tc[1],
+                                                  Couplers=CC_tc[0],
                                                   calculate_capacitance=False,
                                                   transformations={'rotate': (-np.pi/2, center2tc),},
                                                   remove_ground={'left': 1, 'top': 1, 'bottom': 1, 'right': 1},

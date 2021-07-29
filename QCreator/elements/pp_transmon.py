@@ -156,8 +156,6 @@ class PP_Transmon(DesignElement):
                             P1 = gdspy.boolean(P1, fake_claw, 'or')
                             pocket = gdspy.boolean(pocket,box_for_fake_claw,'or')
 
-
-
                 if key == 2:
                     endpoint = (self.center[0] - self.gap / 2 - self.w - self.shoes[key][0],self.center[1] - self.h / 2 + self.shoes[key][1])
                     Shoe = gdspy.Rectangle(
