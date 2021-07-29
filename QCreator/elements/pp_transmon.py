@@ -416,17 +416,15 @@ class PP_Transmon(DesignElement):
 
                     if coupler.tight == True:
                         box = gdspy.boolean(box, gdspy.Rectangle((self.center[0] + self.g_w / 2 + self.g_t + 2 * gap + t,
-                                                              self.center[
-                                                                  1] - height_right * self.g_h / 2 - self.g_t - 2 * gap - t),
+                                                              self.center[ 1] - height_right * self.g_h / 2 - self.g_t - 2 * gap - t),
                                                              (self.center[0] + self.g_w / 2 - l1 + t, self.center[
                                                                  1] + height_right * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(-coupler.sctq,0),
                                         'or', layer=self.layer_configuration.inverted)
                     else:
                         box = gdspy.boolean(box, gdspy.Rectangle((self.center[0] + self.g_w / 2 + self.g_t + 2 * gap + t,self.center[1] - height_right * self.g_h / 2 - self.g_t - 2 * gap ),(self.center[0] + self.g_w / 2 - l1 + t, self.center[1] + height_right * self.g_h / 2 + self.g_t + 2 * gap)).translate(-coupler.sctq, 0),'or', layer=self.layer_configuration.inverted)
 
-
-
-                    pocket = gdspy.boolean(pocket, gdspy.Rectangle((self.center[0] + self.g_w / 2 + self.g_t + 2 * gap + t,self.center[1] - height_right * self.g_h / 2 - self.g_t - 2 * gap - t),(self.center[0] + self.g_w / 2 - l1 + t, self.center[1] + height_right * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(-coupler.sctq, 0),'or')
+                    pocket = gdspy.boolean(pocket, gdspy.Rectangle((self.center[0] + self.g_w / 2 + 2 * gap + t + self.g_t,self.center[1] - gap - height_right * self.g_h / 2 - t - gap),
+                                                                   (self.center[0] + t + self.g_w / 2 - l1,self.center[1] + gap + height_right * self.g_h / 2 + t + gap)).translate(-coupler.sctq, 0), 'or')
                     if coupler.sctq > self.g_t:
                         pocket = gdspy.boolean(pocket,gdspy.Rectangle((self.center[0],self.center[1]+coupler.gap+coupler.w/2),(self.center[0]+self.g_w/2+1,self.center[1]-coupler.w/2-coupler.gap)),'or')
 
@@ -443,8 +441,7 @@ class PP_Transmon(DesignElement):
                                                                        (self.center[
                                                                             0] - self.g_w / 2 - 2 * gap - t - self.g_t,
                                                                         self.center[
-                                                                            1] + gap + height_left * self.g_h / 2 + self.g_t + gap)),
-                                             'or')
+                                                                            1] + gap + height_left * self.g_h / 2 + self.g_t + gap)),'or')
                         extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0] - self.g_w / 2 - 2 * gap - t,
                                                                         self.center[
                                                                             1] + gap + height_left * self.g_h / 2 + gap),
@@ -472,8 +469,7 @@ class PP_Transmon(DesignElement):
                                                                        (self.center[
                                                                             0] - self.g_w / 2 - 2 * gap - t - self.g_t,
                                                                         self.center[
-                                                                            1] - gap - height_left * self.g_h / 2- self.g_t - gap)),
-                                             'or')
+                                                                            1] - gap - height_left * self.g_h / 2- self.g_t - gap)),'or')
                         extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0] - self.g_w / 2 - 2 * gap - t,
                                                                         self.center[
                                                                             1] - gap - height_left * self.g_h / 2- gap),
@@ -521,21 +517,23 @@ class PP_Transmon(DesignElement):
                     if coupler.tight == True:
                         box = gdspy.boolean(box,
                                             gdspy.Rectangle((self.center[0] - self.g_w / 2 - self.g_t - 2 * gap - t,
-                                                             self.center[
-                                                                 1] - height_left * self.g_h / 2 - self.g_t - 2 * gap - t),
+                                                             self.center[1] - height_left * self.g_h / 2 - self.g_t - 2 * gap - t),
                                                             (self.center[0] - self.g_w / 2 + l1 - t, self.center[
-                                                                1] + height_left * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(
-                                                +coupler.sctq, 0),
-                                            'or', layer=self.layer_configuration.inverted)
+                                                                1] + height_left * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(+coupler.sctq, 0),'or', layer=self.layer_configuration.inverted)
                     else:
                         box = gdspy.boolean(box, gdspy.Rectangle((self.center[0] - self.g_w / 2 - self.g_t - 2 * gap - t,self.center[1] - height_left * self.g_h / 2 - self.g_t - 2 * gap ),(self.center[0] - self.g_w / 2 + l1 - t, self.center[1] + height_left * self.g_h / 2 + self.g_t + 2 * gap)).translate(+coupler.sctq,0),'or', layer=self.layer_configuration.inverted)
 
+                    pocket = gdspy.boolean(pocket, gdspy.Rectangle((self.center[0] - self.g_w / 2 - 2 * gap - t - self.g_t,
+                                                                    self.center[1] - gap - height_left * self.g_h / 2 - t - gap),
+                                                                   (self.center[0] - t - self.g_w / 2 + l1, self.center[1] + gap + height_left * self.g_h / 2 + t + gap)).translate(+coupler.sctq, 0), 'or')
+
+                    """
                     pocket = gdspy.boolean(pocket, gdspy.Rectangle((self.center[0] - self.g_w / 2 - self.g_t - 2 * gap - t,
                                                               self.center[
                                                                   1] - height_left * self.g_h / 2 - self.g_t - 2 * gap - t),
                                                              (self.center[0] - self.g_w / 2 + l1 - t, self.center[
                                                                  1] + height_left * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(coupler.sctq,0),'or')
-
+                    """
 
                     if coupler.sctq > self.g_t:
                         pocket = gdspy.boolean(pocket,gdspy.Rectangle((self.center[0],self.center[1]+coupler.gap/2+coupler.w),(self.center[0]-self.g_w/2-1,self.center[1]-coupler.w-coupler.gap/2)),'or')

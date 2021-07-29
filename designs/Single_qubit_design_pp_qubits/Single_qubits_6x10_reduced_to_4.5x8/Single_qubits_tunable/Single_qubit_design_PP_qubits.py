@@ -142,11 +142,8 @@ flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm'
 
 #define parameters for test SNAIl
 a11 = 0.4
-
 a2  = 0.4
-
 a12 = a11*0.3
-
 jj_pp_snail = { 'a11':a11,"a12":a12,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':3+2*d ,'h_d':8+2*d,'snail':True,'loop_h': 12,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'strip1_extension':15,'strip2_extension':8,'bandages_edge_shift':3.5,'snail_extension':2,'snail_reach':10}# hole sizes for the JJs
 
 
