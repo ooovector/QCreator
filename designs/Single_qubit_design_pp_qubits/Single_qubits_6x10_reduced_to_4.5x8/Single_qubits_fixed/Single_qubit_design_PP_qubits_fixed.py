@@ -14,7 +14,7 @@ reload(gdspy)
 # tl_gap = 12.
 ### to have 50 Oms impedance with eps=11.45
 #wet etching subtracts 0.5 um, so we add that to all structures where it matters, coplers,Junction region and Fluxline
-d = 0.5
+d = 0.5*0
 tl_core = 21+2*d
 tl_gap = 12-2*d
 tl_ground = 6.#<-- changed from 10. to 5.
@@ -80,7 +80,7 @@ p2 = pads_right[0]
 ################################
 tight = [True,6-d]
 Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,50+2*d,'left',coupler_type = 'coupler',heightl = 0.6,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46,tight=tight)]
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46-2*d,tight=tight)]
 
 width = 250+2*d
 height= 450+2*d
@@ -92,8 +92,8 @@ ground_t   = 50+2*d
 JJ_pad_offset_x = 10 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design
 
-a1    = 0.17 #Junction height in um
-a2    = 0.3 # Junction width in um
+a1    = 0.226 #Junction height in um
+a2    = 0.226 # Junction width in um
 
 
 jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 +2*d,'h_d':8+2*d,'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'bandages_edge_shift':3.5, }# hole sizes for the JJs
@@ -103,7 +103,7 @@ jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 +2*d,'h_d':8+2*d
 offset_x=-1000
 offset_y=-750
 center=(3300,4500+offset_y)
-transmon1_left_flux = elements.pp_transmon.PP_Transmon(name='Q1_flux_left', center=center,
+transmon1_left_flux = elements.pp_transmon.PP_Transmon(name='Q1_left', center=center,
                                            width=width,
                                            height=height,
                                            bridge_gap=JJ_pad_offset_x,

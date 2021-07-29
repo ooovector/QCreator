@@ -100,12 +100,6 @@ p2 = pads_right[0]
 
 
 
-
-#laserwriter subtracts 0.5 um, so we add that to all structures where it matters, coplers,Junction region and Fluxline
-d = 0.5
-
-
-
 ################################
 tight = [True,6-d]
 Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,25+2*d,'left',coupler_type = 'coupler',heightl = 0.4,
