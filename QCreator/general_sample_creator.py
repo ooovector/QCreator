@@ -553,9 +553,11 @@ class Sample:
                     self.connect(cpw, 'port2', airbridge, 'port1')
                     airbridges.append(airbridge)
                 else:
-                    current_cpw_points.append(midpoint+direction * geometry.pad_width)
+                    bridge_cpw_points = []
+                    bridge_cpw_points.append(midpoint)
+                    bridge_cpw_points.append(midpoint+direction * geometry.pad_width)
                     bridge_cpw = elements.CPW(name=name + 's{}'.format(len(cpws)),
-                                       points=current_cpw_points, w=w, s=s, g=g,
+                                       points=bridge_cpw_points, w=w, s=s, g=g,
                                        layer_configuration=self.layer_configuration, r=radius)
                     self.add(bridge_cpw)
                     self.connect(cpw, 'port2', bridge_cpw, 'port1')
@@ -570,6 +572,7 @@ class Sample:
                 cpws.append(cpw)
 
                 current_cpw_points = [midpoint + direction * geometry.pad_width]
+
 
 
         if current_cpw_points[-1][0] != o.segments[-1]['endpoint'][0] or current_cpw_points[-1][1] != \
