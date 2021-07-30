@@ -1237,12 +1237,12 @@ class TLSystem:
 
             for term in list_of_all_perturbation_terms:
 
-                matrix_elem = list_of_all_perturbation_terms[0]
-                final_state = list_of_all_perturbation_terms[1]
+                matrix_elem = term[0]
+                final_state = term[1]
 
                 # condition of orthogonal states: < i | final state > = delta(i, final state)
 
-                if states_i == final_state:
+                if i == final_state:
                     all_matrix_elements += matrix_elem
                 else:
                     all_matrix_elements += 0
