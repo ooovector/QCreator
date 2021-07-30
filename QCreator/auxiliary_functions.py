@@ -108,17 +108,20 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
                                             [(0, 4)])
 
     if pr_coupler_offset > 0:
-        points = [closed_end_meander[-1].get_terminals()['port2'].position,
-                  (g3.terminals['narrow'].position[0], closed_end_meander[-1].get_terminals()['port2'].position[1])]
-        extra_cpw = elements.CPW('Purcell after-short-meander extension 2', points,
-                                 closed_end_meander[-1].w[0], closed_end_meander[-1].s[0], closed_end_meander[-1].g,
-                                 closed_end_meander[-1].layer_configuration, r=closed_end_meander[-1].r,
-                                 corner_type='round',
-                                 orientation1=closed_end_meander[-1].terminals['port2'].orientation+np.pi,
-                                 orientation2=closed_end_meander[-1].terminals['port2'].orientation)
-        sample.add(extra_cpw)
-        sample.connect(closed_end_meander[-1], 'port2', extra_cpw, 'port1')
-        coupler_connection_object = extra_cpw
+        terminal = closed_end_meander[-1].terminals['port2']
+        airbridge_position = np.asarray([g3.terminals['narrow'].position[0] - airbridge.pad_width / 2, terminal.position[1]])
+        bridge = elements.airbridge.AirbridgeOverCPW(
+            name='Purcell after-short-meander extension final airbridge',
+            position=airbridge_position,
+            orientation=terminal.orientation+np.pi, w=terminal.w,
+            s=terminal.s, g=terminal.g,
+            geometry=airbridge)
+        sample.add(bridge)
+        meander_extra = sample.connect_cpw(bridge, closed_end_meander[-1], 'port1', 'port2',
+                                           name='Purcell after-short-meander extension', points= [],
+                                           airbridge=airbridge, min_spacing=min_bridge_spacing)
+
+        coupler_connection_object = bridge
     else:
         coupler_connection_object = closed_end_meander[-1]
 
