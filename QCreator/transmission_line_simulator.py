@@ -1176,32 +1176,87 @@ class TLSystem:
         # '-n' -- annihilation operator of mode n
 
         perturbation_terms = []
+
+        list_of_all_perturbation_terms = []  # all matrix elements
+
         for i in product(operators, repeat=4):
             perturbation_terms.append(i)
 
         for t in perturbation_terms:
-            for operator in t[::-1]:
+
+            coefficient = 1
+
+            list_of_modes_numbers = []  # for calculation J_kerr[i,j,k,l]
+
+            for operator in t[::-1]:  # operators act in reverse order
 
                 if np.sign(operator) == 1:
+
+                    coefficient *= np.sqrt(state[np.abs(operator)] + 1)
+                    list_of_modes_numbers.append(np.abs(operator))
                     state[np.abs(operator)] += 1
 
                 elif np.sign(operator) == -1:
 
                     if state[np.abs(operator)] > 0:
+
+                        coefficient *= np.sqrt(state[np.abs(operator)] + 1)
+                        list_of_modes_numbers.append(np.abs(operator))
                         state[np.abs(operator)] -= 1
 
                     elif state[np.abs(operator)] == 0:
 
+                        coefficient = 0
+                        list_of_modes_numbers.append(np.abs(operator))
                         state[np.abs(operator)] = 0
 
-                    else:
-                        print('Problem')
+                        break
 
-            print(state)
+                    else:
+                        raise ValueError('Sign is not correct')
+
+            J_kerr_ijkl = self.get_perturbation_nondiagonal(list_of_modes_numbers)
+
+            final_state = list(state.values())
+
+            list_of_all_perturbation_terms.append(np.asarrayrray([coefficient*J_kerr_ijkl, final_state]))
+
+            # condition of orthogonal states: < i | final state > = delta(i, final state)
 
             # clear state
             for k in s:
                 state[k] = 0
+
+        second_order_energy_correction = 0
+
+        states_i = [s[1] for s in list_of_all_perturbation_terms]  # states for summation
+
+        for i in states_i:
+
+            all_matrix_elements = 0
+
+            for term in list_of_all_perturbation_terms:
+
+                matrix_elem = list_of_all_perturbation_terms[0]
+                final_state = list_of_all_perturbation_terms[1]
+
+                # condition of orthogonal states: < i | final state > = delta(i, final state)
+
+                if states_i == final_state:
+                    all_matrix_elements += matrix_elem
+                else:
+                    all_matrix_elements += 0
+
+            term_for_correction = np.abs(all_matrix_elements) ** 2
+
+            energy_diff = ???
+
+            second_order_energy_correction = term_for_correction/energy_diff
+
+        return list_of_all_perturbation_terms, second_order_energy_correction
+
+
+
 
 
 
