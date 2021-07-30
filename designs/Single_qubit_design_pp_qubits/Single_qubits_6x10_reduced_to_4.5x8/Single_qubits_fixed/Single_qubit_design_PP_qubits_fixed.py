@@ -14,7 +14,7 @@ reload(gdspy)
 # tl_gap = 12.
 ### to have 50 Oms impedance with eps=11.45
 #wet etching subtracts 0.5 um, so we add that to all structures where it matters, coplers,Junction region and Fluxline
-d = 0.5
+d = 0.5*0
 tl_core = 21+2*d
 tl_gap = 12-2*d
 tl_ground = 6.#<-- changed from 10. to 5.
@@ -22,7 +22,7 @@ tl_ground = 6.#<-- changed from 10. to 5.
 resonator_core = 15+2*d
 resonator_gap = 10-2*d
 resonator_ground = 15#5
-resonator_tl_ground=13+2*d
+resonator_tl_ground=18+2*d # to have Q around 12k
 
 pad_offset = 550
 
@@ -92,8 +92,8 @@ ground_t   = 50+2*d
 JJ_pad_offset_x = 10 # for JJ_manhatten #for the JJ connections pads between the PPs
 JJ_pad_offset_y = 16 # JJ design
 
-a1    = 0.226 #Junction height in um
-a2    = 0.226 # Junction width in um
+a1    = 0.22 #Junction height in um
+a2    = 0.22 # Junction width in um
 
 
 jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 +2*d,'h_d':8+2*d,'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'bandages_edge_shift':3.5, }# hole sizes for the JJs
