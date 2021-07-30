@@ -176,7 +176,9 @@ ground_w_tc = 325+2*ground_t
 ground_h_tc = 950+2*ground_t+600
 
 
-claw_tc = [26,80*2.6]
+l1,l2,t = 400, 180,30
+extension = {'left_arm':[]}
+claw_tc = [26,[80*2.6,80*2.6+26],extension]
 
 shift_y =gap_tc/2+width_tc[0]/2+claw_tc[0]
 
@@ -345,7 +347,7 @@ T2 = elements.y_squid_coupler.Y_Squid_C(name='Y_Coupler', center=center2tc,
                                                   claw=claw_tc,
                                                   asymmetry=a2,
                                                   air_bridge=air2,
-                                                  y_gap = 80,
+                                                  y_gap = 170,
                                                   asymmetry_coupler = a_coupl,
                                                 return_inverted=False,
                                                   )

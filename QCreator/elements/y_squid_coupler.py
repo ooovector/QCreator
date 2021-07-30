@@ -112,8 +112,15 @@ class Y_Squid_C(DesignElement):
         if self.claw != []:
             i = self.claw
             #lower
-            P1 = gdspy.boolean(P1, gdspy.Rectangle((self.center[0]-self.gap/2+i[0]-self.w_pads[0],self.center[1]-self.h_pads[0]/2+i[1]),(self.center[0]-self.gap/2-self.w_pads[0],self.center[1]-self.h_pads[0]/2-i[1])),'or')
-            P1 = gdspy.boolean(P1, gdspy.Rectangle((self.center[0]-self.gap/2-i[0],self.center[1]-self.h_pads[0]/2+i[1]),(self.center[0]-self.gap/2,self.center[1]-self.h_pads[0]/2-i[1])),'or')
+            P1 = gdspy.boolean(P1, gdspy.Rectangle((self.center[0]-self.gap/2+i[0]-self.w_pads[0],self.center[1]-self.h_pads[0]/2+i[1][0]),(self.center[0]-self.gap/2-self.w_pads[0],self.center[1]-self.h_pads[0]/2-i[1][0])),'or')
+            P1 = gdspy.boolean(P1, gdspy.Rectangle((self.center[0]-self.gap/2-i[0],self.center[1]-self.h_pads[0]/2+i[1][1]),(self.center[0]-self.gap/2,self.center[1]-self.h_pads[0]/2-i[1][1])),'or')
+            #Add here the claw extension for higher coupling
+            if len(self.claw)>2:
+                ex = self.claw[2]['left_arm']
+
+                Extension1 = gdspy.Rectangle((0,0),(0,0))
+                Extension2 = gdspy.Rectangle((0,0),(0,0))
+                P1 = gdspy.boolean(P1,[Extension1,Extension2],'or')
 
         #adding upper half
         P11 = gdspy.Rectangle((self.center[0] - self.gap / 2 - self.w_pads[0], self.center[1] + self.h_pads[2] / 2),
@@ -122,16 +129,32 @@ class Y_Squid_C(DesignElement):
             i = self.claw
             # upper
             P11 = gdspy.boolean(P11, gdspy.Rectangle(
-                (self.center[0] - self.gap / 2 + i[0] - self.w_pads[0], self.center[1] + self.h_pads[2] / 2 - i[1]),
-                (self.center[0] - self.gap / 2 - self.w_pads[0], self.center[1] + self.h_pads[2] / 2 + i[1])), 'or')
+                (self.center[0] - self.gap / 2 + i[0] - self.w_pads[0], self.center[1] + self.h_pads[2] / 2 - i[1][1]),
+                (self.center[0] - self.gap / 2 - self.w_pads[0], self.center[1] + self.h_pads[2] / 2 + i[1][1])), 'or')
 
             P11 = gdspy.boolean(P11, gdspy.Rectangle(
-                (self.center[0] - self.gap / 2 - i[0], self.center[1] + self.h_pads[2] / 2 + i[1]),
-                (self.center[0] - self.gap / 2, self.center[1] + self.h_pads[2] / 2 - i[1])), 'or')
+                (self.center[0] - self.gap / 2 - i[0], self.center[1] + self.h_pads[2] / 2 + i[1][0]),
+                (self.center[0] - self.gap / 2, self.center[1] + self.h_pads[2] / 2 - i[1][0])), 'or')
+
 
         left_y = gdspy.copy(P11)
         left_y.rotate(+np.pi / 4,(self.center[0]-self.gap/2-self.w_pads[0],self.center[1]))
-        right_y = gdspy.copy(P11)
+
+        P12 = gdspy.Rectangle((self.center[0] - self.gap / 2 - self.w_pads[0], self.center[1] + self.h_pads[2] / 2),
+                             (self.center[0] - self.gap / 2, self.center[1]))
+        if self.claw != []:
+            i = self.claw
+            # upper
+            P12 = gdspy.boolean(P12, gdspy.Rectangle(
+                (self.center[0] - self.gap / 2 + i[0] - self.w_pads[0], self.center[1] + self.h_pads[2] / 2 - i[1][0]),
+                (self.center[0] - self.gap / 2 - self.w_pads[0], self.center[1] + self.h_pads[2] / 2 + i[1][0])), 'or')
+
+            P12 = gdspy.boolean(P12, gdspy.Rectangle(
+                (self.center[0] - self.gap / 2 - i[0], self.center[1] + self.h_pads[2] / 2 + i[1][1]),
+                (self.center[0] - self.gap / 2, self.center[1] + self.h_pads[2] / 2 - i[1][1])), 'or')
+
+
+        right_y = gdspy.copy(P12)
         right_y.rotate(-np.pi / 4,(self.center[0] - self.gap / 2 ,self.center[1]))
 
         P1 = gdspy.boolean(P1,left_y,'or')
