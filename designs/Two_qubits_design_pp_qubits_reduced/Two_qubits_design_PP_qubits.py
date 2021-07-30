@@ -101,7 +101,7 @@ p2 = pads_top[1]
 
 #Qubit parameters
 #origin of left qubit
-origin = [2500,1600]
+origin = [2400-30,1600]
 
 # parameters for Stefan's two-qubit setup
 gap   = 50
@@ -110,8 +110,8 @@ height = 600
 
 
 ground_t = 50
-ground_w = 710+ground_t*2
-ground_h = 750+ground_t*2
+ground_w = 710+ground_t*2+100
+ground_h = 750+ground_t*2+100
 
 #square junctions
 a1    = np.sqrt(0.17*0.3) #Junction height in um
@@ -129,14 +129,14 @@ JJ_pad_offset_y = 16 # JJ design
 JJ_pad_offset_x_flux = 20 # for JJ_manhatten
 JJ_pad_offset_y_flux = 10 # JJ design
 
-sh = (70,20)
-shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':4.124,'gap2':8.388,'claw_t':10,'l1':80,'l2':80,'box_l':80+80,'box_h':340,'position':'1110'}}#(gap1,gap2,claw_t,l1,l2,box_l,box_h,binary number indicating where the fake claws are top left top right bottom left bottm right)
+sh = (180+50,30)
+shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':4,'gap2':8,'claw_t':10,'l1':80,'l2':80,'box_l':80+80,'box_h':340,'position':'1110'}}#(gap1,gap2,claw_t,l1,l2,box_l,box_h,binary number indicating where the fake claws are top left top right bottom left bottm right)
 
-shoes2 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':4.124,'gap2':8.388,'claw_t':10,'l1':80,'l2':80,'box_l':80+80,'box_h':340,'position':'1011'}}#{1:(70,50)}
+shoes2 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':4,'gap2':8,'claw_t':10,'l1':80,'l2':80,'box_l':80+80,'box_h':340,'position':'1011'}}#{1:(70,50)}
 
 shoes = [shoes1,shoes2]
 # how to place qubits
-spacing = 1000
+spacing = 1200-30+60
 
 center1 = (origin[0],origin[1])
 center2 = (origin[0]+spacing+ground_w,origin[1])
@@ -146,7 +146,7 @@ center4 = (origin[0]+spacing+ground_w,origin[1]-spacing-ground_h)
 
 #Coupler
 arms = {}
-width_tc    = [60,75]
+width_tc    = [100,75]
 height_tc   = [1000-10,500]
 
 height_tc2 = [860+3*28,280,1200+3*28]
@@ -161,7 +161,7 @@ ground_h_tc = 950+2*ground_t+200 #buffer for the claws is the +200
 # ground_h_tc = 950
 # ground_t_tc = 10
 
-claw_tc = [10,80]
+claw_tc = [25,185+50]
 
 shift_y =gap_tc/2+width_tc[0]/2
 
@@ -213,10 +213,12 @@ for i in range(Y):
         center = (origin[0]+j*(spacing+ground_w),origin[1]+i*(spacing+ground_h))
         if j%2==1:
             jj_pp=jj_pp1
+            fluxq={}
             transformations={'rotate': (-np.pi / 4, center)}
             JJ_pad_offset_x_qubit=JJ_pad_offset_x
             JJ_pad_offset_y_qubit=JJ_pad_offset_y
         else:
+            fluxq=flux1
             jj_pp = jj_pp2
             transformations={'rotate': (np.pi / 4, center)}
             JJ_pad_offset_x_qubit = JJ_pad_offset_x_flux
@@ -237,7 +239,7 @@ for i in range(Y):
                                            remove_ground={'left': 1, 'right': 1, 'top': 1, 'bottom': 1},
                                            shoes=shoes[j],
                                            transformations=transformations,
-                                           fluxline_params = flux1,
+                                           fluxline_params = fluxq,
                                            return_inverted= False,
                                            )
         sample.add(element)
@@ -304,12 +306,6 @@ for i in range(Y):
             couplers.append(T2)
 
 
-
-logos=elements.WMILogos((1500,300),(6000,300),layers_configuration)
-sample.add(logos)
-#sample.draw_design()
-markers = elements.AlignmentMarkers((1000,1000),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),10,sample.layer_configuration)
-sample.add(markers)
 
 center=(6400,1200)
 JJ_test_structure = elements.pp_transmon.PP_Transmon(name='JJ_test',center=center,
@@ -396,3 +392,17 @@ def create_restricted(check = False):
     sample.total_cell.add(restricted)
 
     return 0
+
+### add logos and markers
+logos=elements.WMILogos((700,3500),(7300,3500),layers_configuration)
+sample.add(logos)
+
+###add 3 markers
+markers = elements.AlignmentMarkers((470,470),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),10,sample.layer_configuration)
+sample.add(markers)
+markers2 = elements.AlignmentMarkers((485,485),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),4,sample.layer_configuration)
+sample.add(markers2)
+markers3 = elements.AlignmentMarkers((500,500),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),1,sample.layer_configuration)
+sample.add(markers3)
+
+sample.draw_design()
