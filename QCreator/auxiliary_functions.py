@@ -14,7 +14,7 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
                           port_orientation='left', direction_orientation='down', meander_r=None,
                  first_step_orientation='left', end_point_closed_end = None, end_orientation_closed_end=None,
                  coupler2_length=None, closed_end_res_meander_length=None, res_length_left=None,
-                                              res_length_right=None,object1=None, port=None, push_resonator=False,
+                 res_length_right=None,object1=None, port=None, push_resonator=False,
                  narrow_length_left=None, narrow_length_right=None, bridge_part_decimation=1, open_end_angle = None,
                  pr_coupler_offset = 0):
 
@@ -131,19 +131,22 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
 
     total_length.append(coupler_connection[0].length)
 
-    open_end_meander = sample.connect_meander(name='opened end meander of purcell', o1=fanout2, port1=fanout2_port,
-                                                meander_length=open_end_length,
-                                                length_left=open_end_length_left,
-                                                length_right=open_end_length_right,
-                                                first_step_orientation=open_end_first_step_orientation,
-                                                meander_orientation=open_end_angle,
-                                                meander_type='round',
-                                                airbridge=airbridge,
-                                                min_spacing=min_bridge_spacing, r=meander_r,
-                                              bridge_part_decimation=bridge_part_decimation)
+    if open_end_length !=0:
+        open_end_meander = sample.connect_meander(name='opened end meander of purcell', o1=fanout2, port1=fanout2_port,
+                                                    meander_length=open_end_length,
+                                                    length_left=open_end_length_left,
+                                                    length_right=open_end_length_right,
+                                                    first_step_orientation=open_end_first_step_orientation,
+                                                    meander_orientation=open_end_angle,
+                                                    meander_type='round',
+                                                    airbridge=airbridge,
+                                                    min_spacing=min_bridge_spacing, r=meander_r,
+                                                  bridge_part_decimation=bridge_part_decimation)
 
-    total_length.append(sum([line.length for line in open_end_meander]))
-    open_end = sample.open_end(open_end_meander[-1], 'port2', 'open end purcell')
+        total_length.append(sum([line.length for line in open_end_meander]))
+        open_end = sample.open_end(open_end_meander[-1], 'port2', 'open end purcell')
+    else:
+        open_end = sample.open_end(fanout2, fanout2_port, 'open end purcell')
     if push_resonator==True:
         num_turns = coupler2_length / 2 / meander_r
         num_turns = math.ceil(num_turns)
