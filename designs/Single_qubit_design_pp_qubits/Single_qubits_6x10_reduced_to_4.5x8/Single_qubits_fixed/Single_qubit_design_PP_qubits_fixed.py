@@ -219,13 +219,16 @@ JJ_test_structure = elements.pp_transmon.PP_Transmon(name='JJ_test',center=cente
 sample.add(JJ_test_structure)
 
 
-
+### add logos and markers
 logos=elements.WMILogos((700,3500),(7300,3500),layers_configuration)
 sample.add(logos)
-sample.draw_design()
+
+###add 3 markers
 markers = elements.AlignmentMarkers((470,470),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),10,sample.layer_configuration)
 sample.add(markers)
 markers2 = elements.AlignmentMarkers((485,485),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),4,sample.layer_configuration)
 sample.add(markers2)
 markers3 = elements.AlignmentMarkers((500,500),(sample.chip_geometry.sample_horizontal_size,sample.chip_geometry.sample_vertical_size),1,sample.layer_configuration)
 sample.add(markers3)
+
+sample.draw_design()
