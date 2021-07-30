@@ -100,40 +100,43 @@ p2 = pads_right[0]
 
 
 
-################################
-tight = [True,6-d]
-Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,25+2*d,'left',coupler_type = 'coupler',heightl = 0.4,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46+d,tight =tight)]
-
-Couplers_flux=[elements.pp_transmon.PP_Transmon_Coupler(0,0,25+2*d,'right',coupler_type = 'coupler',heightr = 0.4,
-                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46+d,tight = tight)]
-
-
 width = 250+2*d
 height= 450+2*d
 gap   = 50-2*d
-ground_w = 680+40+30+30-2*d
-ground_h   = 680+40+30+30-2*d
-ground_t   = 50+2*d
+ground_w = 780#-2*d
+ground_h   = 780#-2*d
+ground_t   = 50+d
+
+
+tight = [True,6-2*d]
+Couplers=[elements.pp_transmon.PP_Transmon_Coupler(0,0,25+2*d,'left',coupler_type = 'coupler',heightl = (331-(15+2*d))/(ground_h),
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46-d,tight =tight)]
+
+Couplers_flux=[elements.pp_transmon.PP_Transmon_Coupler(0,0,25+2*d,'right',coupler_type = 'coupler',heightr = (331-(15+2*d))/(ground_h),
+                                                   w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=46-d,tight = tight)]
+
+
 # b_g   = 19 # from JJ Design for JJ4q
-JJ_pad_offset_x = 10 # for JJ_manhatten #for the JJ connections pads between the PPs
-JJ_pad_offset_y = 16 # JJ design
+JJ_pad_offset_x = 10#-2*d # for JJ_manhatten #for the JJ connections pads between the PPs
+JJ_pad_offset_y = 16+2*d # JJ design
 
 a1    = np.sqrt(0.15*0.3)*1.03 #Junction height in um
 a2    = a1 # Junction width in um
 
 
-jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 +2*d,'h_d':8+2*d,'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'bandages_edge_shift':3.5, }# hole sizes for the JJs
+#jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 +2*d,'h_d':8+2*d,'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'bandages_edge_shift':3.5,'bridge_translate':[0.5,0,-0.5,4*d],'translate':[4*d,0] }# hole sizes for the JJs
+
+jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 +2*d,'h_d':8-d,'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'bandages_edge_shift':3.5,'bridge_translate':[d,-d,-d,d],'translate':[0,-d,0,d] }# hole sizes for the JJs
 
 
 a11 = 0.477297
 a12 = 0.1002324
 a2  = 0.1
 ###### define parameters for the tunable qubits
-jj_pp_flux = { 'a12':a11,"a11":a12,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':3+2*d ,'h_d':8+2*d,'squid':True,'loop_h': 12,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'strip1_extension':15,'strip2_extension':8,'bandages_edge_shift':3.5}# hole sizes for the JJs
+jj_pp_flux = { 'a12':a11,"a11":a12,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':3+2*d ,'h_d':8-d,'squid':True,'loop_h': 12,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'strip1_extension':15,'strip2_extension':8,'bandages_edge_shift':3.5,'bridge_translate':[d,0,-d,4*d],'translate':[0,0,0,4*d],'adjust_holes':True}# hole sizes for the JJs
 
-flux_distance = 15+2*d
-l, t_m, t_r, gp, l_arm, h_arm, s_gap,asymmetry = 160-flux_distance, 5, 3+2*d, 5, 40/3, 50, resonator_gap,15-4.7
+flux_distance = 15-2*d
+l, t_m, t_r, gp, l_arm, h_arm, s_gap,asymmetry = 160-flux_distance+0.5, 5+2*d, 3+2*d, 5, [40/3-2*d,58.85-2*d], 50, resonator_gap,15-4.7
 flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':asymmetry,'loop_h': 10 }
 
 #define parameters for test SNAIl
@@ -163,7 +166,7 @@ transmon1_left_flux = elements.pp_transmon.PP_Transmon(name='Q1_flux_left', cent
                                            remove_ground={'left': 0, 'right': 0, 'top': 0, 'bottom': 0},
                                            shoes=[],
                                            transformations={'rotate':[np.pi/2,center]},
-                                           fluxline_params=flux
+                                           fluxline_params=flux,
                                            )
 center=(6700+offset_x-1000+200,4500+offset_y)
 transmon2_right_flux = elements.pp_transmon.PP_Transmon(name='Q2_flux_right', center=center,
@@ -182,7 +185,7 @@ transmon2_right_flux = elements.pp_transmon.PP_Transmon(name='Q2_flux_right', ce
                                            remove_ground={'left': 0, 'right': 0, 'top': 0, 'bottom': 0},
                                            shoes=[],
                                            transformations={'rotate':[-np.pi/2,center]},
-                                           fluxline_params=flux
+                                           fluxline_params=flux,
                                            )
 sample.add(transmon1_left_flux)
 sample.add(transmon2_right_flux)
@@ -203,7 +206,7 @@ transmon1_left_fixed = elements.pp_transmon.PP_Transmon(name='Q1_fixed',center=c
                           layer_configuration = sample.layer_configuration,
                           Couplers = Couplers,
                           calculate_capacitance = False,
-                          transformations = {'rotate':[-np.pi/2,center]}
+                          transformations = {'rotate':[-np.pi/2,center]},
                           )
 sample.add(transmon1_left_fixed)
 
@@ -223,7 +226,7 @@ transmon1_right_fixed = elements.pp_transmon.PP_Transmon(name='Q2_fixed',center=
                           Couplers = Couplers_flux,
                           calculate_capacitance = False,
                           transformations = {'rotate':[np.pi/2,center]},
-                          fluxline_params=flux
+                          fluxline_params=flux,
                           )
 sample.add(transmon1_right_fixed)
 

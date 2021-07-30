@@ -1249,7 +1249,7 @@ class TLSystem:
 
             term_for_correction = np.abs(all_matrix_elements) ** 2
 
-            energy_diff = ???
+            energy_diff = 0#???
 
             second_order_energy_correction = term_for_correction/energy_diff
 
