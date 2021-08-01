@@ -264,7 +264,8 @@ class PP_Transmon(DesignElement):
                                        layer=self.layer_configuration.total_layer)
                 """
             else:
-
+                if not isinstance(l_arm, list):
+                    l_arm = [l_arm,l_arm]
                 result = gdspy.boolean(result, gdspy.Rectangle(
                     (self.center[0] + l_arm[0] / 2 - s_gap, self.center[1] + self.h / 2 + 0.01),
                     (self.center[0] + l_arm[0] / 2 + t_m + s_gap, self.center[1] + self.h / 2 + 250)).translate(asymmetry, 0),'not',
@@ -882,8 +883,10 @@ class PP_Transmon(DesignElement):
         #change here in case to allow Manhatten-style junctions
         if self.JJ_params['manhatten'] and (self.JJ_params['squid'] == False and self.JJ_params['snail'] == False):
             #create holes in the bridges
-            P1_bridge = gdspy.Rectangle((self.center[0]-self.gap/2,self.center[1]),(self.center[0]-self.b_g/2,self.center[1]+self.b_w))
-            P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2, self.center[1]),(self.center[0] + self.b_g / 2, self.center[1] - self.b_w))
+            #buffer temp
+            buffer = 5
+            P1_bridge = gdspy.Rectangle((self.center[0]-self.gap/2-buffer,self.center[1]),(self.center[0]-self.b_g/2,self.center[1]+self.b_w))
+            P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2+buffer, self.center[1]),(self.center[0] + self.b_g / 2, self.center[1] - self.b_w))
             hole1     = gdspy.Rectangle((self.center[0]-self.b_g/2-self.JJ_params['h_w']-self.b_w/2-paddingx,self.center[1]-paddingy),(self.center[0]-self.b_g/2-self.b_w/2,self.center[1]+self.JJ_params['h_d']))
             hole2     = gdspy.Rectangle((self.center[0] + self.b_g / 2-paddingy, self.center[1]-self.b_w),(self.center[0] + self.b_g / 2 + self.JJ_params['h_d'], self.center[1] - self.b_w/2-self.JJ_params['h_w']+c_p_w+2*c_p_g))
 

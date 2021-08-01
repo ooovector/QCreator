@@ -11,7 +11,7 @@ reload(gdspy)
 
 ### to have 50 Oms impedance with eps=11.45
 #wet etching subtracts 0.5 um, so we add that to all structures where it matters, coplers,Junction region and Fluxline
-d = 0.5
+d = 0.5*0
 tl_core = 21.+2*d
 tl_gap = 12.-2*d
 tl_ground = 6.#<-- changed from 10. to 5.
@@ -126,7 +126,7 @@ a2    = a1 # Junction width in um
 
 #jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 +2*d,'h_d':8+2*d,'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'bandages_edge_shift':3.5,'bridge_translate':[0.5,0,-0.5,4*d],'translate':[4*d,0] }# hole sizes for the JJs
 
-jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 +2*d,'h_d':8-d,'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'bandages_edge_shift':3.5,'bridge_translate':[d,-d,-d,d],'translate':[0,-d,0,d] }# hole sizes for the JJs
+jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 +2*d,'h_d':8-d,'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'bandages_edge_shift':3.5,'bridge_translate':[0,0,0,0],'translate':[0,0,0,0]}# hole sizes for the JJs
 
 
 a11 = 0.477297
@@ -136,7 +136,7 @@ a2  = 0.1
 jj_pp_flux = { 'a12':a11,"a11":a12,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':3+2*d ,'h_d':8-d,'squid':True,'loop_h': 12,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5-d,'strip1_extension':15,'strip2_extension':8,'bandages_edge_shift':3.5,'bridge_translate':[d,0,-d,4*d],'translate':[0,0,0,4*d],'adjust_holes':True}# hole sizes for the JJs
 
 flux_distance = 15-2*d
-l, t_m, t_r, gp, l_arm, h_arm, s_gap,asymmetry = 160-flux_distance+0.5, 5+2*d, 3+2*d, 5, [40/3-2*d,58.85-2*d], 50, resonator_gap,15-4.7
+l, t_m, t_r, gp, l_arm, h_arm, s_gap,asymmetry = 160-flux_distance+0.5, 5+2*d, 3+2*d, 5, [40/3-2*d,58.85-2*d-0.2-0.156], 50, resonator_gap,15-4.7
 flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':asymmetry,'loop_h': 10 }
 
 #define parameters for test SNAIl
