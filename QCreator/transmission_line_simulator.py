@@ -1256,55 +1256,136 @@ class TLSystem:
         return list_of_all_perturbation_terms, second_order_energy_correction
 
 
+    def get_perturbation_nondiagonal2(self, list_of_modes_numbers: list):
+        """
+        Calculate matrix of perturbation in basis of |g>, |e>, |f>, |h> states, truncate to n states
+        """
+        modes_ = self.normalization_of_modes(list_of_modes_numbers)  # here modes are normalized
 
+        number_of_modes = len(modes_)
 
+        JJ_kerr = np.zeros((2 * number_of_modes, 2 * number_of_modes, 2 * number_of_modes, 2 * number_of_modes), dtype=complex)
+        for JJ_ in self.JJs:
+            for i in range(number_of_modes*2):
+                mode_i = self.get_element_submode(JJ_, modes_[i % number_of_modes])
+                if i > number_of_modes:
+                    mode_i = np.conj(mode_i)
+                for j in range(number_of_modes*2):
+                    mode_j = self.get_element_submode(JJ_, modes_[j % number_of_modes])
+                    if j > number_of_modes:
+                        mode_j = np.conj(mode_j)
+                    submode_ij = np.kron(mode_i, mode_j)
+                    for k in range(number_of_modes*2):
+                        mode_k = self.get_element_submode(JJ_, modes_[k % number_of_modes])
+                        if k > number_of_modes:
+                            mode_k = np.conj(mode_k)
+                        for l in range(number_of_modes*2):
+                            mode_l = self.get_element_submode(JJ_, modes_[l % number_of_modes])
+                            if l > number_of_modes:
+                                mode_l = np.conj(mode_l)
+                            submode_kl = np.kron(mode_k, mode_l)
+                            JJ_kerr[i, j, k, l] += (submode_ij.T@JJ_.nonlinear_perturbation()@submode_kl).ravel()[0] / 6
 
+        return JJ_kerr / (hbar*2*np.pi)
 
+    def get_second_order_perturbation_kerr2(self, list_of_modes_numbers: list):
+        omega, kappa, modes = self.get_modes()
+        omega_ = np.asarray([omega[m] for m in list_of_modes_numbers])/(2*np.pi)
+        omega_corrected = np.asarray([omega[m] for m in list_of_modes_numbers])/(2*np.pi)
 
+        first_order_kerr = self.get_perturbation(list_of_modes_numbers)
+        kerr = np.zeros(first_order_kerr.shape)
 
+        ground_state_energy = self.get_second_order_perturbation2([0]*len(list_of_modes_numbers), list_of_modes_numbers)
+        first_state_corrections = [0 for i in range(len(list_of_modes_numbers))]
 
+        for mode_id in range(len(list_of_modes_numbers)):
+            mode = [0 if i != mode_id else 1 for i in range(len(list_of_modes_numbers))]
+            #corrected_energy = self.get_second_order_perturbation(mode, list_of_modes_numbers)
+            #omega_corrected[mode_id] += first_order_kerr[mode_id, mode_id] + corrected_energy - ground_state_energy
+            first_state_corrections[mode_id] = self.get_second_order_perturbation2(mode, list_of_modes_numbers)
 
+        for mode1_id in range(len(list_of_modes_numbers)):
+            for mode2_id in range(len(list_of_modes_numbers)):
+                mode = [0 for i in range(len(list_of_modes_numbers))]
+                mode[mode1_id] += 1
+                mode[mode2_id] += 1
+                corrected_energy = self.get_second_order_perturbation2(mode, list_of_modes_numbers)
+                kerr[mode1_id, mode2_id] = first_order_kerr[mode1_id, mode2_id] + corrected_energy + ground_state_energy - \
+                                                first_state_corrections[mode1_id] - first_state_corrections[mode2_id]
 
+        return kerr
 
-"""
-    def boundary_condition_matrix_det(self, omega):
-        matrix = self.create_boundary_problem_matrix(omega)
-        return np.linalg.det(matrix)
-    def boundary_condition_matrix_abs_det(self, omega):
-        matrix = self.create_boundary_problem_matrix(omega)
-        det = np.linalg.det(matrix)
-        return np.log10((det.real)**2 + (det.imag)**2)
-    def solve_problem(self, frequency_approximation, epsilon, step):
-        '''
-        This is a stupid method for solving the problem. It looks like gradient descent method
-        '''
-        x = frequency_approximation
-        func = self.create_boundary_problem_matrix(frequency_approximation)
-        number_of_iterations = 0
-        while (self.create_boundary_problem_matrix(x) - 0) > epsilon:
-            number_of_iterations = number_of_iterations + 1
-            print('not', number_of_iterations)
-            print(x)
-            grad = (self.create_boundary_problem_matrix(x+step) - self.create_boundary_problem_matrix(x))/step
-            if grad < 0:
-                x = x + step#*grad
-            elif grad > 0:
-                x = x - step#*grad
-            else:
-                print('Problem')
-                break
-        result = x
-        return result
-    def res(self):
-        print('self.nodes', self.nodes)
-        print('self.elements', self.elements)
-        print('self.node_multiplicity', self.node_multiplicity)
-        print('self.terminal_node_mapping', self.terminal_node_mapping)
-        print('self.dof_mapping', self.dof_mapping)
-        print('self.nodes', type(self.nodes))
-        print('self.elements', type(self.elements))
-        print('self.node_multiplicity', type(self.node_multiplicity))
-        print('self.terminal_node_mapping', type(self.terminal_node_mapping))
-        print('self.dof_mapping', type(self.dof_mapping))
-        return
-"""
+    def get_second_order_perturbation2(self, initial_state: list, list_of_modes_numbers: list):
+        """
+        Calculate second order correction to energy with perturbation operator
+        """
+
+        from collections import defaultdict
+        from itertools import product
+
+        omega, kappa, modes = self.get_modes()
+        omega_ = np.asarray([omega[m] for m in list_of_modes_numbers])/(2*np.pi)
+        modes_ = self.normalization_of_modes(list_of_modes_numbers)  # here modes are normalized
+        #first_order_kerr = self.get_perturbation(list_of_modes_numbers)
+        #first_order_kerr = (first_order_kerr + np.diag(np.diag(first_order_kerr))) / 2
+        JJ_kerr = self.get_perturbation_nondiagonal2(list_of_modes_numbers) / 4
+
+        initial_state_ = np.asarray(initial_state)
+        initial_state = tuple(initial_state)
+        initial_state_energy = initial_state_@omega_# + initial_state@first_order_kerr@initial_state
+
+        number_of_modes = JJ_kerr.shape[0] // 2  # number of modes in the system
+
+        operators = []
+        for i in range(1, number_of_modes + 1):
+            operators.extend([i, -i])
+
+        final_states = defaultdict(lambda: 0.0)
+
+        # create a list with perturbation terms: 'n' -- creation operator of mode n,
+        # '-n' -- annihilation operator of mode n
+
+        for t in product(operators, repeat=4):
+            #print ('Operator: ', t)
+            state = {k+1:v for k,v in enumerate(initial_state)}
+
+            matrix_element_factor = 1
+            indeces = tuple([np.abs(operator) - 1 + number_of_modes * (operator < 0) for operator in t])
+            #print ('JJ kerr indeces: ', indeces)
+            matrix_element_number = JJ_kerr[indeces]
+
+            for operator in t[::-1]:
+                #print('operator: ', operator)
+                if np.sign(operator) == 1:
+                    state[np.abs(operator)] += 1
+                    matrix_element_factor = matrix_element_factor * np.sqrt(state[np.abs(operator)])
+                elif np.sign(operator) == -1:
+                    matrix_element_factor = matrix_element_factor * np.sqrt(state[np.abs(operator)])
+                    state[np.abs(operator)] -= 1
+                    if state[np.abs(operator)] < 0:
+                        #print (matrix_element_factor)
+                        break
+                #print ('matrix element factor: ', matrix_element_factor)
+
+            final_state_tuple = tuple([state[s] for s in range(1, len(initial_state)+1)])
+            final_states[final_state_tuple] += matrix_element_factor * matrix_element_number
+            #print (state[1], matrix_element_factor)
+            #print('Arrived in state: ', state,
+            #      'got pre-factor: ', matrix_element_factor,
+            #      'modal matrix element: ', matrix_element_number,
+            #      'final state: ', final_states)
+            # print (final_states)
+        correction = 0
+        for final_state, matrix_element in final_states.items():
+            final_state_ = np.asarray(final_state)
+            final_state_energy = final_state_@omega_ # + final_state_ @ first_order_kerr @ final_state_
+            denominator = initial_state_energy - final_state_energy
+            numerator = np.abs(matrix_element)**2
+            correction_new = numerator / denominator
+            #print('i: ', initial_state, 'f: ', final_state, 'E_i', initial_state_energy/1e9, 'E_f:', final_state_energy/1e9,
+            #      'Vif:', np.abs(matrix_element)/1e9, 'correction:', correction_new/1e9)
+            if final_state != initial_state:
+                correction += correction_new
+
+        return correction
