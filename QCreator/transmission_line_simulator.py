@@ -539,6 +539,14 @@ class JosephsonJunction(TLSystemElement):
 
         return v
 
+    def nonlinear_perturbation4(self, mode1, mode2, mode3, mode4):
+
+        v = - self.L_lin() ** 3 / self.phi_0**2 *mode1[2]*mode2[2]*mode3[2]*mode4[2]/ 4
+
+        # np.conj(np.kron(mode1, mode2)) @ v @ (np.kron(mode1, mode2))
+
+        return v
+
     def __init__(self, e_j=None, name=''):
         super().__init__('JJ', name)
         self.E_J = e_j
@@ -1129,22 +1137,22 @@ class TLSystem:
                 if i > number_of_modes:
                     mode_i = np.conj(mode_i)
                 for j in range(number_of_modes*2):
-                    mode_j = self.get_element_submode(JJ_, modes_[j])
+                    mode_j = self.get_element_submode(JJ_, modes_[j%number_of_modes])
                     if j > number_of_modes:
                         mode_j = np.conj(mode_j)
                     submode_ij = np.kron(mode_i, mode_j)
                     for k in range(number_of_modes*2):
-                        mode_k = self.get_element_submode(JJ_, modes_[k])
+                        mode_k = self.get_element_submode(JJ_, modes_[k%number_of_modes])
                         if k > number_of_modes:
                             mode_k = np.conj(mode_k)
                         for l in range(number_of_modes*2):
-                            mode_l = self.get_element_submode(JJ_, modes_[l])
+                            mode_l = self.get_element_submode(JJ_, modes_[l%number_of_modes])
                             if l > number_of_modes:
                                 mode_l = np.conj(mode_l)
                             submode_kl = np.kron(mode_k, mode_l)
                             JJ_kerr[i, j, k, l] += np.dot(submode_ij.T,
                                                                    np.dot(JJ_.nonlinear_perturbation(),
-                                                                          submode_kl)) / 6
+                                                                          submode_kl)).ravel()[0] / 6
 
         return JJ_kerr
 
@@ -1274,7 +1282,7 @@ class TLSystem:
                     mode_j = self.get_element_submode(JJ_, modes_[j % number_of_modes])
                     if j > number_of_modes:
                         mode_j = np.conj(mode_j)
-                    submode_ij = np.kron(mode_i, mode_j)
+                    #submode_ij = np.kron(mode_i, mode_j)
                     for k in range(number_of_modes*2):
                         mode_k = self.get_element_submode(JJ_, modes_[k % number_of_modes])
                         if k > number_of_modes:
@@ -1283,10 +1291,11 @@ class TLSystem:
                             mode_l = self.get_element_submode(JJ_, modes_[l % number_of_modes])
                             if l > number_of_modes:
                                 mode_l = np.conj(mode_l)
-                            submode_kl = np.kron(mode_k, mode_l)
-                            JJ_kerr[i, j, k, l] += (submode_ij.T@JJ_.nonlinear_perturbation()@submode_kl).ravel()[0] / 6
+                            #submode_kl = np.kron(mode_k, mode_l)
+                            #JJ_kerr[i, j, k, l] += (submode_ij.T@JJ_.nonlinear_perturbation()@submode_kl).ravel()[0] / 6
+                            JJ_kerr[i, j, k, l] += JJ_.nonlinear_perturbation4(mode_i, mode_j, mode_k, mode_l) / 6
 
-        return JJ_kerr / (hbar*2*np.pi)
+        return JJ_kerr / (hbar * 2 * np.pi)
 
     def get_second_order_perturbation_kerr2(self, list_of_modes_numbers: list):
         omega, kappa, modes = self.get_modes()
