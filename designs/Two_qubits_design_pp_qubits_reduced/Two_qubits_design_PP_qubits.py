@@ -130,9 +130,9 @@ JJ_pad_offset_x_flux = 20 # for JJ_manhatten
 JJ_pad_offset_y_flux = 10 # JJ design
 
 sh = (130,30)
-shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':10,'gap2':10,'claw_t':25,'l1':140,'l2':140,'box_l':250,'box_h':340,'position':'1110'}}#(gap1,gap2,claw_t,l1,l2,box_l,box_h,binary number indicating where the fake claws are top left top right bottom left bottm right)
+shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':10,'gap2':10,'claw_t':25,'l1':140,'l2':55,'box_l':250,'box_h':340,'position':'1111'}}#(gap1,gap2,claw_t,l1,l2,box_l,box_h,binary number indicating where the fake claws are top left top right bottom left bottm right)
 
-shoes2 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':10,'gap2':10,'claw_t':25,'l1':140,'l2':140,'box_l':250,'box_h':340,'position':'1011'}}#{1:(70,50)}
+shoes2 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':10,'gap2':10,'claw_t':25,'l1':140,'l2':55,'box_l':250,'box_h':340,'position':'1111'}}#{1:(70,50)}
 
 shoes = [shoes1,shoes2]
 # how to place qubits
@@ -146,13 +146,13 @@ center4 = (origin[0]+spacing+ground_w,origin[1]-spacing-ground_h)
 
 #Coupler
 arms = {}
-width_tc    = [100,75]
-height_tc   = [1000-10,500]
+width_tc    = [15,215]
+height_tc   = [700,570]
 
 height_tc2 = [860+3*28,280,1200+3*28]
 
-gap_tc      = 70
-ground_w_tc = 325+2*ground_t
+gap_tc      = 160
+ground_w_tc = 325+2*ground_t+500
 ground_h_tc = 950+2*ground_t+200 #buffer for the claws is the +200
 # width_tc    = [60,75]
 # height_tc   = [800,165]
