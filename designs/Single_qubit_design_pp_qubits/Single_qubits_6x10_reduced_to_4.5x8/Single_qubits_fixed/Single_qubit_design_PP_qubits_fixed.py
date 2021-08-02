@@ -14,7 +14,7 @@ reload(gdspy)
 # tl_gap = 12.
 ### to have 50 Oms impedance with eps=11.45
 #wet etching subtracts 0.5 um, so we add that to all structures where it matters, coplers,Junction region and Fluxline
-d = 0.5
+d = 0.5*0
 tl_core = 21+2*d
 tl_gap = 12-2*d
 tl_ground = 6.#<-- changed from 10. to 5.

@@ -264,7 +264,8 @@ class PP_Transmon(DesignElement):
                                        layer=self.layer_configuration.total_layer)
                 """
             else:
-
+                if not isinstance(l_arm, list):
+                    l_arm = [l_arm,l_arm]
                 result = gdspy.boolean(result, gdspy.Rectangle(
                     (self.center[0] + l_arm[0] / 2 - s_gap, self.center[1] + self.h / 2 + 0.01),
                     (self.center[0] + l_arm[0] / 2 + t_m + s_gap, self.center[1] + self.h / 2 + 250)).translate(asymmetry, 0),'not',
@@ -882,8 +883,10 @@ class PP_Transmon(DesignElement):
         #change here in case to allow Manhatten-style junctions
         if self.JJ_params['manhatten'] and (self.JJ_params['squid'] == False and self.JJ_params['snail'] == False):
             #create holes in the bridges
-            P1_bridge = gdspy.Rectangle((self.center[0]-self.gap/2,self.center[1]),(self.center[0]-self.b_g/2,self.center[1]+self.b_w))
-            P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2, self.center[1]),(self.center[0] + self.b_g / 2, self.center[1] - self.b_w))
+            #buffer temp
+            buffer = 5
+            P1_bridge = gdspy.Rectangle((self.center[0]-self.gap/2-buffer,self.center[1]),(self.center[0]-self.b_g/2,self.center[1]+self.b_w))
+            P2_bridge = gdspy.Rectangle((self.center[0] + self.gap / 2+buffer, self.center[1]),(self.center[0] + self.b_g / 2, self.center[1] - self.b_w))
             hole1     = gdspy.Rectangle((self.center[0]-self.b_g/2-self.JJ_params['h_w']-self.b_w/2-paddingx,self.center[1]-paddingy),(self.center[0]-self.b_g/2-self.b_w/2,self.center[1]+self.JJ_params['h_d']))
             hole2     = gdspy.Rectangle((self.center[0] + self.b_g / 2-paddingy, self.center[1]-self.b_w),(self.center[0] + self.b_g / 2 + self.JJ_params['h_d'], self.center[1] - self.b_w/2-self.JJ_params['h_w']+c_p_w+2*c_p_g))
 
@@ -949,11 +952,11 @@ class PP_Transmon(DesignElement):
         if 'rotation' in self.JJ_params:
             point =  (self.center[0],self.center[1])
             result1   = result1.rotate(self.JJ_params['rotation'],point)
-            bandages1 = bandages1.rotate(self.JJ_params['rotation'], point)
-            holes1    = holes1.rotate(self.JJ_params['rotation'], point)
+            bandage1 = bandage1.rotate(self.JJ_params['rotation'], point)
+            hole1    = hole1.rotate(self.JJ_params['rotation'], point)
             result2   = result2.rotate(self.JJ_params['rotation'],point)
-            bandages2 = bandages2.rotate(self.JJ_params['rotation'], point)
-            holes2    = holes2.rotate(self.JJ_params['rotation'], point)
+            bandage2 = bandage2.rotate(self.JJ_params['rotation'], point)
+            hole2    = hole2.rotate(self.JJ_params['rotation'], point)
 
         if 'translate' in self.JJ_params:
             dx1 = self.JJ_params['translate'][0]
