@@ -104,9 +104,9 @@ p2 = pads_top[1]
 origin = [2400-30,1600]
 
 # parameters for Stefan's two-qubit setup
-gap   = 50
+gap   = 70
 width  = 150
-height = 600
+height = 500
 
 
 ground_t = 50
@@ -129,10 +129,10 @@ JJ_pad_offset_y = 16 # JJ design
 JJ_pad_offset_x_flux = 20 # for JJ_manhatten
 JJ_pad_offset_y_flux = 10 # JJ design
 
-sh = (180+50,30)
-shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':4,'gap2':8,'claw_t':10,'l1':80,'l2':80,'box_l':80+80,'box_h':340,'position':'1110'}}#(gap1,gap2,claw_t,l1,l2,box_l,box_h,binary number indicating where the fake claws are top left top right bottom left bottm right)
+sh = (130,30)
+shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':10,'gap2':10,'claw_t':25,'l1':140,'l2':140,'box_l':250,'box_h':340,'position':'1110'}}#(gap1,gap2,claw_t,l1,l2,box_l,box_h,binary number indicating where the fake claws are top left top right bottom left bottm right)
 
-shoes2 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':4,'gap2':8,'claw_t':10,'l1':80,'l2':80,'box_l':80+80,'box_h':340,'position':'1011'}}#{1:(70,50)}
+shoes2 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':10,'gap2':10,'claw_t':25,'l1':140,'l2':140,'box_l':250,'box_h':340,'position':'1011'}}#{1:(70,50)}
 
 shoes = [shoes1,shoes2]
 # how to place qubits
@@ -247,7 +247,7 @@ for i in range(Y):
 
 for i in range(Y):
     for j in range(X):
-        additional_y_coupler_shift = -90
+        additional_y_coupler_shift = -90+55-20+10-1
         shit_shift=0.124
         center1 = (origin[0] + (spacing / 2 + ground_w / 2)*(2*j+1), origin[1] - shift_y+(spacing+ground_w)*i+additional_y_coupler_shift)
         center2 = (origin[0] - shift_y+j*(spacing+ground_w), origin[1] + (spacing / 2 + ground_w / 2)*(2*i+1)+additional_y_coupler_shift)
