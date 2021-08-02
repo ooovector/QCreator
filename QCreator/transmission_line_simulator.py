@@ -754,93 +754,6 @@ class TLSystem:
                 energy_hessian[np.meshgrid(matrix_indeces, matrix_indeces)] += element_hessian[np.meshgrid(submatrix_indeces, submatrix_indeces)]
 
         return energy_hessian
-    #
-    #         element_equations = e.scdc(element_state)
-    #         if element_equations is not None:
-    #             #print(e, element_state, element_equations)
-    #             equations.extend(element_equations)
-    #             current_offset += e.num_terminals()
-    #
-    #     #print (node_currents)
-    #     for node, current in node_currents.items():
-    #         equations.append(current)
-    #
-    #     return equations
-
-    # def scdc_constraints(self, subsystem_id):
-    #     # number of nodes
-    #     scdc_subnodes, scdc_shorts, scdc_subelements = self.get_scdc_subsystems()[subsystem_id]
-    #     constraints = []
-    #
-    #     # work with decompressed state
-    #     for e_id, e in enumerate(self.elements):
-    #         if e not in scdc_subelements:
-    #             continue
-    #
-    #         constraints_submodes = e.potential_constraints()
-    #         print (constraints_submodes)
-    #         for constraint_submode in constraints_submodes:
-    #             constraint = np.zeros(len(scdc_subnodes))
-    #             for terminal_id, terminal_node in enumerate(self.terminal_node_mapping[e_id]):
-    #                 node_id = scdc_subnodes.index(terminal_node)
-    #                 constraint[node_id] = constraint_submode[terminal_id]
-    #             constraints.append(constraint)
-    #
-    #     return constraints
-
-    # def nonlinear_scdc_equations(self, state, subsystem_id):
-    #     from collections import defaultdict
-    #     # number of nodes
-    #     scdc_subnodes, scdc_subelements = self.get_scdc_subsystems()[subsystem_id]
-    #     #scdc_nodes = self.get_scdc_nodes()
-    #     node_no = len(scdc_subnodes)
-    #     # number of terminals
-    #     terminal_no = np.sum([e.num_terminals() for e in scdc_subelements])
-    #
-    #     dynamic_equation_no = terminal_no
-    #     # kinetic equations are Kirchhof's law that the sum of nodal currents is zero
-    #     kinetic_equation_no = node_no
-    #     num_equations = dynamic_equation_no + kinetic_equation_no
-    #
-    #     current_offset = 0
-    #     equations = []
-    #     node_currents = defaultdict(lambda: 0)
-    #     #scdc_elements = self.get_scdc_elements()
-    #     # decompress state
-    #     '''
-    #     decompressed_state = state[:node_no]
-    #     current_chains = []
-    #     for e_id, e in enumerate(self.elements):
-    #         if not e.is_scdc():
-    #             continue
-    #         if e.num_terminals() == 2:
-    #             current_chains
-    #     '''
-    #     # work with decompressed state
-    #     for e_id, e in enumerate(self.elements):
-    #         #if not e.is_scdc():
-    #         #    continue
-    #         if e not in scdc_subelements:
-    #             continue
-    #         element_state_size = 2 * e.num_terminals()
-    #         element_state = np.zeros((element_state_size,))
-    #         for terminal_id, terminal_node in enumerate(self.terminal_node_mapping[e_id]):
-    #             node_id = scdc_subnodes.index(terminal_node)
-    #             element_state[terminal_id] = state[node_id]
-    #             element_state[terminal_id + e.num_terminals()] = state[node_no + current_offset + terminal_id]
-    #             node_currents[node_id] += state[node_no + current_offset + terminal_id]
-    #
-    #         element_equations = e.scdc(element_state)
-    #         if element_equations is not None:
-    #             #print(e, element_state, element_equations)
-    #             equations.extend(element_equations)
-    #             current_offset += e.num_terminals()
-    #
-    #     #print (node_currents)
-    #     for node, current in node_currents.items():
-    #         equations.append(current)
-    #
-    #     return equations
 
     def get_element_energies_from_dynamic(self, state):
         # number of nodes
@@ -1263,7 +1176,6 @@ class TLSystem:
 
         return list_of_all_perturbation_terms, second_order_energy_correction
 
-
     def get_perturbation_nondiagonal2(self, list_of_modes_numbers: list):
         """
         Calculate matrix of perturbation in basis of |g>, |e>, |f>, |h> states, truncate to n states
@@ -1279,21 +1191,28 @@ class TLSystem:
                 if i > number_of_modes:
                     mode_i = np.conj(mode_i)
                 for j in range(number_of_modes*2):
+                    if j < i:
+                        continue
                     mode_j = self.get_element_submode(JJ_, modes_[j % number_of_modes])
                     if j > number_of_modes:
                         mode_j = np.conj(mode_j)
                     #submode_ij = np.kron(mode_i, mode_j)
                     for k in range(number_of_modes*2):
+                        if k < j:
+                            continue
                         mode_k = self.get_element_submode(JJ_, modes_[k % number_of_modes])
                         if k > number_of_modes:
                             mode_k = np.conj(mode_k)
                         for l in range(number_of_modes*2):
+                            if l < k:
+                               continue
                             mode_l = self.get_element_submode(JJ_, modes_[l % number_of_modes])
                             if l > number_of_modes:
                                 mode_l = np.conj(mode_l)
                             #submode_kl = np.kron(mode_k, mode_l)
                             #JJ_kerr[i, j, k, l] += (submode_ij.T@JJ_.nonlinear_perturbation()@submode_kl).ravel()[0] / 6
                             JJ_kerr[i, j, k, l] += JJ_.nonlinear_perturbation4(mode_i, mode_j, mode_k, mode_l) / 6
+                            # print(i, j, k, l)
 
         return JJ_kerr / (hbar * 2 * np.pi)
 
@@ -1302,24 +1221,27 @@ class TLSystem:
         omega_ = np.asarray([omega[m] for m in list_of_modes_numbers])/(2*np.pi)
         omega_corrected = np.asarray([omega[m] for m in list_of_modes_numbers])/(2*np.pi)
 
+        JJ_kerr = self.get_perturbation_nondiagonal2(list_of_modes_numbers) / 4
+
         first_order_kerr = self.get_perturbation(list_of_modes_numbers)
         kerr = np.zeros(first_order_kerr.shape)
 
-        ground_state_energy = self.get_second_order_perturbation2([0]*len(list_of_modes_numbers), list_of_modes_numbers)
+        mode = [0 for i in range(len(list_of_modes_numbers))]
+        ground_state_energy = self.get_second_order_perturbation3(mode, omega_, JJ_kerr)
         first_state_corrections = [0 for i in range(len(list_of_modes_numbers))]
 
         for mode_id in range(len(list_of_modes_numbers)):
             mode = [0 if i != mode_id else 1 for i in range(len(list_of_modes_numbers))]
             #corrected_energy = self.get_second_order_perturbation(mode, list_of_modes_numbers)
             #omega_corrected[mode_id] += first_order_kerr[mode_id, mode_id] + corrected_energy - ground_state_energy
-            first_state_corrections[mode_id] = self.get_second_order_perturbation2(mode, list_of_modes_numbers)
+            first_state_corrections[mode_id] = self.get_second_order_perturbation3(mode, omega_, JJ_kerr)
 
         for mode1_id in range(len(list_of_modes_numbers)):
             for mode2_id in range(len(list_of_modes_numbers)):
                 mode = [0 for i in range(len(list_of_modes_numbers))]
                 mode[mode1_id] += 1
                 mode[mode2_id] += 1
-                corrected_energy = self.get_second_order_perturbation2(mode, list_of_modes_numbers)
+                corrected_energy = self.get_second_order_perturbation3(mode, omega_, JJ_kerr)
                 kerr[mode1_id, mode2_id] = first_order_kerr[mode1_id, mode2_id] + corrected_energy + ground_state_energy - \
                                                 first_state_corrections[mode1_id] - first_state_corrections[mode2_id]
 
@@ -1360,7 +1282,7 @@ class TLSystem:
             state = {k+1:v for k,v in enumerate(initial_state)}
 
             matrix_element_factor = 1
-            indeces = tuple([np.abs(operator) - 1 + number_of_modes * (operator < 0) for operator in t])
+            indeces = tuple(sorted([np.abs(operator) - 1 + number_of_modes * (operator < 0) for operator in t]))
             #print ('JJ kerr indeces: ', indeces)
             matrix_element_number = JJ_kerr[indeces]
 
@@ -1393,6 +1315,73 @@ class TLSystem:
             numerator = np.abs(matrix_element)**2
             correction_new = numerator / denominator
             #print('i: ', initial_state, 'f: ', final_state, 'E_i', initial_state_energy/1e9, 'E_f:', final_state_energy/1e9,
+            #      'Vif:', np.abs(matrix_element)/1e9, 'correction:', correction_new/1e9)
+            if final_state != initial_state:
+                correction += correction_new
+
+        return correction
+
+    def get_second_order_perturbation3(self, initial_state: list, omega_, JJ_kerr):
+        """
+        Calculate second order correction to energy with perturbation operator
+        """
+
+        from collections import defaultdict
+        from itertools import product
+
+        initial_state_ = np.asarray(initial_state)
+        initial_state = tuple(initial_state)
+        initial_state_energy = initial_state_@omega_# + initial_state@first_order_kerr@initial_state
+
+        number_of_modes = len(initial_state)  # number of modes in the system
+
+        operators = []
+        for i in range(1, number_of_modes + 1):
+            operators.extend([i, -i])
+
+        final_states = defaultdict(lambda: 0.0)
+
+        # create a list with perturbation terms: 'n' -- creation operator of mode n,
+        # '-n' -- annihilation operator of mode n
+
+        for t in product(operators, repeat=4):
+            #print ('Operator: ', t)
+            state = {k+1: v for k, v in enumerate(initial_state)}
+
+            matrix_element_factor = 1
+            indeces = tuple(sorted([np.abs(operator) - 1 + number_of_modes * (operator < 0) for operator in t]))
+            # print ('JJ kerr indeces: ', indeces, JJ_kerr[indeces])
+            matrix_element_number = JJ_kerr[indeces]
+
+            for operator in t[::-1]:
+                #print('operator: ', operator)
+                if np.sign(operator) == 1:
+                    state[np.abs(operator)] += 1
+                    matrix_element_factor = matrix_element_factor * np.sqrt(state[np.abs(operator)])
+                elif np.sign(operator) == -1:
+                    matrix_element_factor = matrix_element_factor * np.sqrt(state[np.abs(operator)])
+                    state[np.abs(operator)] -= 1
+                    if state[np.abs(operator)] < 0:
+                        #print (matrix_element_factor)
+                        break
+                #print ('matrix element factor: ', matrix_element_factor)
+
+            final_state_tuple = tuple([state[s] for s in range(1, len(initial_state)+1)])
+            final_states[final_state_tuple] += matrix_element_factor * matrix_element_number
+            #print (state[1], matrix_element_factor)
+            # print('Arrived in state: ', state,
+            #       'got pre-factor: ', matrix_element_factor,
+            #       'modal matrix element: ', matrix_element_number,
+            #       'final state: ', final_states)
+            # print (final_states)
+        correction = 0
+        for final_state, matrix_element in final_states.items():
+            final_state_ = np.asarray(final_state)
+            final_state_energy = final_state_@omega_ # + final_state_ @ first_order_kerr @ final_state_
+            denominator = initial_state_energy - final_state_energy
+            numerator = np.abs(matrix_element)**2
+            correction_new = numerator / denominator
+            # print('i: ', initial_state, 'f: ', final_state, 'E_i', initial_state_energy/1e9, 'E_f:', final_state_energy/1e9,
             #      'Vif:', np.abs(matrix_element)/1e9, 'correction:', correction_new/1e9)
             if final_state != initial_state:
                 correction += correction_new
