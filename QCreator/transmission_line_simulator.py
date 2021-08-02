@@ -1077,12 +1077,21 @@ class TLSystem:
         from collections import defaultdict
         from itertools import product
 
+        number_of_modes = len(list_of_modes_numbers)  # number of modes in the system
 
         omega, kappa, modes = self.get_modes()
+        omegas = np.asarray([omega[m] for m in list_of_modes_numbers])
 
-        modes_ = self.normalization_of_modes(list_of_modes_numbers)  # here modes are normalized
+        kerr_matrix = self.get_perturbation(list_of_modes_numbers)
 
-        number_of_modes = len(modes_)  # number of modes in the system
+        # first order corrections for mode energies
+        energies_in_modes_with_first_correction = np.zeros(number_of_modes)
+
+        for m in range(number_of_modes):
+            energy_corrected = hbar * omegas[m]
+            for n in range(number_of_modes):
+                energy_corrected += hbar * 2 * np.pi * kerr_matrix[m][n]
+            energies_in_modes_with_first_correction[m] = energy_corrected
 
         s = [i for i in range(1, number_of_modes + 1)]
         state = defaultdict(int)  # ground state of the system corresponding to M modes
@@ -1107,42 +1116,42 @@ class TLSystem:
 
             coefficient = 1
 
-            list_of_modes_numbers = []  # for calculation J_kerr[i,j,k,l]
+            list_of_modes_numbers_ijkl = []  # [i,j,k,l] for calculation J_kerr[i,j,k,l]
 
             for operator in t[::-1]:  # operators act in reverse order
 
                 if np.sign(operator) == 1:
 
                     coefficient *= np.sqrt(state[np.abs(operator)] + 1)
-                    list_of_modes_numbers.append(np.abs(operator))
+                    list_of_modes_numbers_ijkl.append(np.abs(operator))
                     state[np.abs(operator)] += 1
 
                 elif np.sign(operator) == -1:
 
                     if state[np.abs(operator)] > 0:
 
-                        coefficient *= np.sqrt(state[np.abs(operator)] + 1)
-                        list_of_modes_numbers.append(np.abs(operator))
+                        coefficient *= np.sqrt(state[np.abs(operator)])
+                        list_of_modes_numbers_ijkl.append(np.abs(operator))
                         state[np.abs(operator)] -= 1
 
                     elif state[np.abs(operator)] == 0:
 
                         coefficient = 0
-                        list_of_modes_numbers.append(np.abs(operator))
+                        list_of_modes_numbers_ijkl.append(np.abs(operator))
                         state[np.abs(operator)] = 0
 
                         break
 
                     else:
-                        raise ValueError('Sign is not correct')
+                        raise ValueError('Sign of the mode is not correct')
 
-            J_kerr_ijkl = self.get_perturbation_nondiagonal(list_of_modes_numbers)
+            JJ_kerr = self.get_perturbation_nondiagonal(list_of_modes_numbers)
+            indexes = tuple([np.abs(operator) - 1 + number_of_modes * (operator < 0) for operator in t])
+            J_kerr_ijkl = hbar * 2 * np.pi * JJ_kerr[indexes]
 
             final_state = list(state.values())
 
-            list_of_all_perturbation_terms.append(np.asarrayrray([coefficient*J_kerr_ijkl, final_state]))
-
-            # condition of orthogonal states: < i | final state > = delta(i, final state)
+            list_of_all_perturbation_terms.append(np.asarray([coefficient * J_kerr_ijkl, final_state]))
 
             # clear state
             for k in s:
@@ -1152,6 +1161,13 @@ class TLSystem:
 
         states_i = [s[1] for s in list_of_all_perturbation_terms]  # states for summation
 
+        ground_state = [0 * i for i in range(number_of_modes)]
+
+        energy_ground = 0
+
+        # remove ground state in states_i, because we can not sum up by f = |ground state>
+        states_i = [s for s in states_i if s != ground_state]
+
         for i in states_i:
 
             all_matrix_elements = 0
@@ -1159,6 +1175,7 @@ class TLSystem:
             for term in list_of_all_perturbation_terms:
 
                 matrix_elem = term[0]
+
                 final_state = term[1]
 
                 # condition of orthogonal states: < i | final state > = delta(i, final state)
@@ -1169,12 +1186,18 @@ class TLSystem:
                     all_matrix_elements += 0
 
             term_for_correction = np.abs(all_matrix_elements) ** 2
+            print(term_for_correction)
+            energy_i = 0
 
-            energy_diff = 0#???
+            for mode in range(number_of_modes):
+                number_of_excitations = i[mode]
+                energy_i += number_of_excitations * energies_in_modes_with_first_correction[mode]
 
-            second_order_energy_correction = term_for_correction/energy_diff
+            energy_diff = energy_i - energy_ground
 
-        return list_of_all_perturbation_terms, second_order_energy_correction
+            second_order_energy_correction += term_for_correction / energy_diff
+
+        return second_order_energy_correction
 
     def get_perturbation_nondiagonal2(self, list_of_modes_numbers: list):
         """
