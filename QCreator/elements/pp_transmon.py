@@ -952,11 +952,11 @@ class PP_Transmon(DesignElement):
         if 'rotation' in self.JJ_params:
             point =  (self.center[0],self.center[1])
             result1   = result1.rotate(self.JJ_params['rotation'],point)
-            bandages1 = bandages1.rotate(self.JJ_params['rotation'], point)
-            holes1    = holes1.rotate(self.JJ_params['rotation'], point)
+            bandage1 = bandage1.rotate(self.JJ_params['rotation'], point)
+            hole1    = hole1.rotate(self.JJ_params['rotation'], point)
             result2   = result2.rotate(self.JJ_params['rotation'],point)
-            bandages2 = bandages2.rotate(self.JJ_params['rotation'], point)
-            holes2    = holes2.rotate(self.JJ_params['rotation'], point)
+            bandage2 = bandage2.rotate(self.JJ_params['rotation'], point)
+            hole2    = hole2.rotate(self.JJ_params['rotation'], point)
 
         if 'translate' in self.JJ_params:
             dx1 = self.JJ_params['translate'][0]
