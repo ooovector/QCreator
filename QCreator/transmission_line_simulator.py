@@ -903,14 +903,15 @@ class TLSystem:
         terminal_no = np.sum(e.num_terminals() for e in self.elements)
 
         current_variables = self.dof_mapping[len(self.nodes):len(self.nodes) + terminal_no]
-        internal_dof_variables = self.dof_mapping_dynamic[len(self.nodes) + terminal_no:]
+        internal_dof_variables_dynamic = self.dof_mapping_dynamic[len(self.nodes) + terminal_no:]
+        internal_dof_variables = self.dof_mapping[len(self.nodes) + terminal_no:]
 
         currents = [current_variables.index((e_id, p_id)) + len(self.nodes) for p_id in range(element.num_terminals())]
         if not dynamic:
             degrees_of_freedom = [internal_dof_variables.index((e_id, dof_id)) + len(self.nodes) + terminal_no \
                                   for dof_id in range(element.num_degrees_of_freedom())]
         else:
-            degrees_of_freedom = [internal_dof_variables.index((e_id, dof_id)) + len(self.nodes) + terminal_no \
+            degrees_of_freedom = [internal_dof_variables_dynamic.index((e_id, dof_id)) + len(self.nodes) + terminal_no \
                                   for dof_id in range(element.num_degrees_of_freedom_dynamic())]
 
         return voltages, currents, degrees_of_freedom
