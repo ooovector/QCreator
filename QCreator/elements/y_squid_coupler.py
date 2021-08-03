@@ -134,8 +134,9 @@ class Y_Squid_C(DesignElement):
 
                 Extension2 = gdspy.Rectangle((self.center[0]-self.gap/2-i[0],self.center[1]-self.h_pads[0]/2-i[1][1]),
                                              (self.center[0]-self.gap/2-i[0]+ex_t2,self.center[1]-self.h_pads[0]/2-i[1][1]-ex_l2)).rotate(np.pi/4,(self.center[0]-self.gap/2-i[0],self.center[1]-self.h_pads[0]/2-i[1][1]))
-
-                P1 = gdspy.boolean(P1,[Extension1,Extension2],'or')
+                Connection = gdspy.Rectangle((self.center[0]-self.gap/2,self.center[1]-self.h_pads[0]/2+i[1][2]),
+                                             (self.center[0]-self.gap/2+i[0]-self.w_pads[0],self.center[1]-self.h_pads[0]/2))
+                P1 = gdspy.boolean(P1,[Extension1,Extension2,Connection],'or')
 
         #adding upper half
         P11 = gdspy.Rectangle((self.center[0] - self.gap / 2 - self.w_pads[0]+reduce, self.center[1] + self.h_pads[2] / 2),
@@ -172,7 +173,11 @@ class Y_Squid_C(DesignElement):
                      self.center[1] + self.h_pads[2] / 2 + i[1][0] + ex_l2)).rotate(-np.pi / 4, (
                 self.center[0] - self.gap / 2 - i[0], self.center[1] + self.h_pads[2] / 2 + i[1][0]))
 
-                P11 = gdspy.boolean(P11, [Extension1, Extension2], 'or')
+                Connection = gdspy.Rectangle(
+                    (self.center[0] - self.gap / 2, self.center[1] + self.h_pads[2] / 2 - i[1][2]),
+                    (self.center[0] - self.gap / 2 + i[0] - self.w_pads[0], self.center[1] + self.h_pads[2] / 2))
+
+                P11 = gdspy.boolean(P11, [Extension1, Extension2,Connection], 'or')
 
 
 
@@ -213,7 +218,11 @@ class Y_Squid_C(DesignElement):
                      self.center[1] + self.h_pads[2] / 2 + i[1][1] + ex_l2)).rotate(-np.pi / 4, (
                 self.center[0] - self.gap / 2 - i[0], self.center[1] + self.h_pads[2] / 2 + i[1][1]))
 
-                P12 = gdspy.boolean(P12, [Extension1, Extension2], 'or')
+                Connection = gdspy.Rectangle(
+                    (self.center[0] - self.gap / 2, self.center[1] + self.h_pads[2] / 2 - i[1][2]),
+                    (self.center[0] - self.gap / 2 + i[0] - self.w_pads[0], self.center[1] + self.h_pads[2] / 2))
+
+                P12 = gdspy.boolean(P12, [Extension1, Extension2,Connection], 'or')
 
 
 
