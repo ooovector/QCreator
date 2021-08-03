@@ -7,7 +7,6 @@ from typing import NamedTuple, SupportsFloat, Any, Iterable, Tuple, List
 
 from . import meshing
 from copy import deepcopy
-from .functions_for_general_sample_creator import calculate_total_length, parametric_equation_of_line, segment_points
 
 
 class Sample:
@@ -412,7 +411,8 @@ class Sample:
         for key, value in qubit.terminals.items():
             if value is not None and key is not 'flux':
                 # print(key, value)
-                qubit.C[key] = (caps[i][i], -caps[1][i])
+                qubit.C[key] = (caps[i][i]+caps[1][i], -caps[1][i])
+                qubit.C['qubit'] += caps[1][i] # remove from qubit-ground
                 i = i + 1
         return True
 
