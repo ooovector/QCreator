@@ -104,9 +104,9 @@ p2 = pads_top[1]
 origin = [2400-30,1600]
 
 # parameters for Stefan's two-qubit setup
-gap   = 50
+gap   = 70
 width  = 150
-height = 600
+height = 500
 
 
 ground_t = 50
@@ -129,10 +129,10 @@ JJ_pad_offset_y = 16 # JJ design
 JJ_pad_offset_x_flux = 20 # for JJ_manhatten
 JJ_pad_offset_y_flux = 10 # JJ design
 
-sh = (180+50,30)
-shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':4,'gap2':8,'claw_t':10,'l1':80,'l2':80,'box_l':80+80,'box_h':340,'position':'1110'}}#(gap1,gap2,claw_t,l1,l2,box_l,box_h,binary number indicating where the fake claws are top left top right bottom left bottm right)
+sh = (130,30)
+shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':10,'gap2':10,'claw_t':25,'l1':140,'l2':55,'box_l':250,'box_h':340,'position':'1111'}}#(gap1,gap2,claw_t,l1,l2,box_l,box_h,binary number indicating where the fake claws are top left top right bottom left bottm right)
 
-shoes2 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':4,'gap2':8,'claw_t':10,'l1':80,'l2':80,'box_l':80+80,'box_h':340,'position':'1011'}}#{1:(70,50)}
+shoes2 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':10,'gap2':10,'claw_t':25,'l1':140,'l2':55,'box_l':250,'box_h':340,'position':'1111'}}#{1:(70,50)}
 
 shoes = [shoes1,shoes2]
 # how to place qubits
@@ -146,14 +146,14 @@ center4 = (origin[0]+spacing+ground_w,origin[1]-spacing-ground_h)
 
 #Coupler
 arms = {}
-width_tc    = [100,75]
-height_tc   = [1000-10,500]
+width_tc    = [15,215]
+height_tc   = [700,570]
 
 height_tc2 = [860+3*28,280,1200+3*28]
 
-gap_tc      = 70
-ground_w_tc = 325+2*ground_t
-ground_h_tc = 950+2*ground_t+200 #buffer for the claws is the +200
+gap_tc      = 160
+ground_w_tc = 325+2*ground_t+90
+ground_h_tc = 950+2*ground_t-300 #buffer for the claws is the +200
 # width_tc    = [60,75]
 # height_tc   = [800,165]
 # gap_tc      = 70
@@ -210,7 +210,7 @@ qubits   = []
 couplers = []
 for i in range(Y):
     for j in range(X):
-        center = (origin[0]+j*(spacing+ground_w),origin[1]+i*(spacing+ground_h))
+        center = (origin[0]+j*(spacing+ground_w),origin[1]+i*(spacing+ground_h)-100)
         if j%2==1:
             jj_pp=jj_pp1
             fluxq={}
@@ -247,7 +247,7 @@ for i in range(Y):
 
 for i in range(Y):
     for j in range(X):
-        additional_y_coupler_shift = -90
+        additional_y_coupler_shift = -90+55-20+10-1-100
         shit_shift=0.124
         center1 = (origin[0] + (spacing / 2 + ground_w / 2)*(2*j+1), origin[1] - shift_y+(spacing+ground_w)*i+additional_y_coupler_shift)
         center2 = (origin[0] - shift_y+j*(spacing+ground_w), origin[1] + (spacing / 2 + ground_w / 2)*(2*i+1)+additional_y_coupler_shift)
@@ -357,8 +357,12 @@ def create_restricted(check = False):
     for Q in couplers:
         Qu = Q.render()
         all_restricted.append(Qu['restrict'])
-
+    all_inverted = []
     restricted = gdspy.Rectangle((0,0),(0,0))
+
+    rect1 = gdspy.Rectangle((3062-70, 1300), (3835, 1030))
+    # rect2 = gdspy.Rectangle((),())
+    restricted = gdspy.boolean(restricted, rect1, 'or', layer=layers_configuration['inverted'])
     for i in all_restricted:
         restricted = gdspy.boolean(restricted,i,'or',layer=layers_configuration['bandages'])
 
@@ -373,7 +377,6 @@ def create_restricted(check = False):
         restricted = gdspy.boolean(restricted,object.render()['positive'],'not',layer=layers_configuration['bandages'])
         one = gdspy.boolean(one,object.render()['positive'],'not',layer=layers_configuration['vertical gridlines'])
 
-    all_inverted = []
 
     for Q in qubits:
         Qu = Q.render()
@@ -386,7 +389,21 @@ def create_restricted(check = False):
     for i in all_inverted:
         one = gdspy.boolean(one, i, 'not', layer=layers_configuration['vertical gridlines'])
 
+
     restricted = gdspy.boolean(restricted,one,'not',layer=layers_configuration['inverted'])
+    rect_substr = gdspy.Rectangle((2992,1284),(3133,1030))
+    restricted = gdspy.boolean(restricted,rect_substr,'not',layer=layers_configuration['inverted'])
+
+    # for airbridges
+    rect_substr = gdspy.Rectangle((3100, 1420), (3060, 1284))
+    restricted = gdspy.boolean(restricted, rect_substr, 'not', layer=layers_configuration['inverted'])
+    rect_substr = gdspy.Rectangle((3100, 1480), (3060, 1630))
+    restricted = gdspy.boolean(restricted, rect_substr, 'not', layer=layers_configuration['inverted'])
+    rect_substr = gdspy.Rectangle((3900, 1420), (3940, 1284))
+    restricted = gdspy.boolean(restricted, rect_substr, 'not', layer=layers_configuration['inverted'])
+    rect_substr = gdspy.Rectangle((3900, 1480), (3940, 1630))
+    restricted = gdspy.boolean(restricted, rect_substr, 'not', layer=layers_configuration['inverted'])
+
 
     sample.total_cell.add(one)
     sample.total_cell.add(restricted)
