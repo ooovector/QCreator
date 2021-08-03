@@ -123,8 +123,8 @@ height = 2*width+gap
 
 
 ground_t = 48
-ground_w = 660+ground_t*2-20
-ground_h = 660+ground_t*2-20
+ground_w = 660+ground_t*2+100
+ground_h = 660+ground_t*2+100
 
 #square junctions
 a1    = np.sqrt(0.15*0.3) #Junction height in um
@@ -167,18 +167,21 @@ center4 = (origin[0]+spacing+ground_w,origin[1]-spacing-ground_h)
 arms = {}
 
 width_tc    = [60,75]
-height_tc   = [910-20,500]
+height_tc   = [910-20,600]
 
-height_tc2 = [860+3*28,280,1200+3*28]
+
+reduced_length = 350
+height_tc2 = [1600,500,1200+3*28-reduced_length]
 
 gap_tc      = 70
-ground_w_tc = 325+2*ground_t
+ground_w_tc = 630+2*ground_t
 ground_h_tc = 950+2*ground_t+600
 
-
+c_t = 27
 l1,l2,t = 400, 180,30
-extension = {'left_arm':[]}
-claw_tc = [26,[80*2.6,80*2.6+26],extension]
+extension = {'left_arm':{'t1':c_t*np.sqrt(2),'l1':170,'t2':c_t*np.sqrt(2),'l2':370,},'right_arm_1':{'t2':c_t*np.sqrt(2),'l2':170,'t1':c_t*np.sqrt(2),'l1':370,},'right_arm_2':{'t2':c_t*np.sqrt(2),'l2':370,'t1':c_t*np.sqrt(2),'l1':170,}}
+
+claw_tc = [c_t,[80*2.6,80*2.6+c_t,100],extension]
 
 shift_y =gap_tc/2+width_tc[0]/2+claw_tc[0]
 
@@ -246,9 +249,11 @@ couplers = []
 x_offset=1500
 y_offset=-800
 
-s1 = 100
-s2 = 4/np.sqrt(2)
-center1 = (3860-120+x_offset+s1+s2,3000+20+y_offset+s1-s2)
+s1 = 100-reduced_length/np.sqrt(2)+150/np.sqrt(2)+11+5/np.sqrt(2)
+
+
+s2 = 10/np.sqrt(2)
+center1 = (3860-117+x_offset+s1+s2+56,3000+32+y_offset+s1-s2+66)
 
 Q1 = elements.pp_transmon.PP_Transmon(name='Q1', center=center1,
                                            width=width,
@@ -272,9 +277,9 @@ Q1 = elements.pp_transmon.PP_Transmon(name='Q1', center=center1,
 sample.add(Q1)
 qubits.append(Q1)
 
-s1 = 40+79/np.sqrt(2)
-s2= 6.5-9+13/np.sqrt(2)
-center2 = (3860-120+x_offset+s1+s2,1600-70+y_offset-s1+s2)
+s1 = 78-reduced_length/np.sqrt(2)+198/np.sqrt(2)
+s2= -2.5+18/np.sqrt(2)
+center2 = (3860-120+x_offset+s1+s2+56,1600-70+y_offset-s1+s2+66)
 Q2 = elements.pp_transmon.PP_Transmon(name='Q2', center=center2,
                                            width=width,
                                            height=height,
@@ -296,8 +301,8 @@ Q2 = elements.pp_transmon.PP_Transmon(name='Q2', center=center2,
 
 sample.add(Q2)
 qubits.append(Q2)
-
-center3 = (2258-170+x_offset-122-10,2298-20+y_offset+13)
+s1 = 0
+center3 = (2258-110+x_offset-158+s1-300,2298-20+y_offset+81+s1)
 
 Q3 = elements.pp_transmon.PP_Transmon(name='Q3', center=center3,
                                            width=width,
@@ -325,16 +330,16 @@ qubits.append(Q3)
 center2tc = (origin[0] +1*(spacing+ground_h)/2+width_tc[0]/2-3+x_offset, origin[1] +(spacing+ground_h)/2+shift_y-claw_tc[0]+y_offset-10)
 
 
-a2 = -300
+a2 = -380
 a_coupl = -300
 T2 = elements.y_squid_coupler.Y_Squid_C(name='Y_Coupler', center=center2tc,
-                                                  width=[100,110],
+                                                  width=[100,200],
                                                   height=height_tc2,
                                                   bridge_gap=JJ_pad_offset_x+5,
                                                   bridge_w=JJ_pad_offset_y,
-                                                  gap=gap_tc,
+                                                  gap=gap_tc+20,
                                                   ground_w=ground_w_tc,
-                                                  ground_h=ground_h_tc,
+                                                  ground_h=ground_h_tc+400,
                                                   ground_t=ground_t,
                                                   jj_params=jj_pp_3,
                                                   fluxline_params=flux2,
@@ -342,6 +347,7 @@ T2 = elements.y_squid_coupler.Y_Squid_C(name='Y_Coupler', center=center2tc,
                                                   Couplers=CC_tc[0],
                                                   calculate_capacitance=False,
                                                   transformations={'rotate': (-np.pi/2, center2tc),},
+                                                  #transformations = {},
                                                   remove_ground={'left': 1, 'top': 1, 'bottom': 1, 'right': 1},
                                                   shoes={},
                                                   claw=claw_tc,
@@ -350,6 +356,7 @@ T2 = elements.y_squid_coupler.Y_Squid_C(name='Y_Coupler', center=center2tc,
                                                   y_gap = 170,
                                                   asymmetry_coupler = a_coupl,
                                                 return_inverted=False,
+                                                    thin_coupler = [True,30]
                                                   )
 
 sample.add(T2)
@@ -425,20 +432,6 @@ JJ_test_structure2 = elements.pp_transmon.PP_Transmon(name='JJ_test1',center=cen
 sample.add(JJ_test_structure2)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 logos=elements.WMILogos((700,3600),(700,3000),layers_configuration)
 sample.add(logos)
 #sample.draw_design()
@@ -463,6 +456,8 @@ def create_restricted(check = False):
         all_restricted.append(Qu['restrict'])
 
     restricted = gdspy.Rectangle((0,0),(0,0))
+    triangle = gdspy.Polygon([center1, center2, center2tc, center1])
+    restricted = gdspy.boolean(restricted, triangle, 'or', layer=layers_configuration['inverted'])
     for i in all_restricted:
         restricted = gdspy.boolean(restricted,i,'or',layer=layers_configuration['bandages'])
 
@@ -470,15 +465,9 @@ def create_restricted(check = False):
     for i in all_restricted:
         one = gdspy.boolean(one, i, 'or', layer=layers_configuration['air bridges'])
     #print(gdspy.Cell('Two-Qubits-PP').get_polygons())
-    sample_all = [i for i in sample.objects]
-    for object in sample_all:
-        if not hasattr(object.render()['positive'],'layers'):
-            continue
-        restricted = gdspy.boolean(restricted,object.render()['positive'],'not',layer=layers_configuration['bandages'])
-        one = gdspy.boolean(one,object.render()['positive'],'not',layer=layers_configuration['vertical gridlines'])
 
+   ##################
     all_inverted = []
-
     for Q in qubits:
         Qu = Q.render()
         all_inverted.append(Qu['pocket'])
@@ -491,6 +480,18 @@ def create_restricted(check = False):
         one = gdspy.boolean(one, i, 'not', layer=layers_configuration['vertical gridlines'])
 
     restricted = gdspy.boolean(restricted,one,'not',layer=layers_configuration['inverted'])
+    triangle = gdspy.Polygon([center1, center2, center2tc, center1])
+    restricted = gdspy.boolean(restricted, triangle, 'or', layer=layers_configuration['inverted'])
+
+    rect = gdspy.Rectangle((center2tc[0]-(ground_h_tc+400)/2,center2tc[1]-ground_w_tc/2),(center2tc[0]-(ground_h_tc+400)/2+290,center2tc[1]-ground_w_tc/2+250))
+    restricted = gdspy.boolean(restricted, rect, 'not', layer=layers_configuration['inverted'])
+
+    sample_all = [i for i in sample.objects]
+    for object in sample_all:
+        if not hasattr(object.render()['positive'],'layers'):
+            continue
+        restricted = gdspy.boolean(restricted,object.render()['positive'],'not',layer=layers_configuration['inverted'])
+        one = gdspy.boolean(one,object.render()['positive'],'not',layer=layers_configuration['vertical gridlines'])
 
     sample.total_cell.add(one)
     sample.total_cell.add(restricted)
