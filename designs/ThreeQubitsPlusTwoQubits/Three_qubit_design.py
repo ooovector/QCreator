@@ -218,7 +218,7 @@ fluxline_core, fluxline_gap, fluxline_ground=9,5,10
 flux_distance = 7
 flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':fluxline_ground,'w':fluxline_core,'s':fluxline_gap,'rotation':0,'inverted_extension':0}
 """
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 4, 3, 5, 40, 50, resonator_gap
+l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 5, 3, 5, [60,9], 50, 3
 flux_distance = 20
 #for coupler
 flux2 = {'l':150,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4,

@@ -195,7 +195,7 @@ class PP_Transmon(DesignElement):
                         fc = self.shoes['fake_claws']
                         if fc['position'][2] == '1':
                             fake_claw = fake_claw.rotate(0).translate(endpoint[0]+ fc['gap1'],endpoint[1]+self.shoes[key][1] / 2)
-                            box_for_fake_claw = box_for_fake_claw.rotate(-np.pi).translate(endpoint[0]+ fc['gap1'],endpoint[1]+self.shoes[key][1] / 2)
+                            box_for_fake_claw = box_for_fake_claw.rotate(0).translate(endpoint[0]+ fc['gap1'],endpoint[1]+self.shoes[key][1] / 2)
 
                             fake_claw = fake_claw.translate(0,self.shoes[key][1]/2).rotate(+Rot, (self.center[0] + self.gap / 2 + self.w, self.center[1] + self.h / 2))
                             box_for_fake_claw = box_for_fake_claw.translate(0,self.shoes[key][1]/2).rotate(+Rot, (self.center[0] + self.gap / 2 + self.w, self.center[1] + self.h / 2))
@@ -1206,8 +1206,6 @@ class PP_Squid_Fluxline:
     def render(self, center, width,height,ground_height,ground_t):
         if not self.extend:
             ground_t = ground_height/2
-
-        factor = 2.18*2
 
 
         #the shift is necessary for the diagonal parts to have the same thickness as the arms
