@@ -19,7 +19,10 @@ tl_ground = 6.#<-- changed from 10. to 5.
 
 resonator_core = 15
 resonator_gap = 10
-resonator_ground = 15 #5
+
+resonator_ground = 15
+
+
 resonator_tl_ground=13
 pad_offset = 550
 
@@ -130,9 +133,9 @@ JJ_pad_offset_x_flux = 20 # for JJ_manhatten
 JJ_pad_offset_y_flux = 10 # JJ design
 
 sh = (130,30)
-shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':10,'gap2':10,'claw_t':25,'l1':140,'l2':55,'box_l':250,'box_h':340,'position':'1111'}}#(gap1,gap2,claw_t,l1,l2,box_l,box_h,binary number indicating where the fake claws are top left top right bottom left bottm right)
+shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':10,'gap2':10,'claw_t':25,'l1':140,'l2':55,'box_l':210,'box_h':340,'position':'1111'}}#(gap1,gap2,claw_t,l1,l2,box_l,box_h,binary number indicating where the fake claws are top left top right bottom left bottm right)
 
-shoes2 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':10,'gap2':10,'claw_t':25,'l1':140,'l2':55,'box_l':250,'box_h':340,'position':'1111'}}#{1:(70,50)}
+shoes2 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':10,'gap2':10,'claw_t':25,'l1':140,'l2':55,'box_l':210,'box_h':340,'position':'1111'}}#{1:(70,50)}
 
 shoes = [shoes1,shoes2]
 # how to place qubits
@@ -178,7 +181,7 @@ air = [-20,40,100]
 
 
 
-CC2 = [elements.pp_transmon.PP_Transmon_Coupler(500,4,100,'top',coupler_type = 'coupler',heightr = -0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0,tight = [True,10],line_same_as_coupler= True),
+CC2 = [elements.pp_transmon.PP_Transmon_Coupler(500,5,100,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0,tight = [True,3],line_same_as_coupler= True),
       elements.pp_transmon.PP_Transmon_Coupler(10,10,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175,tight = [True,10]),
       ]
 
@@ -336,8 +339,8 @@ def create_restricted(check = False):
     restricted = gdspy.Rectangle((0,0),(0,0))
 
     rect1 = gdspy.Rectangle((3062-70, 1300), (3835, 1030))
-
-    restricted = gdspy.boolean(restricted, rect1, 'or', layer=layers_configuration['inverted'])
+    rect2 = gdspy.Rectangle((3900,1624), (2986, 1284))
+    restricted = gdspy.boolean(restricted, [rect1,rect2], 'or', layer=layers_configuration['inverted'])
     for i in all_restricted:
         restricted = gdspy.boolean(restricted,i,'or',layer=layers_configuration['bandages'])
 
