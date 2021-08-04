@@ -1047,7 +1047,7 @@ class TLSystem:
                                                                np.dot(JJ_.nonlinear_perturbation(),
                                                                       submode_ij)).real
 
-                kerr_coefficients_matrix = perturbation_matrix / (hbar * 2 * np.pi) # in Hz
+                kerr_coefficients_matrix = perturbation_matrix / (hbar * 2 * np.pi)  # in Hz
                 JJ_kerr += kerr_coefficients_matrix
 
         return JJ_kerr
@@ -1086,9 +1086,11 @@ class TLSystem:
 
         return JJ_kerr
 
-    def get_second_order_perturbation(self, list_of_modes_numbers: list):
+    def get_second_order_perturbation(self, initial_state: list, list_of_modes_numbers: list):
         """
-        Calculate second order correction to energy with perturbation operator
+        Calculate second order correction to energy with perturbation operator, return this correction in Hz
+        :param initial_state: state for which second order correction should be calculated
+        :param list_of_modes_numbers:
         """
 
         from collections import defaultdict
@@ -1099,21 +1101,25 @@ class TLSystem:
         omega, kappa, modes = self.get_modes()
         omegas = np.asarray([omega[m] for m in list_of_modes_numbers])
 
+        # first order corrections for mode energies
         kerr_matrix = self.get_perturbation(list_of_modes_numbers)
 
-        # first order corrections for mode energies
-        energies_in_modes_with_first_correction = np.zeros(number_of_modes)
-
-        for m in range(number_of_modes):
-            energy_corrected = hbar * omegas[m]
-            for n in range(number_of_modes):
-                energy_corrected += hbar * 2 * np.pi * kerr_matrix[m][n]
-            energies_in_modes_with_first_correction[m] = energy_corrected
-
+        # create initial state of the system corresponding to M modes
         s = [i for i in range(1, number_of_modes + 1)]
-        state = defaultdict(int)  # ground state of the system corresponding to M modes
+        state = defaultdict(int)
         for k in s:
-            state[k] = 0
+            state[k] = initial_state[k - 1]
+
+        # energy of initial state
+        self_kerr_matrix = np.diag(kerr_matrix)
+        cross_kerr_matrix = kerr_matrix - np.diag(self_kerr_matrix)
+
+        kerr_correction1 = np.asarray(initial_state) @ self_kerr_matrix.T * 2
+        kerr_correction2 = np.asarray(initial_state) @ sum([cross_kerr_matrix[:][i] for i in range(number_of_modes)]).T / 2
+
+        energy_initial_state = hbar * np.asarray(initial_state) @ omegas + hbar * 2 * np.pi * (kerr_correction1 + kerr_correction2)
+
+        JJ_kerr = self.get_perturbation_nondiagonal2(list_of_modes_numbers) / 4
 
         operators = []
         for i in range(1, number_of_modes + 1):
@@ -1130,17 +1136,12 @@ class TLSystem:
             perturbation_terms.append(i)
 
         for t in perturbation_terms:
-
             coefficient = 1
 
-            list_of_modes_numbers_ijkl = []  # [i,j,k,l] for calculation J_kerr[i,j,k,l]
-
             for operator in t[::-1]:  # operators act in reverse order
-
                 if np.sign(operator) == 1:
 
                     coefficient *= np.sqrt(state[np.abs(operator)] + 1)
-                    list_of_modes_numbers_ijkl.append(np.abs(operator))
                     state[np.abs(operator)] += 1
 
                 elif np.sign(operator) == -1:
@@ -1148,73 +1149,47 @@ class TLSystem:
                     if state[np.abs(operator)] > 0:
 
                         coefficient *= np.sqrt(state[np.abs(operator)])
-                        list_of_modes_numbers_ijkl.append(np.abs(operator))
                         state[np.abs(operator)] -= 1
 
                     elif state[np.abs(operator)] == 0:
 
-                        coefficient = 0
-                        list_of_modes_numbers_ijkl.append(np.abs(operator))
+                        coefficient *= 0
                         state[np.abs(operator)] = 0
-
                         break
 
-                    else:
-                        raise ValueError('Sign of the mode is not correct')
-
-            JJ_kerr = self.get_perturbation_nondiagonal(list_of_modes_numbers)
             indexes = tuple([np.abs(operator) - 1 + number_of_modes * (operator < 0) for operator in t])
             J_kerr_ijkl = hbar * 2 * np.pi * JJ_kerr[indexes]
 
             final_state = list(state.values())
-
             list_of_all_perturbation_terms.append(np.asarray([coefficient * J_kerr_ijkl, final_state]))
 
             # clear state
             for k in s:
-                state[k] = 0
+                state[k] = initial_state[k - 1]
 
         second_order_energy_correction = 0
+        states_f = [s[1] for s in list_of_all_perturbation_terms]  # states for summation
 
-        states_i = [s[1] for s in list_of_all_perturbation_terms]  # states for summation
+        # remove initial state in states_i, because we can not sum up by f = |initial state>
+        states_f = [s for s in states_f if s != initial_state]
 
-        ground_state = [0 * i for i in range(number_of_modes)]
-
-        energy_ground = 0
-
-        # remove ground state in states_i, because we can not sum up by f = |ground state>
-        states_i = [s for s in states_i if s != ground_state]
-
-        for i in states_i:
-
+        for f in states_f:
+            energy_final_state = hbar * np.asarray(f) @ omegas
             all_matrix_elements = 0
-
             for term in list_of_all_perturbation_terms:
-
                 matrix_elem = term[0]
-
                 final_state = term[1]
 
-                # condition of orthogonal states: < i | final state > = delta(i, final state)
-
-                if i == final_state:
+                if f == final_state:
                     all_matrix_elements += matrix_elem
                 else:
                     all_matrix_elements += 0
 
-            term_for_correction = np.abs(all_matrix_elements) ** 2
-            print(term_for_correction)
-            energy_i = 0
+            numerator = np.abs(all_matrix_elements) ** 2
+            energy_diff = energy_final_state - energy_initial_state
+            second_order_energy_correction += numerator / energy_diff
 
-            for mode in range(number_of_modes):
-                number_of_excitations = i[mode]
-                energy_i += number_of_excitations * energies_in_modes_with_first_correction[mode]
-
-            energy_diff = energy_i - energy_ground
-
-            second_order_energy_correction += term_for_correction / energy_diff
-
-        return second_order_energy_correction
+        return second_order_energy_correction / (hbar * 2 * np.pi)
 
     def get_perturbation_nondiagonal2(self, list_of_modes_numbers: list):
         """
