@@ -23,7 +23,7 @@ class TLSystemElement:
     @abstractmethod
     def energy(self, mode):
         try:
-            return np.conj(mode).squeeze()@self.energy_matrix()@mode.squeeze()
+            return np.conj(mode).squeeze() @ self.energy_matrix() @ mode.squeeze()
         except:
             return 0
 
@@ -61,6 +61,9 @@ class Resistor(TLSystemElement):
         return a, b
 
     def energy(self, mode):
+        return 0
+
+    def energy_matrix(self):
         return 0
 
     def __init__(self, r=None, name=''):
@@ -151,11 +154,11 @@ class Inductor(TLSystemElement):
     #     return []
 
     def potential(self, submode):
-        return (submode[1] - submode[0])**2  / (2 * np.real(self.L)) * 1e-9
+        return (submode[1] - submode[0]) ** 2 / (2 * np.real(self.L)) * 1e-9
 
     def potential_gradient(self, submode):
-        return [(submode[0] - submode[1]) /  np.real(self.L) * 1e-9,
-                (submode[1] - submode[0]) /  np.real(self.L) * 1e-9]
+        return [(submode[0] - submode[1]) / np.real(self.L) * 1e-9,
+                (submode[1] - submode[0]) / np.real(self.L) * 1e-9]
 
     def potential_hessian(self, submode):
         return np.asarray([[1, -1], [-1, 1]]) / np.real(self.L) * 1e-9
@@ -226,6 +229,9 @@ class Short(TLSystemElement):
     def energy(self, mode):
         return 0
 
+    def energy_matrix(self):
+        return 0
+
     def __init__(self):
         super().__init__('Short', '')
         pass
@@ -259,10 +265,10 @@ class Port(TLSystemElement):
     #     return [(submode[1] - self.idc)]
 
     def potential(self, submode):
-        return -submode[0]*self.idc/ (hbar / (2 * e)) * 1e-9
+        return -submode[0] * self.idc / (hbar / (2 * e)) * 1e-9
 
     def potential_gradient(self, submode):
-        return [-self.idc/ (hbar / (2 * e)) * 1e-9]
+        return [-self.idc / (hbar / (2 * e)) * 1e-9]
 
     def potential_hessian(self, submode):
         return [[0]]
@@ -276,10 +282,14 @@ class Port(TLSystemElement):
     def energy(self, mode):
         return 0
 
+    def energy_matrix(self):
+        return 0
+
     def __init__(self, z0=None, name=''):
         super().__init__('Port', name)
         self.Z0 = z0
         self.idc = 0
+
 
 class TLCoupler(TLSystemElement):
     '''
@@ -332,7 +342,8 @@ class TLCoupler(TLSystemElement):
 
         # emat = np.vstack([np.hstack([ll, np.zeros_like(ll)]), np.hstack([np.zeros_like(cl), cl])])
 
-        return np.conj(state.squeeze()) @ energy_matrix @ state.squeeze()  # TODO: energy stored in transmission line system
+        return np.conj(
+            state.squeeze()) @ energy_matrix @ state.squeeze()  # TODO: energy stored in transmission line system
 
     def energy_matrix(self):
         m = self.n * self.num_modes
@@ -341,15 +352,15 @@ class TLCoupler(TLSystemElement):
         e = 0.5 * s * s.reshape((-1, 1)) * self.l
         e += np.abs(e)
 
-        integral = 1/(np.arange(self.num_modes).reshape(-1,1) + np.arange(self.num_modes) + 1)
+        integral = 1 / (np.arange(self.num_modes).reshape(-1, 1) + np.arange(self.num_modes) + 1)
         e = e * integral
 
         ll = np.kron(self.Ll, e)
         cl = np.kron(self.Cl, e)
 
         energy_matrix = np.zeros((self.num_terminals() * 2 + m * 2, self.num_terminals() * 2 + m * 2))
-        energy_matrix[-2*m:-m, -2*m:-m] = cl/2
-        energy_matrix[-m:, -m:] = ll/2
+        energy_matrix[-2 * m:-m, -2 * m:-m] = cl / 2
+        energy_matrix[-m:, -m:] = ll / 2
 
         return energy_matrix
 
@@ -540,8 +551,7 @@ class JosephsonJunction(TLSystemElement):
         return v
 
     def nonlinear_perturbation4(self, mode1, mode2, mode3, mode4):
-
-        v = - self.L_lin() ** 3 / self.phi_0**2 *mode1[2]*mode2[2]*mode3[2]*mode4[2]/ 4
+        v = - self.L_lin() ** 3 / self.phi_0 ** 2 * mode1[2] * mode2[2] * mode3[2] * mode4[2] / 4
 
         # np.conj(np.kron(mode1, mode2)) @ v @ (np.kron(mode1, mode2))
 
@@ -628,7 +638,7 @@ class TLSystem:
         return np.asarray(frequencies)[order], np.asarray(gammas)[order], np.asarray(modes)[order]
 
     def get_scdc_subsystems(self):
-        #scdc_nodes = self.get_scdc_nodes()
+        # scdc_nodes = self.get_scdc_nodes()
         unbound_scdc_nodes = self.get_scdc_nodes()
         bound_scdc_nodes = []
         subsystems = []
@@ -657,7 +667,7 @@ class TLSystem:
                                 if connection not in shorts or type(element) is Short:
                                     subsystem_elements.append(element)
                                     elements_found = True
-                                #print ('found ', element, connections)
+                                # print ('found ', element, connections)
                             bound_scdc_nodes = list(set(bound_scdc_nodes + subsystem_nodes))
                             unbound_scdc_nodes = list(set(unbound_scdc_nodes).difference(set(subsystem_nodes)))
             nodes_no_shorts = [node for node in subsystem_nodes if node not in shorts]
@@ -727,8 +737,10 @@ class TLSystem:
                     element_state[terminal_id] = state[node_id]
 
             element_gradient = np.asarray(e.potential_gradient(element_state))
-            matrix_indeces = [scdc_subnodes.index(node_id) for node_id in self.terminal_node_mapping[e_id] if node_id not in scdc_shorts]
-            submatrix_indeces = [i for i in range(len(self.terminal_node_mapping[e_id])) if self.terminal_node_mapping[e_id][i] not in scdc_shorts]
+            matrix_indeces = [scdc_subnodes.index(node_id) for node_id in self.terminal_node_mapping[e_id] if
+                              node_id not in scdc_shorts]
+            submatrix_indeces = [i for i in range(len(self.terminal_node_mapping[e_id])) if
+                                 self.terminal_node_mapping[e_id][i] not in scdc_shorts]
             energy_gradient[matrix_indeces] += element_gradient[submatrix_indeces]
 
         return energy_gradient
@@ -748,10 +760,13 @@ class TLSystem:
                     element_state[terminal_id] = state[node_id]
 
             element_hessian = np.asarray(e.potential_hessian(element_state))
-            matrix_indeces = [scdc_subnodes.index(node_id) for node_id in self.terminal_node_mapping[e_id] if node_id not in scdc_shorts]
-            submatrix_indeces = [i for i in range(len(self.terminal_node_mapping[e_id])) if self.terminal_node_mapping[e_id][i] not in scdc_shorts]
+            matrix_indeces = [scdc_subnodes.index(node_id) for node_id in self.terminal_node_mapping[e_id] if
+                              node_id not in scdc_shorts]
+            submatrix_indeces = [i for i in range(len(self.terminal_node_mapping[e_id])) if
+                                 self.terminal_node_mapping[e_id][i] not in scdc_shorts]
             if len(matrix_indeces):
-                energy_hessian[np.meshgrid(matrix_indeces, matrix_indeces)] += element_hessian[np.meshgrid(submatrix_indeces, submatrix_indeces)]
+                energy_hessian[np.meshgrid(matrix_indeces, matrix_indeces)] += element_hessian[
+                    np.meshgrid(submatrix_indeces, submatrix_indeces)]
 
         return energy_hessian
 
@@ -942,7 +957,7 @@ class TLSystem:
 
         e = element.energy_matrix()
         if type(e) is not int:
-            submode_energy = np.conj(submode_element.T).squeeze()@element.energy_matrix()@submode_element2.squeeze()
+            submode_energy = np.conj(submode_element.T).squeeze() @ element.energy_matrix() @ submode_element2.squeeze()
         else:
             submode_energy = 0
 
@@ -1025,13 +1040,14 @@ class TLSystem:
                         if j == i:
 
                             perturbation_matrix[i][j] = np.dot(np.conj(submode_ij.T),
-                                                           np.dot(JJ_.nonlinear_perturbation(), submode_ij)).real / 2
+                                                               np.dot(JJ_.nonlinear_perturbation(),
+                                                                      submode_ij)).real / 2
                         else:
                             perturbation_matrix[i][j] = np.dot(np.conj(submode_ij.T),
                                                                np.dot(JJ_.nonlinear_perturbation(),
                                                                       submode_ij)).real
 
-                kerr_coefficients_matrix = perturbation_matrix / (hbar*2*np.pi)
+                kerr_coefficients_matrix = perturbation_matrix / (hbar * 2 * np.pi) # in Hz
                 JJ_kerr += kerr_coefficients_matrix
 
         return JJ_kerr
@@ -1046,27 +1062,27 @@ class TLSystem:
 
         JJ_kerr = np.zeros((2 * number_of_modes, 2 * number_of_modes, 2 * number_of_modes, 2 * number_of_modes))
         for JJ_ in self.JJs:
-            for i in range(number_of_modes*2):
-                mode_i = self.get_element_submode(JJ_, modes_[i%number_of_modes])
+            for i in range(number_of_modes * 2):
+                mode_i = self.get_element_submode(JJ_, modes_[i % number_of_modes])
                 if i > number_of_modes:
                     mode_i = np.conj(mode_i)
-                for j in range(number_of_modes*2):
-                    mode_j = self.get_element_submode(JJ_, modes_[j%number_of_modes])
+                for j in range(number_of_modes * 2):
+                    mode_j = self.get_element_submode(JJ_, modes_[j % number_of_modes])
                     if j > number_of_modes:
                         mode_j = np.conj(mode_j)
                     submode_ij = np.kron(mode_i, mode_j)
-                    for k in range(number_of_modes*2):
-                        mode_k = self.get_element_submode(JJ_, modes_[k%number_of_modes])
+                    for k in range(number_of_modes * 2):
+                        mode_k = self.get_element_submode(JJ_, modes_[k % number_of_modes])
                         if k > number_of_modes:
                             mode_k = np.conj(mode_k)
-                        for l in range(number_of_modes*2):
-                            mode_l = self.get_element_submode(JJ_, modes_[l%number_of_modes])
+                        for l in range(number_of_modes * 2):
+                            mode_l = self.get_element_submode(JJ_, modes_[l % number_of_modes])
                             if l > number_of_modes:
                                 mode_l = np.conj(mode_l)
                             submode_kl = np.kron(mode_k, mode_l)
                             JJ_kerr[i, j, k, l] += np.dot(submode_ij.T,
-                                                                   np.dot(JJ_.nonlinear_perturbation(),
-                                                                          submode_kl)).ravel()[0] / 6
+                                                          np.dot(JJ_.nonlinear_perturbation(),
+                                                                 submode_kl)).ravel()[0] / 6
 
         return JJ_kerr
 
@@ -1208,33 +1224,34 @@ class TLSystem:
 
         number_of_modes = len(modes_)
 
-        JJ_kerr = np.zeros((2 * number_of_modes, 2 * number_of_modes, 2 * number_of_modes, 2 * number_of_modes), dtype=complex)
+        JJ_kerr = np.zeros((2 * number_of_modes, 2 * number_of_modes, 2 * number_of_modes, 2 * number_of_modes),
+                           dtype=complex)
         for JJ_ in self.JJs:
-            for i in range(number_of_modes*2):
+            for i in range(number_of_modes * 2):
                 mode_i = self.get_element_submode(JJ_, modes_[i % number_of_modes])
                 if i > number_of_modes:
                     mode_i = np.conj(mode_i)
-                for j in range(number_of_modes*2):
+                for j in range(number_of_modes * 2):
                     if j < i:
                         continue
                     mode_j = self.get_element_submode(JJ_, modes_[j % number_of_modes])
                     if j > number_of_modes:
                         mode_j = np.conj(mode_j)
-                    #submode_ij = np.kron(mode_i, mode_j)
-                    for k in range(number_of_modes*2):
+                    # submode_ij = np.kron(mode_i, mode_j)
+                    for k in range(number_of_modes * 2):
                         if k < j:
                             continue
                         mode_k = self.get_element_submode(JJ_, modes_[k % number_of_modes])
                         if k > number_of_modes:
                             mode_k = np.conj(mode_k)
-                        for l in range(number_of_modes*2):
+                        for l in range(number_of_modes * 2):
                             if l < k:
-                               continue
+                                continue
                             mode_l = self.get_element_submode(JJ_, modes_[l % number_of_modes])
                             if l > number_of_modes:
                                 mode_l = np.conj(mode_l)
-                            #submode_kl = np.kron(mode_k, mode_l)
-                            #JJ_kerr[i, j, k, l] += (submode_ij.T@JJ_.nonlinear_perturbation()@submode_kl).ravel()[0] / 6
+                            # submode_kl = np.kron(mode_k, mode_l)
+                            # JJ_kerr[i, j, k, l] += (submode_ij.T@JJ_.nonlinear_perturbation()@submode_kl).ravel()[0] / 6
                             JJ_kerr[i, j, k, l] += JJ_.nonlinear_perturbation4(mode_i, mode_j, mode_k, mode_l) / 6
                             # print(i, j, k, l)
 
@@ -1242,8 +1259,8 @@ class TLSystem:
 
     def get_second_order_perturbation_kerr2(self, list_of_modes_numbers: list):
         omega, kappa, modes = self.get_modes()
-        omega_ = np.asarray([omega[m] for m in list_of_modes_numbers])/(2*np.pi)
-        omega_corrected = np.asarray([omega[m] for m in list_of_modes_numbers])/(2*np.pi)
+        omega_ = np.asarray([omega[m] for m in list_of_modes_numbers]) / (2 * np.pi)
+        omega_corrected = np.asarray([omega[m] for m in list_of_modes_numbers]) / (2 * np.pi)
 
         JJ_kerr = self.get_perturbation_nondiagonal2(list_of_modes_numbers) / 4
 
@@ -1256,8 +1273,8 @@ class TLSystem:
 
         for mode_id in range(len(list_of_modes_numbers)):
             mode = [0 if i != mode_id else 1 for i in range(len(list_of_modes_numbers))]
-            #corrected_energy = self.get_second_order_perturbation(mode, list_of_modes_numbers)
-            #omega_corrected[mode_id] += first_order_kerr[mode_id, mode_id] + corrected_energy - ground_state_energy
+            # corrected_energy = self.get_second_order_perturbation(mode, list_of_modes_numbers)
+            # omega_corrected[mode_id] += first_order_kerr[mode_id, mode_id] + corrected_energy - ground_state_energy
             first_state_corrections[mode_id] = self.get_second_order_perturbation3(mode, omega_, JJ_kerr)
 
         for mode1_id in range(len(list_of_modes_numbers)):
@@ -1266,8 +1283,9 @@ class TLSystem:
                 mode[mode1_id] += 1
                 mode[mode2_id] += 1
                 corrected_energy = self.get_second_order_perturbation3(mode, omega_, JJ_kerr)
-                kerr[mode1_id, mode2_id] = first_order_kerr[mode1_id, mode2_id] + corrected_energy + ground_state_energy - \
-                                                first_state_corrections[mode1_id] - first_state_corrections[mode2_id]
+                kerr[mode1_id, mode2_id] = first_order_kerr[
+                                               mode1_id, mode2_id] + corrected_energy + ground_state_energy - \
+                                           first_state_corrections[mode1_id] - first_state_corrections[mode2_id]
 
         return kerr
 
@@ -1280,15 +1298,15 @@ class TLSystem:
         from itertools import product
 
         omega, kappa, modes = self.get_modes()
-        omega_ = np.asarray([omega[m] for m in list_of_modes_numbers])/(2*np.pi)
+        omega_ = np.asarray([omega[m] for m in list_of_modes_numbers]) / (2 * np.pi)
         modes_ = self.normalization_of_modes(list_of_modes_numbers)  # here modes are normalized
-        #first_order_kerr = self.get_perturbation(list_of_modes_numbers)
-        #first_order_kerr = (first_order_kerr + np.diag(np.diag(first_order_kerr))) / 2
+        # first_order_kerr = self.get_perturbation(list_of_modes_numbers)
+        # first_order_kerr = (first_order_kerr + np.diag(np.diag(first_order_kerr))) / 2
         JJ_kerr = self.get_perturbation_nondiagonal2(list_of_modes_numbers) / 4
 
         initial_state_ = np.asarray(initial_state)
         initial_state = tuple(initial_state)
-        initial_state_energy = initial_state_@omega_# + initial_state@first_order_kerr@initial_state
+        initial_state_energy = initial_state_ @ omega_  # + initial_state@first_order_kerr@initial_state
 
         number_of_modes = JJ_kerr.shape[0] // 2  # number of modes in the system
 
@@ -1302,16 +1320,16 @@ class TLSystem:
         # '-n' -- annihilation operator of mode n
 
         for t in product(operators, repeat=4):
-            #print ('Operator: ', t)
-            state = {k+1:v for k,v in enumerate(initial_state)}
+            # print ('Operator: ', t)
+            state = {k + 1: v for k, v in enumerate(initial_state)}
 
             matrix_element_factor = 1
             indeces = tuple(sorted([np.abs(operator) - 1 + number_of_modes * (operator < 0) for operator in t]))
-            #print ('JJ kerr indeces: ', indeces)
+            # print ('JJ kerr indeces: ', indeces)
             matrix_element_number = JJ_kerr[indeces]
 
             for operator in t[::-1]:
-                #print('operator: ', operator)
+                # print('operator: ', operator)
                 if np.sign(operator) == 1:
                     state[np.abs(operator)] += 1
                     matrix_element_factor = matrix_element_factor * np.sqrt(state[np.abs(operator)])
@@ -1319,14 +1337,14 @@ class TLSystem:
                     matrix_element_factor = matrix_element_factor * np.sqrt(state[np.abs(operator)])
                     state[np.abs(operator)] -= 1
                     if state[np.abs(operator)] < 0:
-                        #print (matrix_element_factor)
+                        # print (matrix_element_factor)
                         break
-                #print ('matrix element factor: ', matrix_element_factor)
+                # print ('matrix element factor: ', matrix_element_factor)
 
-            final_state_tuple = tuple([state[s] for s in range(1, len(initial_state)+1)])
+            final_state_tuple = tuple([state[s] for s in range(1, len(initial_state) + 1)])
             final_states[final_state_tuple] += matrix_element_factor * matrix_element_number
-            #print (state[1], matrix_element_factor)
-            #print('Arrived in state: ', state,
+            # print (state[1], matrix_element_factor)
+            # print('Arrived in state: ', state,
             #      'got pre-factor: ', matrix_element_factor,
             #      'modal matrix element: ', matrix_element_number,
             #      'final state: ', final_states)
@@ -1334,11 +1352,11 @@ class TLSystem:
         correction = 0
         for final_state, matrix_element in final_states.items():
             final_state_ = np.asarray(final_state)
-            final_state_energy = final_state_@omega_ # + final_state_ @ first_order_kerr @ final_state_
+            final_state_energy = final_state_ @ omega_  # + final_state_ @ first_order_kerr @ final_state_
             denominator = initial_state_energy - final_state_energy
-            numerator = np.abs(matrix_element)**2
+            numerator = np.abs(matrix_element) ** 2
             correction_new = numerator / denominator
-            #print('i: ', initial_state, 'f: ', final_state, 'E_i', initial_state_energy/1e9, 'E_f:', final_state_energy/1e9,
+            # print('i: ', initial_state, 'f: ', final_state, 'E_i', initial_state_energy/1e9, 'E_f:', final_state_energy/1e9,
             #      'Vif:', np.abs(matrix_element)/1e9, 'correction:', correction_new/1e9)
             if final_state != initial_state:
                 correction += correction_new
@@ -1355,7 +1373,7 @@ class TLSystem:
 
         initial_state_ = np.asarray(initial_state)
         initial_state = tuple(initial_state)
-        initial_state_energy = initial_state_@omega_# + initial_state@first_order_kerr@initial_state
+        initial_state_energy = initial_state_ @ omega_  # + initial_state@first_order_kerr@initial_state
 
         number_of_modes = len(initial_state)  # number of modes in the system
 
@@ -1369,8 +1387,8 @@ class TLSystem:
         # '-n' -- annihilation operator of mode n
 
         for t in product(operators, repeat=4):
-            #print ('Operator: ', t)
-            state = {k+1: v for k, v in enumerate(initial_state)}
+            # print ('Operator: ', t)
+            state = {k + 1: v for k, v in enumerate(initial_state)}
 
             matrix_element_factor = 1
             indeces = tuple(sorted([np.abs(operator) - 1 + number_of_modes * (operator < 0) for operator in t]))
@@ -1378,7 +1396,7 @@ class TLSystem:
             matrix_element_number = JJ_kerr[indeces]
 
             for operator in t[::-1]:
-                #print('operator: ', operator)
+                # print('operator: ', operator)
                 if np.sign(operator) == 1:
                     state[np.abs(operator)] += 1
                     matrix_element_factor = matrix_element_factor * np.sqrt(state[np.abs(operator)])
@@ -1386,13 +1404,13 @@ class TLSystem:
                     matrix_element_factor = matrix_element_factor * np.sqrt(state[np.abs(operator)])
                     state[np.abs(operator)] -= 1
                     if state[np.abs(operator)] < 0:
-                        #print (matrix_element_factor)
+                        # print (matrix_element_factor)
                         break
-                #print ('matrix element factor: ', matrix_element_factor)
+                # print ('matrix element factor: ', matrix_element_factor)
 
-            final_state_tuple = tuple([state[s] for s in range(1, len(initial_state)+1)])
+            final_state_tuple = tuple([state[s] for s in range(1, len(initial_state) + 1)])
             final_states[final_state_tuple] += matrix_element_factor * matrix_element_number
-            #print (state[1], matrix_element_factor)
+            # print (state[1], matrix_element_factor)
             # print('Arrived in state: ', state,
             #       'got pre-factor: ', matrix_element_factor,
             #       'modal matrix element: ', matrix_element_number,
@@ -1401,9 +1419,9 @@ class TLSystem:
         correction = 0
         for final_state, matrix_element in final_states.items():
             final_state_ = np.asarray(final_state)
-            final_state_energy = final_state_@omega_ # + final_state_ @ first_order_kerr @ final_state_
+            final_state_energy = final_state_ @ omega_  # + final_state_ @ first_order_kerr @ final_state_
             denominator = initial_state_energy - final_state_energy
-            numerator = np.abs(matrix_element)**2
+            numerator = np.abs(matrix_element) ** 2
             correction_new = numerator / denominator
             # print('i: ', initial_state, 'f: ', final_state, 'E_i', initial_state_energy/1e9, 'E_f:', final_state_energy/1e9,
             #      'Vif:', np.abs(matrix_element)/1e9, 'correction:', correction_new/1e9)
@@ -1411,3 +1429,34 @@ class TLSystem:
                 correction += correction_new
 
         return correction
+
+    def which_mode(self, modes):
+        """
+        Returns sorted list of energies in modes
+        """
+
+        number_of_modes = modes.shape[0]
+
+        dict_of_modes = {}
+
+        for i in range(number_of_modes):
+            dict_of_modes['Mode_' + str(i)] = None
+
+        for i in range(number_of_modes):
+            energies_list = []
+            for elem in self.elements:
+                elem_energy = self.element_energy(element=elem, mode=modes[i]).real
+                energies_list.append((elem, elem_energy))
+
+            # sort elements by energies
+
+            for k in range(len(energies_list) - 1):
+                for p in range(len(energies_list) - k - 1):
+                    if energies_list[p][1] > energies_list[p + 1][1]:
+                        energies_list[p], energies_list[p + 1] = energies_list[p + 1], energies_list[p]
+
+            energies_list.reverse()
+
+            dict_of_modes['Mode_' + str(i)] = energies_list
+
+        return dict_of_modes
