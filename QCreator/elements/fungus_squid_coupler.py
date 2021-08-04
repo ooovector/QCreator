@@ -952,7 +952,7 @@ class PP_Squid_Fluxline:
 
         point = (center[0]+self.pad_g/2+self.pad_w-self.b_w/2+self.flux_distance+self.t_r+self.l,center[1]+self.asymmetry+self.pad_h/2+3.5*self.b_w)
 
-        self.connection =point
+
 
         remove1 = gdspy.Rectangle(
             (center[0] + self.t_r / 2, center[1] + g_h / 2 - g_t),
@@ -962,7 +962,7 @@ class PP_Squid_Fluxline:
             (center[0] + 100 + self.l_arm + self.t_m, center[1] + g_h / 2 + 2000))
 
         if self.rotation != 0 and self.rotation != None :
-            self.connection = rotate_point(point, self.rotation, (point[0] - self.l - self.t_r, point[1]))
+            point = rotate_point(point, self.rotation, (point[0] - self.l - self.t_r, point[1]))
             result   = result.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
             restrict = restrict.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
             remove1  = remove1.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
@@ -970,20 +970,17 @@ class PP_Squid_Fluxline:
             inverted = inverted.rotate(self.rotation, (point[0] - self.l - self.t_r, point[1]))
 
         if self.translation != (0,0) and self.translation != None :
-            print('under maintanance, please ignore')
-            '''
-            self.connection = 
-            result   = result.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
-            restrict = restrict.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
-            remove1  = remove1.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
-            remove2  = remove2.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
-            inverted = inverted.rotate(self.rotation, (point[0] - self.l - self.t_r, point[1]))
-            '''
+            dx,dy = self.translation[0],self.translation[1]
+            print(dx,dy)
+            point = (point[0]+dx,point[1]+dy)
+            result   = result.translate(dx,dy)
+            restrict = restrict.translate(dx,dy)
+            remove1  = remove1.translate(dx,dy)
+            remove2  = remove2.translate(dx,dy)
+            inverted = inverted.translate(dx,dy)
 
 
-
-
-
+        self.connection = point
         return {
             'positive': result,
             'restricted':restrict,
