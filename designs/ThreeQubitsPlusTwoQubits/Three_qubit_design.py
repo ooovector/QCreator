@@ -199,7 +199,7 @@ air2 = [[200,40,100],[400,40,100]]
 
 tight = [True,6]
 
-CC1 = [elements.pp_transmon.PP_Transmon_Coupler(450,160,25,'bottom',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=40,tight = tight),
+CC1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.4,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=40,tight = tight),
        #elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.02*0,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25,tight = tight),
       ]
 
