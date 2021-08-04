@@ -1207,8 +1207,6 @@ class PP_Squid_Fluxline:
         if not self.extend:
             ground_t = ground_height/2
 
-        factor = 2.18*2
-
 
         #the shift is necessary for the diagonal parts to have the same thickness as the arms
         x1 = (self.l_arm-self.s_gap)/self.h_arm

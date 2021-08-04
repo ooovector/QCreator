@@ -329,15 +329,18 @@ class Y_Squid_C(DesignElement):
             #removing ground where the fluxline is
             ground_fluxline =True
             if ground_fluxline == False:
-                result = gdspy.boolean(result, gdspy.Rectangle((self.center[0]-l_arm/2-t_r-self.g_t,self.center[1]+self.h/2+0.01),(self.center[0]+3*l_arm/2+t_r+t_m+self.g_t,self.center[1]+self.h/2)), 'not', layer=self.layer_configuration.total_layer)
+                print('under maintanance and not in use right now')
+                #result = gdspy.boolean(result, gdspy.Rectangle((self.center[0]-l_arm/2-t_r-self.g_t,self.center[1]+self.h/2+0.01),(self.center[0]+3*l_arm/2+t_r+t_m+self.g_t,self.center[1]+self.h/2)), 'not', layer=self.layer_configuration.total_layer)
             else:
+                if not isinstance(l_arm, list):
+                    l_arm = [l_arm,l_arm]
                 result = gdspy.boolean(result, gdspy.Rectangle(
                     (self.center[0]+t_r/2 , self.center[1] + self.g_h/2-self.g_t),
-                    (self.center[0] +  l_arm + t_m-t_r/2, self.center[1] + self.g_h/2 )), 'not',
+                    (self.center[0] +  l_arm[0] + t_m-t_r/2, self.center[1] + self.g_h/2 )), 'not',
                                    layer=self.layer_configuration.total_layer)
                 result = gdspy.boolean(result, gdspy.Rectangle(
                     (self.center[0]-100 , self.center[1] + self.g_h / 2 ),
-                    (self.center[0]+100 +  l_arm + t_m, self.center[1] + self.g_h / 2 +2000)), 'not',
+                    (self.center[0]+100 +  l_arm[0] + t_m, self.center[1] + self.g_h / 2 +2000)), 'not',
                                    layer=self.layer_configuration.total_layer)
         #adding air bridges
         Air = None
@@ -987,114 +990,7 @@ class PP_Squid_Coupler:
             'positive': result
                         }
 
-"""
-class PP_Squid_Fluxline:
-    
-    #This class represents a Flux_line for a PP_Squid. Design inspired from  Vivien Schmitt. Design, fabrication and test of a four superconducting quantum-bit processor. Physics[physics]
-    #There are several parameters:
-    #1) l     - total length of the flux line to the Squid
-    #2) t_m   - main line thickness, standard is 2*t_r
-    #3) t_r   - return line thickness
-    #4) gap   - gap between Squid and line
-    #5) l_arm - length of one sidearm
-    #6) h_arm - height of the return arm
-    #7) s_gap - gap between main and return fluxline
-    
-    def __init__(self, l,t_m,t_r,gap,l_arm,h_arm,s_gap,flux_distance,pad_w,pad_h,pad_g,b_w,b_g,ground,asymmetry = 0,w= None, g=None, s=None,extend = None):
-        self.l      = l
-        self.t_m    = t_m
-        self.t_r    = t_r
-        self.gap    = gap
-        self.l_arm  = l_arm
-        self.h_arm  = h_arm
-        self.s_gap  = s_gap
-        self.asymmetry = asymmetry
-        self.flux_distance = flux_distance
-        self.side   = 'fluxline'
-        self.connection = None
-        #for the terminals:
-        self.g = g
-        self.w = w
-        self.s = s
-        self.extend = extend
-        #pad parameters
-        self.pad_w = pad_w
-        self.pad_h = pad_h
-        self.b_w = b_w
-        self.b_g = b_g
-        self.pad_g = pad_g
-        self.ground = ground
-    def render(self, center, width,height,ground_height,ground_t):
-        if not self.extend:
-            ground_t = ground_height/2
 
-        start  = [0,0]#[self.l_arm/2,self.t_r+self.l+height/2+self.gap+self.asymmetry]
-        points = [start+[0,0],start+[self.t_m,0],start+[self.t_m,-self.l],start+[self.t_m+self.l_arm,-self.l]]
-        points.append(start+[self.t_m+self.s_gap,-self.l+self.h_arm])
-        points.append(start+[self.t_m+self.s_gap,0])
-        points.append(start + [self.t_m + self.s_gap+self.t_r, 0])
-        points.append(start + [self.t_m + self.s_gap + self.t_r, -self.l+self.h_arm])
-        points.append(start + [self.t_m + self.l_arm+ self.t_r, -self.l])
-        points.append(start + [self.t_m + self.l_arm+ self.t_r, -self.l-self.t_r])
-        points.append(start + [- self.l_arm- self.t_r, -self.l-self.t_r])
-        points.append(start + [- self.l_arm - self.t_r, -self.l])
-        points.append(start + [-self.t_r-self.s_gap, -self.l+self.h_arm])
-        points.append(start + [-self.t_r - self.s_gap, 0])
-        points.append(start + [- self.s_gap, 0])
-        points.append(start + [- self.s_gap, -self.l+self.h_arm])
-        points.append(start + [- self.l_arm, -self.l])
-        points.append(start + [0, -self.l])
-        points = [(i[0]+i[2],i[1]+i[3]) for i in points]
-        result = gdspy.Polygon(points)
-
-        #restricted area:
-        points2 = [points[13],points[6],points[7],points[8],points[9],points[10],points[11],points[12],points[13]]
-
-        restrict = gdspy.Polygon(points2)
-
-
-
-        #cutouts of the ground
-        cutout1 = gdspy.Rectangle(
-                (0,ground_height / 2 - ground_t),
-                (self.l_arm + self.t_m,ground_height / 2 + 250))
-        cutout2 = gdspy.Rectangle(
-                (-2*self.l_arm, center[1] + ground_height / 2 ),
-                (+2*self.l_arm, center[1] + ground_height / 2 +100))
-
-        result = gdspy.boolean(result,cutout1,'not')
-
-        result = gdspy.boolean(result,cutout2,'not')
-
-        result.translate(-self.t_m/2,+self.l+self.t_r)
-        result.rotate(-np.pi/2)
-
-        restrict.translate(-self.t_m/2,+self.l+self.t_r)
-        restrict.rotate(-np.pi / 2)
-
-        # move fluxline to correct position
-        result.translate(center[0], center[1])
-        result.translate(self.pad_g/2+self.pad_w-self.b_w/2+self.flux_distance,self.asymmetry+self.pad_h/2+3.5*self.b_w)
-
-        restrict.translate(center[0], center[1])
-        restrict.translate(self.pad_g/2+self.pad_w-self.b_w/2+self.flux_distance,self.asymmetry+self.pad_h/2+3.5*self.b_w)
-
-        #cuttng off the hanging rest:
-        if self.ground != None:
-            result = gdspy.boolean(result,self.ground,'and')
-
-        self.result_coupler = result
-
-        point = (center[0] + self.pad_g / 2 + self.pad_w - self.b_w / 2 + self.flux_distance + self.t_r + self.l,
-                 center[1] + self.asymmetry + self.pad_h / 2 + 3.5 * self.b_w)
-
-        self.connection = point
-
-        return {
-            'positive': result,
-            'restricted':restrict,
-                        }
-"""
 class PP_Squid_Fluxline:
     """
     This class represents a Flux_line for a PP_Squid. Design inspired from  Vivien Schmitt. Design, fabrication and test of a four superconducting quantum-bit processor. Physics[physics]
@@ -1112,7 +1008,13 @@ class PP_Squid_Fluxline:
         self.t_m    = t_m
         self.t_r    = t_r
         self.gap    = gap
-        self.l_arm  = l_arm
+        if isinstance(l_arm, list):
+            self.l_arm = l_arm[0]
+            self.l_arm2 = l_arm[1]
+        else:
+            print(type(l_arm))
+            self.l_arm = l_arm
+            self.l_arm2 = l_arm
         self.h_arm  = h_arm
         self.s_gap  = s_gap
         self.asymmetry = asymmetry
@@ -1143,48 +1045,32 @@ class PP_Squid_Fluxline:
         factor = 1/2.18/2
         #the shift is necessary for the diagonal parts to have the same thickness as the arms
         x1 = (self.l_arm-self.s_gap)/self.h_arm
-        x2 =  (factor*self.l_arm-self.s_gap)/self.h_arm
+        x2 =  (factor*self.l_arm2-self.s_gap)/self.h_arm
         shift_right = self.t_r*np.tan(0.5*np.arctan(x1))
         shift_left  = self.t_r*np.tan(0.5*np.arctan(x2))
 
-        start  = [0,0]
-        points = [start+[0,0],start+[self.t_m,0],start+[self.t_m,-self.l],start+[self.t_m+self.l_arm-shift_right*(self.l_arm-self.s_gap)/self.h_arm,-self.l]]
-        points.append(start+[self.t_m+self.s_gap,-self.l+self.h_arm-shift_right])
-        points.append(start+[self.t_m+self.s_gap,0])
-        points.append(start + [self.t_m + self.s_gap+self.t_r, 0])
-        points.append(start + [self.t_m + self.s_gap + self.t_r, -self.l+self.h_arm])
-        points.append(start + [self.t_m + self.l_arm+ self.t_r, -self.l])
-        points.append(start + [self.t_m + self.l_arm+ self.t_r, -self.l-self.t_r])
-        points.append(start + [- factor*self.l_arm- self.t_r, -self.l-self.t_r])
-        points.append(start + [- factor*self.l_arm - self.t_r, -self.l])
-        points.append(start + [-self.t_r-self.s_gap, -self.l+self.h_arm])
+        start = [0, 0]
+        points = [start + [0, 0], start + [self.t_m, 0], start + [self.t_m, -self.l],
+                  start + [self.t_m + self.l_arm - shift_right * (self.l_arm - self.s_gap) / self.h_arm, -self.l]]
+        points.append(start + [self.t_m + self.s_gap, -self.l + self.h_arm - shift_right])
+        points.append(start + [self.t_m + self.s_gap, 0])
+        points.append(start + [self.t_m + self.s_gap + self.t_r, 0])
+        points.append(start + [self.t_m + self.s_gap + self.t_r, -self.l + self.h_arm])
+        points.append(start + [self.t_m + self.l_arm + self.t_r, -self.l])
+        points.append(start + [self.t_m + self.l_arm + self.t_r, -self.l - self.t_r])
+        points.append(start + [- self.l_arm2 - self.t_r, -self.l - self.t_r])
+        points.append(start + [- self.l_arm2 - self.t_r, -self.l])
+        points.append(start + [-self.t_r - self.s_gap, -self.l + self.h_arm])
         points.append(start + [-self.t_r - self.s_gap, 0])
         points.append(start + [- self.s_gap, 0])
-        points.append(start + [- self.s_gap, -self.l+self.h_arm-shift_left])
-        points.append(start + [- factor*self.l_arm+shift_left*(factor*self.l_arm-self.s_gap)/self.h_arm, -self.l])
+        points.append(start + [- self.s_gap, -self.l + self.h_arm - shift_left])
+        points.append(start + [- self.l_arm2 + shift_left * (self.l_arm2 - self.s_gap) / self.h_arm, -self.l])
         points.append(start + [0, -self.l])
-        points = [(i[0]+i[2],i[1]+i[3]) for i in points]
+        points = [(i[0] + i[2], i[1] + i[3]) for i in points]
         result = gdspy.Polygon(points)
-        '''
-        start  = [0,0]#[self.l_arm/2,self.t_r+self.l+height/2+self.gap+self.asymmetry]
-        points = [start+[0,0],start+[self.t_m,0],start+[self.t_m,-self.l],start+[self.t_m+self.l_arm,-self.l]]
-        points.append(start+[self.t_m+self.s_gap,-self.l+self.h_arm])
-        points.append(start+[self.t_m+self.s_gap,0])
-        points.append(start + [self.t_m + self.s_gap+self.t_r, 0])
-        points.append(start + [self.t_m + self.s_gap + self.t_r, -self.l+self.h_arm])
-        points.append(start + [self.t_m + self.l_arm+ self.t_r, -self.l])
-        points.append(start + [self.t_m + self.l_arm+ self.t_r, -self.l-self.t_r])
-        points.append(start + [- self.l_arm- self.t_r, -self.l-self.t_r])
-        points.append(start + [- self.l_arm - self.t_r, -self.l])
-        points.append(start + [-self.t_r-self.s_gap, -self.l+self.h_arm])
-        points.append(start + [-self.t_r - self.s_gap, 0])
-        points.append(start + [- self.s_gap, 0])
-        points.append(start + [- self.s_gap, -self.l+self.h_arm])
-        points.append(start + [- self.l_arm, -self.l])
-        points.append(start + [0, -self.l])
-        points = [(i[0]+i[2],i[1]+i[3]) for i in points]
-        result = gdspy.Polygon(points)
-        '''
+
+
+
         #restricted area:
         points2 = [points[13],points[6],points[7],points[8],points[9],points[10],points[11],points[12],points[13]]
 

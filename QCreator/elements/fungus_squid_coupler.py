@@ -219,8 +219,15 @@ class Fungus_Squid_C(DesignElement):
             print(f)
             l, t_m, t_r, gap, l_arm, h_arm, s_gap = f['l'],f['t_m'],f['t_r'],f['gap'],f['l_arm'],f['h_arm'],f['s_gap']
             flux_distance = f['flux_distance']
+            trans = (0,0)
+            if 'translation' in f:
+                trans = f['translation']
+            rot = 0
+            if 'rotation' in f:
+                rot = f['rotation']
+
             #result_restricted, to ct off hanging parts from the fluxline, None for no cutoff
-            flux = PP_Squid_Fluxline(l, t_m, t_r, gap, l_arm, h_arm, s_gap,flux_distance,self.w,self.h,self.gap,self.b_w,self.b_g,ground = None,asymmetry = self.asymmetry,g = f.get('g'),w = f.get('w'),s = f.get('s'),extend = f.get('extend_to_ground'),rotation = f.get('rotation'))
+            flux = PP_Squid_Fluxline(l, t_m, t_r, gap, l_arm, h_arm, s_gap,flux_distance,self.w,self.h,self.gap,self.b_w,self.b_g,ground = None,asymmetry = self.asymmetry,g = f.get('g'),w = f.get('w'),s = f.get('s'),extend = f.get('extend_to_ground'),rotation = rot,translation = trans)
 
             fluxline = flux.render(self.center, self.w, self.h,self.g_h,self.g_t)['positive']
 
@@ -240,7 +247,8 @@ class Fungus_Squid_C(DesignElement):
             #removing ground where the fluxline is
             ground_fluxline =True
             if ground_fluxline == False:
-                result = gdspy.boolean(result, gdspy.Rectangle((self.center[0]-l_arm/2-t_r-self.g_t,self.center[1]+self.h/2+0.01),(self.center[0]+3*l_arm/2+t_r+t_m+self.g_t,self.center[1]+self.h/2)), 'not', layer=self.layer_configuration.total_layer)
+                print('under maintanance and not in use right now')
+                #result = gdspy.boolean(result, gdspy.Rectangle((self.center[0]-l_arm/2-t_r-self.g_t,self.center[1]+self.h/2+0.01),(self.center[0]+3*l_arm/2+t_r+t_m+self.g_t,self.center[1]+self.h/2)), 'not', layer=self.layer_configuration.total_layer)
             else:
                 result = gdspy.boolean(result,remove_ground_flux, 'not',layer=self.layer_configuration.total_layer)
 
@@ -800,12 +808,18 @@ class PP_Squid_Fluxline:
     6) h_arm - height of the return arm
     7) s_gap - gap between main and return fluxline
     """
-    def __init__(self, l,t_m,t_r,gap,l_arm,h_arm,s_gap,flux_distance,pad_w,pad_h,pad_g,b_w,b_g,ground,asymmetry = 0,w= None, g=None, s=None,extend = None,rotation = 0):
+    def __init__(self, l,t_m,t_r,gap,l_arm,h_arm,s_gap,flux_distance,pad_w,pad_h,pad_g,b_w,b_g,ground,asymmetry = 0,w= None, g=None, s=None,extend = None,rotation = 0,translation = (0,0)):
         self.l      = l
         self.t_m    = t_m
         self.t_r    = t_r
         self.gap    = gap
-        self.l_arm  = l_arm
+        if isinstance(l_arm, list):
+            self.l_arm = l_arm[0]
+            self.l_arm2 = l_arm[1]
+        else:
+            print(type(l_arm))
+            self.l_arm = l_arm
+            self.l_arm2 = l_arm
         self.h_arm  = h_arm
         self.s_gap  = s_gap
         self.asymmetry = asymmetry
@@ -825,10 +839,12 @@ class PP_Squid_Fluxline:
         self.pad_g = pad_g
         self.ground = ground
         self.rotation = rotation
-        print(self.rotation)
+        self.translation = translation
+
     def render(self, center, width,height,ground_height,ground_t,inverted_extension = -1):
         g_t = ground_t
         g_h = ground_height
+        """
         if not self.extend:
             ground_t = ground_height/2
 
@@ -850,6 +866,36 @@ class PP_Squid_Fluxline:
         points.append(start + [0, -self.l])
         points = [(i[0]+i[2],i[1]+i[3]) for i in points]
         result = gdspy.Polygon(points)
+        """
+        if not self.extend:
+            ground_t = ground_height/2
+
+
+        #the shift is necessary for the diagonal parts to have the same thickness as the arms
+        x1 = (self.l_arm-self.s_gap)/self.h_arm
+        x2 =  (self.l_arm2-self.s_gap)/self.h_arm
+        shift_right = self.t_r*np.tan(0.5*np.arctan(x1))
+        shift_left  = self.t_r*np.tan(0.5*np.arctan(x2))
+
+        start  = [0,0]
+        points = [start+[0,0],start+[self.t_m,0],start+[self.t_m,-self.l],start+[self.t_m+self.l_arm-shift_right*(self.l_arm-self.s_gap)/self.h_arm,-self.l]]
+        points.append(start+[self.t_m+self.s_gap,-self.l+self.h_arm-shift_right])
+        points.append(start+[self.t_m+self.s_gap,0])
+        points.append(start + [self.t_m + self.s_gap+self.t_r, 0])
+        points.append(start + [self.t_m + self.s_gap + self.t_r, -self.l+self.h_arm])
+        points.append(start + [self.t_m + self.l_arm+ self.t_r, -self.l])
+        points.append(start + [self.t_m + self.l_arm+ self.t_r, -self.l-self.t_r])
+        points.append(start + [- self.l_arm2- self.t_r, -self.l-self.t_r])
+        points.append(start + [- self.l_arm2 - self.t_r, -self.l])
+        points.append(start + [-self.t_r-self.s_gap, -self.l+self.h_arm])
+        points.append(start + [-self.t_r - self.s_gap, 0])
+        points.append(start + [- self.s_gap, 0])
+        points.append(start + [- self.s_gap, -self.l+self.h_arm-shift_left])
+        points.append(start + [- self.l_arm2+shift_left*(self.l_arm2-self.s_gap)/self.h_arm, -self.l])
+        points.append(start + [0, -self.l])
+        points = [(i[0]+i[2],i[1]+i[3]) for i in points]
+        result = gdspy.Polygon(points)
+
 
         #restricted area:
         points2 = [points[13],points[6],points[7],points[8],points[9],points[10],points[11],points[12],points[13]]
@@ -917,12 +963,24 @@ class PP_Squid_Fluxline:
 
         if self.rotation != 0 and self.rotation != None :
             self.connection = rotate_point(point, self.rotation, (point[0] - self.l - self.t_r, point[1]))
-            return {
-                'positive': result.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1])),
-                'restricted': restrict.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1])),
-                'remove_ground': [remove1.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1])), remove2.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))],
-                'inverted': inverted.rotate(self.rotation, (point[0] - self.l - self.t_r, point[1])),
-            }
+            result   = result.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
+            restrict = restrict.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
+            remove1  = remove1.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
+            remove2  = remove2.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
+            inverted = inverted.rotate(self.rotation, (point[0] - self.l - self.t_r, point[1]))
+
+        if self.translation != (0,0) and self.translation != None :
+            self.connection = 
+            result   = result.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
+            restrict = restrict.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
+            remove1  = remove1.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
+            remove2  = remove2.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
+            inverted = inverted.rotate(self.rotation, (point[0] - self.l - self.t_r, point[1]))
+
+
+
+
+
 
         return {
             'positive': result,
