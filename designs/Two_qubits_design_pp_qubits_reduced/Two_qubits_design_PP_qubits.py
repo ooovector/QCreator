@@ -154,6 +154,7 @@ height_tc2 = [860+3*28,280,1200+3*28]
 gap_tc      = 160
 ground_w_tc = 325+2*ground_t+90
 ground_h_tc = 950+2*ground_t-300 #buffer for the claws is the +200
+
 # width_tc    = [60,75]
 # height_tc   = [800,165]
 # gap_tc      = 70
@@ -196,7 +197,7 @@ CCc = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'co
 
 l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 4, 3, 5, 20, 50, resonator_gap
 flux_distance = 20
-flux1 = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4}
+flux1 = {'l':l+100.3,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4}
 #for coupler
 flux2 = {'l':150,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4,
          'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'inverted_extension':0}
@@ -274,36 +275,10 @@ for i in range(Y):
                           air_bridge=air,
                           return_inverted=False,
                           )
-
-        T2 = elements.fungus_squid_coupler.Fungus_Squid_C(name='PP_Coupler2', center=center2,
-                                                           width=width_tc,
-                                                           height=height_tc,
-                                                           bridge_gap=JJ_pad_offset_x,
-                                                           bridge_w=JJ_pad_offset_y,
-                                                           gap=gap_tc,
-                                                           ground_w=ground_w_tc,
-                                                           ground_h=ground_h_tc,
-                                                           ground_t=ground_t,
-                                                           jj_params=jj_pp_c,
-                                                           fluxline_params={},
-                                                           layer_configuration=sample.layer_configuration,
-                                                           Couplers=[],
-                                                           calculate_capacitance=False,
-                                                           transformations={'rotate': (np.pi, center2)},
-                                                          #transformations={},
-                                                           remove_ground={'left': 1, 'top': 1, 'bottom': 1, 'right': 1},
-                                                           shoes={},
-                                                           claw=claw_tc,
-                                                           asymmetry=a,
-                                                           air_bridge=air,
-                                                           return_inverted=False,
-                                                           )
         if(j!=X-1):
             sample.add(T1)
             couplers.append(T1)
-        if(i!=Y-1):
-            sample.add(T2)
-            couplers.append(T2)
+
 
 
 
@@ -361,7 +336,7 @@ def create_restricted(check = False):
     restricted = gdspy.Rectangle((0,0),(0,0))
 
     rect1 = gdspy.Rectangle((3062-70, 1300), (3835, 1030))
-    # rect2 = gdspy.Rectangle((),())
+
     restricted = gdspy.boolean(restricted, rect1, 'or', layer=layers_configuration['inverted'])
     for i in all_restricted:
         restricted = gdspy.boolean(restricted,i,'or',layer=layers_configuration['bandages'])
@@ -393,6 +368,7 @@ def create_restricted(check = False):
     restricted = gdspy.boolean(restricted,one,'not',layer=layers_configuration['inverted'])
     rect_substr = gdspy.Rectangle((2992,1284),(3133,1030))
     restricted = gdspy.boolean(restricted,rect_substr,'not',layer=layers_configuration['inverted'])
+
 
     # for airbridges
     rect_substr = gdspy.Rectangle((3100, 1420), (3060, 1284))
