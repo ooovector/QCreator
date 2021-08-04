@@ -226,7 +226,8 @@ class Fungus_Squid_C(DesignElement):
 
             r_flux = flux.render(self.center, self.w, self.h,self.g_h,self.g_t)['restricted']
 
-            remove_ground_flux = flux.render(self.center, self.w, self.h,self.g_h,self.g_t)['remove_ground']
+            #temp because of time constraints, redone in greater detail later
+            remove_ground_flux = gdspy.Rectangle((0,0),(0,0)) #flux.render(self.center, self.w, self.h,self.g_h,self.g_t)['remove_ground']
             if f['inverted_extension'] is not None:
                 inverted_flux = flux.render(self.center, self.w, self.h, self.g_h, self.g_t,f['inverted_extension'])['inverted']
                 r_flux = flux.render(self.center, self.w, self.h, self.g_h, self.g_t,f['inverted_extension'])['restricted']
@@ -323,8 +324,7 @@ class Fungus_Squid_C(DesignElement):
                     if coupler.sctq > self.g_t:
                         extended = gdspy.boolean(extended, gdspy.Rectangle(
                             (self.center[0] + self.g_t - self.g_w / 2, self.center[1] + self.g_t - self.g_h / 2),
-                            (self.center[0] - self.g_t + self.g_w / 2, self.center[1] - self.g_t + self.g_h / 2)),
-                                                 'not')
+                            (self.center[0] - self.g_t + self.g_w / 2, self.center[1] - self.g_t + self.g_h / 2)),'not')
 
                     result = gdspy.boolean(result,extended,'or')
                     # box for inverted polygon
