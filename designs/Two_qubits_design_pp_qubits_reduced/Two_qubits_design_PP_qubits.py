@@ -205,7 +205,7 @@ flux1 = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm
 #for coupler
 flux_distance = 0
 l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 4, 3, 5, [58.85-0.2-0.156,40/3], 50, resonator_gap
-flux2 = {'l':150,'t_m':5,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':3,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4,'translation':(9/np.sqrt(2),9/np.sqrt(2)),
+flux2 = {'l':150,'t_m':5,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':3,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4,'translation':(-58-50/np.sqrt(2),-50/np.sqrt(2)),
          'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'inverted_extension':0}
 
 
