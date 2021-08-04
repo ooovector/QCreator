@@ -970,13 +970,15 @@ class PP_Squid_Fluxline:
             inverted = inverted.rotate(self.rotation, (point[0] - self.l - self.t_r, point[1]))
 
         if self.translation != (0,0) and self.translation != None :
+            print('under maintanance, please ignore')
+            '''
             self.connection = 
             result   = result.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
             restrict = restrict.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
             remove1  = remove1.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
             remove2  = remove2.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
             inverted = inverted.rotate(self.rotation, (point[0] - self.l - self.t_r, point[1]))
-
+            '''
 
 
 
