@@ -1115,9 +1115,11 @@ class TLSystem:
         cross_kerr_matrix = kerr_matrix - np.diag(self_kerr_matrix)
 
         kerr_correction1 = np.asarray(initial_state) @ self_kerr_matrix.T * 2
-        kerr_correction2 = np.asarray(initial_state) @ sum([cross_kerr_matrix[:][i] for i in range(number_of_modes)]).T / 2
+        kerr_correction2 = np.asarray(initial_state) @ sum(
+            [cross_kerr_matrix[:][i] for i in range(number_of_modes)]).T / 2
 
-        energy_initial_state = hbar * np.asarray(initial_state) @ omegas + hbar * 2 * np.pi * (kerr_correction1 + kerr_correction2)
+        energy_initial_state = hbar * np.asarray(initial_state) @ omegas + hbar * 2 * np.pi * (
+                    kerr_correction1 + kerr_correction2)
 
         JJ_kerr = self.get_perturbation_nondiagonal2(list_of_modes_numbers) / 4
 
@@ -1174,7 +1176,13 @@ class TLSystem:
         states_f = [s for s in states_f if s != initial_state]
 
         for f in states_f:
-            energy_final_state = hbar * np.asarray(f) @ omegas
+            kerr_correction1 = np.asarray(f) @ self_kerr_matrix.T * 2
+            kerr_correction2 = np.asarray(f) @ sum(
+                [cross_kerr_matrix[:][i] for i in range(number_of_modes)]).T / 2
+
+            energy_final_state = hbar * np.asarray(f) @ omegas + hbar * 2 * np.pi * (
+                    kerr_correction1 + kerr_correction2)
+
             all_matrix_elements = 0
             for term in list_of_all_perturbation_terms:
                 matrix_elem = term[0]
