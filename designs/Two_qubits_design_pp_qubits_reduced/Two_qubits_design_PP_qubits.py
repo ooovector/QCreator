@@ -19,7 +19,10 @@ tl_ground = 6.#<-- changed from 10. to 5.
 
 resonator_core = 15
 resonator_gap = 10
-resonator_ground = 15 #5
+
+resonator_ground = 15
+
+
 resonator_tl_ground=13
 pad_offset = 550
 
@@ -125,14 +128,14 @@ jj_pp_c = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squi
 
 
 JJ_pad_offset_x = 10 # for JJ_manhatten
-JJ_pad_offset_y = 16 # JJ design
+JJ_pad_offset_y = 16## JJ design
 JJ_pad_offset_x_flux = 20 # for JJ_manhatten
 JJ_pad_offset_y_flux = 10 # JJ design
 
 sh = (130,30)
-shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':10,'gap2':10,'claw_t':25,'l1':140,'l2':55,'box_l':250,'box_h':340,'position':'1111'}}#(gap1,gap2,claw_t,l1,l2,box_l,box_h,binary number indicating where the fake claws are top left top right bottom left bottm right)
+shoes1 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':10,'gap2':10,'claw_t':25,'l1':140,'l2':55,'box_l':210,'box_h':340,'position':'1111'}}#(gap1,gap2,claw_t,l1,l2,box_l,box_h,binary number indicating where the fake claws are top left top right bottom left bottm right)
 
-shoes2 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':10,'gap2':10,'claw_t':25,'l1':140,'l2':55,'box_l':250,'box_h':340,'position':'1111'}}#{1:(70,50)}
+shoes2 = {1:sh,2:sh,3:sh,4:sh,'R':np.pi/4,'fake_claws': {'gap1':10,'gap2':10,'claw_t':25,'l1':140,'l2':55,'box_l':210,'box_h':340,'position':'1111'}}#{1:(70,50)}
 
 shoes = [shoes1,shoes2]
 # how to place qubits
@@ -154,6 +157,7 @@ height_tc2 = [860+3*28,280,1200+3*28]
 gap_tc      = 160
 ground_w_tc = 325+2*ground_t+90
 ground_h_tc = 950+2*ground_t-300 #buffer for the claws is the +200
+
 # width_tc    = [60,75]
 # height_tc   = [800,165]
 # gap_tc      = 70
@@ -177,11 +181,11 @@ air = [-20,40,100]
 
 
 
-CC2 = [elements.pp_transmon.PP_Transmon_Coupler(500,4,100,'top',coupler_type = 'coupler',heightr = -0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0,tight = [True,10],line_same_as_coupler= True),
-      elements.pp_transmon.PP_Transmon_Coupler(10,10,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175,tight = [True,10]),
+CC2 = [elements.pp_transmon.PP_Transmon_Coupler(550,5,100,'top',coupler_type = 'coupler',w=5,s=3,g=resonator_ground,shift_to_qubit=0,tight = [True,3],line_same_as_coupler= True),
+      elements.pp_transmon.PP_Transmon_Coupler(10,10,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=225,tight = [True,10]),
       ]
 
-CC1_flux = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=175,tight =[True,10]),
+CC1_flux = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=225,tight =[True,10]),
       # elements.pp_transmon.PP_Transmon_Coupler(500,14,16,'top',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25),
       ]
 
@@ -191,14 +195,17 @@ CC1_flux = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type
 #      ]
 
 
-CCc = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=0),
+CCc = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.35,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-5),
       ]
 
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 4, 3, 5, 20, 50, resonator_gap
-flux_distance = 20
-flux1 = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4}
+
+flux_distance = 15
+l, t_m, t_r, gp, l_arm, h_arm, s_gap,asymmetry = 160-flux_distance+0.5, 5, 3, 5, [40/3,58.85-0.2-0.156], 50, resonator_gap,15-4.7
+flux1 = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':asymmetry,'loop_h': 10 }
 #for coupler
-flux2 = {'l':150,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4,
+flux_distance = 0
+l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 4, 3, 5, [58.85-0.2-0.156,40/3], 50, resonator_gap
+flux2 = {'l':150,'t_m':5,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':3,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4,'translation':(-58-50/np.sqrt(2),-50/np.sqrt(2)),
          'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'inverted_extension':0}
 
 
@@ -274,36 +281,10 @@ for i in range(Y):
                           air_bridge=air,
                           return_inverted=False,
                           )
-
-        T2 = elements.fungus_squid_coupler.Fungus_Squid_C(name='PP_Coupler2', center=center2,
-                                                           width=width_tc,
-                                                           height=height_tc,
-                                                           bridge_gap=JJ_pad_offset_x,
-                                                           bridge_w=JJ_pad_offset_y,
-                                                           gap=gap_tc,
-                                                           ground_w=ground_w_tc,
-                                                           ground_h=ground_h_tc,
-                                                           ground_t=ground_t,
-                                                           jj_params=jj_pp_c,
-                                                           fluxline_params={},
-                                                           layer_configuration=sample.layer_configuration,
-                                                           Couplers=[],
-                                                           calculate_capacitance=False,
-                                                           transformations={'rotate': (np.pi, center2)},
-                                                          #transformations={},
-                                                           remove_ground={'left': 1, 'top': 1, 'bottom': 1, 'right': 1},
-                                                           shoes={},
-                                                           claw=claw_tc,
-                                                           asymmetry=a,
-                                                           air_bridge=air,
-                                                           return_inverted=False,
-                                                           )
         if(j!=X-1):
             sample.add(T1)
             couplers.append(T1)
-        if(i!=Y-1):
-            sample.add(T2)
-            couplers.append(T2)
+
 
 
 
@@ -361,8 +342,8 @@ def create_restricted(check = False):
     restricted = gdspy.Rectangle((0,0),(0,0))
 
     rect1 = gdspy.Rectangle((3062-70, 1300), (3835, 1030))
-    # rect2 = gdspy.Rectangle((),())
-    restricted = gdspy.boolean(restricted, rect1, 'or', layer=layers_configuration['inverted'])
+    rect2 = gdspy.Rectangle((3900,1624), (2986, 1284))
+    restricted = gdspy.boolean(restricted, [rect1,rect2], 'or', layer=layers_configuration['inverted'])
     for i in all_restricted:
         restricted = gdspy.boolean(restricted,i,'or',layer=layers_configuration['bandages'])
 
@@ -393,6 +374,7 @@ def create_restricted(check = False):
     restricted = gdspy.boolean(restricted,one,'not',layer=layers_configuration['inverted'])
     rect_substr = gdspy.Rectangle((2992,1284),(3133,1030))
     restricted = gdspy.boolean(restricted,rect_substr,'not',layer=layers_configuration['inverted'])
+
 
     # for airbridges
     rect_substr = gdspy.Rectangle((3100, 1420), (3060, 1284))

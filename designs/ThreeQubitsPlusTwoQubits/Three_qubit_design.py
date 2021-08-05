@@ -199,15 +199,15 @@ air2 = [[200,40,100],[400,40,100]]
 
 tight = [True,6]
 
-CC1 = [elements.pp_transmon.PP_Transmon_Coupler(450,160,25,'bottom',coupler_type = 'coupler',w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=40,tight = tight),
+CC1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.4,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=40,tight = tight),
        #elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.02*0,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25,tight = tight),
       ]
 
-CC2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=40,tight = tight),
+CC2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.4,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=40,tight = tight),
       ]
 
 CC3 = [#elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = 'coupler',heightr = 0.06*0,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25,tight = tight),
-     elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=40,tight = tight),
+     elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.4,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=40,tight = tight),
       ]
 
 
@@ -218,7 +218,7 @@ fluxline_core, fluxline_gap, fluxline_ground=9,5,10
 flux_distance = 7
 flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':fluxline_ground,'w':fluxline_core,'s':fluxline_gap,'rotation':0,'inverted_extension':0}
 """
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 4, 3, 5, 40, 50, resonator_gap
+l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 5, 3, 5, [60,9], 50, 3
 flux_distance = 20
 #for coupler
 flux2 = {'l':150,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4,
@@ -235,7 +235,7 @@ CC = [CC1,CC2,CC3]
 
 #CC_tc1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=20,tight = tight),]
 
-CC_tc2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,18,'left',coupler_type = 'coupler',heightl = 0.13,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=28,tight = tight),]
+CC_tc2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.20,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=43,tight = tight),]
 
 
 
@@ -330,7 +330,7 @@ qubits.append(Q3)
 center2tc = (origin[0] +1*(spacing+ground_h)/2+width_tc[0]/2-3+x_offset, origin[1] +(spacing+ground_h)/2+shift_y-claw_tc[0]+y_offset-10)
 
 
-a2 = -380
+a2 = -395
 a_coupl = -300
 T2 = elements.y_squid_coupler.Y_Squid_C(name='Y_Coupler', center=center2tc,
                                                   width=[100,200],
@@ -356,7 +356,7 @@ T2 = elements.y_squid_coupler.Y_Squid_C(name='Y_Coupler', center=center2tc,
                                                   y_gap = 170,
                                                   asymmetry_coupler = a_coupl,
                                                 return_inverted=False,
-                                                    thin_coupler = [True,30]
+                                                    thin_coupler = [True,32.5]
                                                   )
 
 sample.add(T2)
