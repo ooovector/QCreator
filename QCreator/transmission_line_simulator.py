@@ -154,8 +154,8 @@ class Inductor(TLSystemElement):
         return (submode[1] - submode[0])**2  / (2 * np.real(self.L)) * 1e-9
 
     def potential_gradient(self, submode):
-        return [(submode[0] - submode[1]) /  np.real(self.L) * 1e-9,
-                (submode[1] - submode[0]) /  np.real(self.L) * 1e-9]
+        return [(submode[0] - submode[1]) / np.real(self.L) * 1e-9,
+                (submode[1] - submode[0]) / np.real(self.L) * 1e-9]
 
     def potential_hessian(self, submode):
         return np.asarray([[1, -1], [-1, 1]]) / np.real(self.L) * 1e-9
@@ -1212,35 +1212,32 @@ class TLSystem:
         for JJ_ in self.JJs:
             for i in range(number_of_modes*2):
                 mode_i = self.get_element_submode(JJ_, modes_[i % number_of_modes])
-                if i > number_of_modes:
+                if i >= number_of_modes:
                     mode_i = np.conj(mode_i)
                 for j in range(number_of_modes*2):
                     if j < i:
                         continue
                     mode_j = self.get_element_submode(JJ_, modes_[j % number_of_modes])
-                    if j > number_of_modes:
+                    if j >= number_of_modes:
                         mode_j = np.conj(mode_j)
-                    #submode_ij = np.kron(mode_i, mode_j)
                     for k in range(number_of_modes*2):
                         if k < j:
                             continue
                         mode_k = self.get_element_submode(JJ_, modes_[k % number_of_modes])
-                        if k > number_of_modes:
+                        if k >= number_of_modes:
                             mode_k = np.conj(mode_k)
                         for l in range(number_of_modes*2):
                             if l < k:
                                continue
                             mode_l = self.get_element_submode(JJ_, modes_[l % number_of_modes])
-                            if l > number_of_modes:
+                            if l >= number_of_modes:
                                 mode_l = np.conj(mode_l)
-                            #submode_kl = np.kron(mode_k, mode_l)
-                            #JJ_kerr[i, j, k, l] += (submode_ij.T@JJ_.nonlinear_perturbation()@submode_kl).ravel()[0] / 6
+
                             JJ_kerr[i, j, k, l] += JJ_.nonlinear_perturbation4(mode_i, mode_j, mode_k, mode_l) / 6
-                            # print(i, j, k, l)
 
         return JJ_kerr / (hbar * 2 * np.pi)
 
-    def get_second_order_perturbation_kerr2(self, list_of_modes_numbers: list):
+    def get_second_order_perturbation_kerr2(self, list_of_modes_numbers: list, raw_frequencies = 0):
         omega, kappa, modes = self.get_modes()
         omega_ = np.asarray([omega[m] for m in list_of_modes_numbers])/(2*np.pi)
         omega_corrected = np.asarray([omega[m] for m in list_of_modes_numbers])/(2*np.pi)
@@ -1251,21 +1248,21 @@ class TLSystem:
         kerr = np.zeros(first_order_kerr.shape)
 
         mode = [0 for i in range(len(list_of_modes_numbers))]
-        ground_state_energy = self.get_second_order_perturbation3(mode, omega_, JJ_kerr)
+        ground_state_energy = self.get_second_order_perturbation3(mode, omega_, JJ_kerr, first_order_kerr, raw_frequencies)
         first_state_corrections = [0 for i in range(len(list_of_modes_numbers))]
 
         for mode_id in range(len(list_of_modes_numbers)):
             mode = [0 if i != mode_id else 1 for i in range(len(list_of_modes_numbers))]
             #corrected_energy = self.get_second_order_perturbation(mode, list_of_modes_numbers)
             #omega_corrected[mode_id] += first_order_kerr[mode_id, mode_id] + corrected_energy - ground_state_energy
-            first_state_corrections[mode_id] = self.get_second_order_perturbation3(mode, omega_, JJ_kerr)
+            first_state_corrections[mode_id] = self.get_second_order_perturbation3(mode, omega_, JJ_kerr, first_order_kerr, raw_frequencies)
 
         for mode1_id in range(len(list_of_modes_numbers)):
             for mode2_id in range(len(list_of_modes_numbers)):
                 mode = [0 for i in range(len(list_of_modes_numbers))]
                 mode[mode1_id] += 1
                 mode[mode2_id] += 1
-                corrected_energy = self.get_second_order_perturbation3(mode, omega_, JJ_kerr)
+                corrected_energy = self.get_second_order_perturbation3(mode, omega_, JJ_kerr, first_order_kerr, raw_frequencies)
                 kerr[mode1_id, mode2_id] = first_order_kerr[mode1_id, mode2_id] + corrected_energy + ground_state_energy - \
                                                 first_state_corrections[mode1_id] - first_state_corrections[mode2_id]
 
@@ -1345,7 +1342,7 @@ class TLSystem:
 
         return correction
 
-    def get_second_order_perturbation3(self, initial_state: list, omega_, JJ_kerr):
+    def get_second_order_perturbation3(self, initial_state: list, omega_, JJ_kerr, first_order_kerr = None, raw_frequencies = 0):
         """
         Calculate second order correction to energy with perturbation operator
         """
@@ -1355,7 +1352,11 @@ class TLSystem:
 
         initial_state_ = np.asarray(initial_state)
         initial_state = tuple(initial_state)
-        initial_state_energy = initial_state_@omega_# + initial_state@first_order_kerr@initial_state
+
+        if raw_frequencies == 0:
+            initial_state_energy = initial_state_@omega_# + initial_state@first_order_kerr@initial_state
+        elif raw_frequencies == 1:
+            initial_state_energy = initial_state_ @ omega_  + 0.5 * initial_state_@first_order_kerr@initial_state_
 
         number_of_modes = len(initial_state)  # number of modes in the system
 
@@ -1401,7 +1402,10 @@ class TLSystem:
         correction = 0
         for final_state, matrix_element in final_states.items():
             final_state_ = np.asarray(final_state)
-            final_state_energy = final_state_@omega_ # + final_state_ @ first_order_kerr @ final_state_
+            if raw_frequencies == 0:
+                final_state_energy = final_state_@omega_
+            elif raw_frequencies == 1:
+                final_state_energy = final_state_ @ omega_ + 0.5 * final_state_ @ first_order_kerr @ final_state_
             denominator = initial_state_energy - final_state_energy
             numerator = np.abs(matrix_element)**2
             correction_new = numerator / denominator
@@ -1411,3 +1415,117 @@ class TLSystem:
                 correction += correction_new
 
         return correction
+
+    def get_perturbation_hamiltonian(self, modes: list, num_levels: list):
+        """
+        Calculate second order correction to energy with perturbation operator
+        """
+
+        from collections import defaultdict
+        from itertools import product
+
+        omega, kappa, modes_ = self.get_modes()
+        omega_ = np.asarray([omega[m] for m in modes])/(2*np.pi)
+
+        jj_kerr = self.get_perturbation_nondiagonal2(modes) / 4
+
+        number_of_modes = len(modes)  # number of modes in the system
+
+        basis = [b for b in product(*[tuple([i for i in range(dof_levels)]) for dof_levels in num_levels])]
+        #print ([tuple([i for i in range(dof_levels)]) for dof_levels in num_levels])
+        #print (basis)
+        ham = np.zeros((len(basis), len(basis)), complex)
+
+        for initial_state_id, initial_state in enumerate(basis):
+            #print ('initial state: ', initial_state)
+            initial_state_ = np.asarray(initial_state)
+            initial_state = tuple(initial_state)
+            initial_state_energy = initial_state_@omega_
+
+            ham[initial_state_id, initial_state_id] = initial_state_energy
+
+            operators = []
+            for i in range(1, number_of_modes + 1):
+                operators.extend([i, -i])
+
+            # create a list with perturbation terms: 'n' -- creation operator of mode n,
+            # '-n' -- annihilation operator of mode n
+
+            for t in product(operators, repeat=4):
+                state = {k+1: v for k, v in enumerate(initial_state)}
+                #print (t)
+
+                matrix_element_factor = 1
+                indeces = tuple(sorted([np.abs(operator) - 1 + number_of_modes * (operator < 0) for operator in t]))
+
+                for operator in t[::-1]:
+                    if np.sign(operator) == 1:
+                        state[np.abs(operator)] += 1
+                        matrix_element_factor = matrix_element_factor * np.sqrt(state[np.abs(operator)])
+                    elif np.sign(operator) == -1:
+                        matrix_element_factor = matrix_element_factor * np.sqrt(state[np.abs(operator)])
+                        state[np.abs(operator)] -= 1
+                        if state[np.abs(operator)] < 0:
+                            break
+
+                final_state_tuple = tuple([state[s] for s in range(1, len(initial_state)+1)])
+                try:
+                    final_state_id = basis.index(final_state_tuple)
+                    matrix_element_number = jj_kerr[indeces]
+                    ham[final_state_id, initial_state_id] += matrix_element_factor * matrix_element_number
+                except ValueError:
+                    #print ('not found: ', final_state_tuple)
+                    pass
+
+        return ham, basis
+
+    def get_perturbation_hamiltonian_kerr(self, modes: list, num_levels: list):
+        ham, basis = self.get_perturbation_hamiltonian(modes, num_levels)
+
+        vals, vecs = np.linalg.eigh(ham)
+
+        ground_state_id = np.argmax(np.abs(vecs[:, 0]))
+        single_excitation_state_ids = np.zeros(len(modes), int)
+        double_excitation_state_ids = np.zeros((len(modes), len(modes)), int)
+
+        all_ids = [ground_state_id]
+
+        for mode_id in range(len(modes)):
+            reference_vec = np.zeros(num_levels, complex).ravel()
+            index = np.zeros(len(num_levels), int)
+            index[mode_id] += 1
+            reference_vec[np.ravel_multi_index(index, num_levels)] = 1
+            #print (reference_vec)
+            mode_state_id = np.argmax(np.abs(reference_vec@vecs))
+            single_excitation_state_ids[mode_id] = mode_state_id
+            all_ids.append(mode_state_id)
+
+        for mode1_id in range(len(modes)):
+            for mode2_id in range(len(modes)):
+                if mode2_id <= mode1_id:
+                    reference_vec = np.zeros(num_levels, complex).ravel()
+                    index = np.zeros(len(num_levels), int)
+                    index[mode1_id] += 1
+                    index[mode2_id] += 1
+                    reference_vec[np.ravel_multi_index(index, num_levels)] = 1
+                    #print(reference_vec)
+                    mode_state_id = np.argmax(np.abs(reference_vec@vecs)) #TODO: probably this scalar product is wrong
+                    double_excitation_state_ids[mode1_id, mode2_id] = mode_state_id
+                    all_ids.append(mode_state_id)
+
+        for mode1_id in range(len(modes)):
+            for mode2_id in range(len(modes)):
+                if mode2_id > mode1_id:
+                    double_excitation_state_ids[mode1_id, mode2_id] = double_excitation_state_ids[mode2_id, mode1_id]
+
+        if len(set(all_ids)) < len(all_ids):
+            raise ValueError('Shifts are non-dispersive, cannot attribute states to modes')
+
+        omegas = vals[single_excitation_state_ids] - vals[ground_state_id]
+        kerrs = vals[double_excitation_state_ids] + vals[ground_state_id] - vals[single_excitation_state_ids] - vals[single_excitation_state_ids.reshape(-1, 1)]
+
+        return omegas, kerrs
+
+
+
+
