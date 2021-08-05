@@ -562,7 +562,7 @@ def search_for_resonators_qubits(f,delta,min_freq,max_freq):
     min_Q=0#1e3
     max_Q=1e12#1e9
     for mode_id in range(len(qs)):
-        if min_Q<=qs[mode_id]<=max_Q and min_freq<=f[mode_id]/2/np.pi<=max_freq:
+        if min_Q<=qs[mode_id]<=max_Q and min_freq<=f[mode_id]<=max_freq:
             res_modes.append(mode_id)
     print('Resonance frequencies are, GHz:',f[res_modes]/(2*np.pi)/1e9)
     print('Kappas are, us^-1:',2*delta[res_modes]/1e6)
