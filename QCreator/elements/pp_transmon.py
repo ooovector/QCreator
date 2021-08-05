@@ -1124,7 +1124,7 @@ class PP_Transmon_Coupler:
             self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]-g_h/2-self.gap-self.t-self.gap+self.sctq-g_t)
 
         self.connection = (self.connection[0],self.connection[1]+self.vertical_shift)
-        result.translate(0,vertical_shift)
+        result.translate(0,self.vertical_shift)
         self.result_coupler = result
 
         return {
