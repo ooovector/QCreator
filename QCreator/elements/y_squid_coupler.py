@@ -404,6 +404,7 @@ class Y_Squid_C(DesignElement):
                 side = coupler.side
                 height_left = coupler.height_left
                 height_right = coupler.height_right
+                v_shift = coupler.vertical_shift
                 #to make sure ground is placed correctly
                 l1_check = True
                 l2_check = True
@@ -427,27 +428,27 @@ class Y_Squid_C(DesignElement):
                         extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+t+self.g_w/2-l2-self.g_t,self.center[1]-height_right*self.g_h/2),(self.center[0]+t+self.g_w/2-l2,self.center[1]-gap-height_right*self.g_h/2-t-self.g_t-gap)), 'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+t+self.g_w/2-l2,self.center[1]-gap-height_right*self.g_h/2-t-gap),(self.center[0]+self.g_w/2+2*gap+t+self.g_t,self.center[1]-gap-height_right*self.g_h/2-t-self.g_t-gap)),'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]+self.g_w/2+2*gap+t,self.center[1]-gap-height_right*self.g_h/2-t-gap),(self.center[0]+self.g_w/2+2*gap+t+self.g_t,self.center[1]-5-gap)), 'or')
-                    extended.translate(-coupler.sctq, 0)
+                    extended.translate(-coupler.sctq, +v_shift)
 
                     # remove/add missing overhang:
                     # add missing piece
                     if coupler.sctq < 0:
                         extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0] + self.g_w / 2, self.center[
-                            1] + gap + height_right * self.g_h / 2 + t + self.g_t + gap), (self.center[0] + self.g_w / 2 - coupler.sctq,self.center[1] - gap - height_right * self.g_h / 2 - t - self.g_t - gap)),'or')
+                            1]+v_shift + gap + height_right * self.g_h / 2 + t + self.g_t + gap), (self.center[0] + self.g_w / 2 - coupler.sctq,self.center[1]+v_shift - gap - height_right * self.g_h / 2 - t - self.g_t - gap)),'or')
 
                     # remove additional pieces
                     if coupler.sctq > self.g_t:
                         extended = gdspy.boolean(extended, gdspy.Rectangle(
-                            (self.center[0] + self.g_t - self.g_w / 2, self.center[1] + self.g_t - self.g_h / 2),
-                            (self.center[0] - self.g_t + self.g_w / 2, self.center[1] - self.g_t + self.g_h / 2)),
+                            (self.center[0] + self.g_t - self.g_w / 2, self.center[1]+v_shift + self.g_t - self.g_h / 2),
+                            (self.center[0] - self.g_t + self.g_w / 2, self.center[1]+v_shift - self.g_t + self.g_h / 2)),
                                                  'not')
 
                     result = gdspy.boolean(result, extended, 'or')
                     # box for inverted polygon
                     box = gdspy.boolean(box, gdspy.Rectangle((self.center[0] + self.g_w / 2 + self.g_t + 2 * gap + t,
-                                                              self.center[1] - height_right * self.g_h / 2 - self.g_t - 2 * gap - t),(self.center[0] + self.g_w / 2 - l1 + t, self.center[1] + height_right * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(-coupler.sctq, 0),
+                                                              self.center[1] - height_right * self.g_h / 2 - self.g_t - 2 * gap - t),(self.center[0] + self.g_w / 2 - l1 + t, self.center[1] + height_right * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(-coupler.sctq, +v_shift),
                                         'or', layer=self.layer_configuration.inverted)
-                    pocket = gdspy.boolean(pocket, gdspy.Rectangle((self.center[0] + self.g_w / 2 + self.g_t + 2 * gap + t,self.center[1] - height_right * self.g_h / 2 - self.g_t - 2 * gap - t),(self.center[0] + self.g_w / 2 - l1 + t, self.center[1] + height_right * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(-coupler.sctq, 0), 'or')
+                    pocket = gdspy.boolean(pocket, gdspy.Rectangle((self.center[0] + self.g_w / 2 + self.g_t + 2 * gap + t,self.center[1] - height_right * self.g_h / 2 - self.g_t - 2 * gap - t),(self.center[0] + self.g_w / 2 - l1 + t, self.center[1] + height_right * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(-coupler.sctq, +v_shift), 'or')
 
                 if side =='left':
                     #upper
@@ -462,31 +463,31 @@ class Y_Squid_C(DesignElement):
                         extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-t-self.g_w/2+l2+self.g_t,self.center[1]-height_left*self.g_h/2),(self.center[0]-t-self.g_w/2+l2,self.center[1]-gap-height_left*self.g_h/2-t-self.g_t-gap)), 'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-t-self.g_w/2+l2,self.center[1]-gap-height_left*self.g_h/2-t-gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]-gap-height_left*self.g_h/2-t-self.g_t-gap)),'or')
                     extended = gdspy.boolean(extended,gdspy.Rectangle((self.center[0]-self.g_w/2-2*gap-t,self.center[1]-gap-height_left*self.g_h/2-t-gap),(self.center[0]-self.g_w/2-2*gap-t-self.g_t,self.center[1]-5-gap)), 'or')
-                    extended.translate(+coupler.sctq, 0)
+                    extended.translate(+coupler.sctq, +v_shift)
                     # remove/add missing overhang:
                     # add missing piece
                     if coupler.sctq < 0:
                         extended = gdspy.boolean(extended, gdspy.Rectangle((self.center[0] - self.g_w / 2, self.center[
-                            1] + gap + height_left * self.g_h / 2 + t + self.g_t + gap), (
+                            1]+v_shift + gap + height_left * self.g_h / 2 + t + self.g_t + gap), (
                                                                                self.center[
                                                                                    0] - self.g_w / 2 + coupler.sctq,
                                                                                self.center[
-                                                                                   1] - gap - height_left * self.g_h / 2 - t - self.g_t - gap)),
+                                                                                   1]+v_shift - gap - height_left * self.g_h / 2 - t - self.g_t - gap)),
                                                  'or')
 
                     # remove additional pieces
                     if coupler.sctq > self.g_t:
                         extended = gdspy.boolean(extended, gdspy.Rectangle(
-                            (self.center[0] - self.g_t + self.g_w / 2, self.center[1] + self.g_t - self.g_h / 2),
-                            (self.center[0] + self.g_t - self.g_w / 2, self.center[1] - self.g_t + self.g_h / 2)),
+                            (self.center[0] - self.g_t + self.g_w / 2, self.center[1]+v_shift + self.g_t - self.g_h / 2),
+                            (self.center[0] + self.g_t - self.g_w / 2, self.center[1]+v_shift - self.g_t + self.g_h / 2)),
                                                  'not')
 
                     result = gdspy.boolean(result, extended, 'or')
 
                     # box for inverted polygon
-                    box = gdspy.boolean(box, gdspy.Rectangle((self.center[0] - self.g_w / 2 - self.g_t - 2 * gap - t,self.center[1] - height_left * self.g_h / 2 - self.g_t - 2 * gap - t),(self.center[0] - self.g_w / 2 + l1 - t, self.center[1] + height_left * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(+coupler.sctq, 0), 'or', layer=self.layer_configuration.inverted)
+                    box = gdspy.boolean(box, gdspy.Rectangle((self.center[0] - self.g_w / 2 - self.g_t - 2 * gap - t,self.center[1] - height_left * self.g_h / 2 - self.g_t - 2 * gap - t),(self.center[0] - self.g_w / 2 + l1 - t, self.center[1] + height_left * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(+coupler.sctq, +v_shift), 'or', layer=self.layer_configuration.inverted)
                     pocket = gdspy.boolean(pocket,
-                                           gdspy.Rectangle((self.center[0] - self.g_w / 2 - self.g_t - 2 * gap - t,self.center[1] - height_left * self.g_h / 2 - self.g_t - 2 * gap - t),(self.center[0] - self.g_w / 2 + l1 - t, self.center[1] + height_left * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(coupler.sctq, 0), 'or')
+                                           gdspy.Rectangle((self.center[0] - self.g_w / 2 - self.g_t - 2 * gap - t,self.center[1] - height_left * self.g_h / 2 - self.g_t - 2 * gap - t),(self.center[0] - self.g_w / 2 + l1 - t, self.center[1] + height_left * self.g_h / 2 + self.g_t + 2 * gap + t)).translate(coupler.sctq, +v_shift), 'or')
 
                 if side == 'top':
                     extended = gdspy.Rectangle((self.center[0]-self.g_w/2+l1-gap-self.g_t,self.center[1]+self.g_h/2),(self.center[0]-self.g_w/2+l1-gap,self.center[1]+self.g_h/2+t+gap+gap))
@@ -853,41 +854,7 @@ class Y_Squid_C(DesignElement):
             holes = holes.translate(dx, dy)
 
         return result, bandages, holes
-        '''
-        # cheap Manhatten style
-        reach1 = 11
-        reach2 = 25
 
-        # double strip 1
-        result = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w - self.b_w,
-                                  self.center[1] + self.h / 2 - self.b_w / 3 + self.JJ_params[
-                                      'a1'] / 2 + self.asymmetry + 3 * self.b_w), (
-                                 self.center[0] + self.gap / 2 + self.w - self.b_w + reach1,
-                                 self.center[1] + self.h / 2 - self.b_w / 3 - self.JJ_params[
-                                     'a1'] / 2 + self.asymmetry + 3 * self.b_w))
-        # double strip 2
-        result = gdspy.boolean(result, gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w - self.b_w,
-                                                        self.center[1] + self.h / 2 - 2 * self.b_w / 3 +
-                                                        self.JJ_params['a1'] / 2 + self.asymmetry + 3 * self.b_w), (
-                                                       self.center[0] + self.gap / 2 + self.w - self.b_w + reach1,
-                                                       self.center[1] + self.h / 2 - 2 * self.b_w / 3 -
-                                                       self.JJ_params['a1'] / 2 + self.asymmetry + 3 * self.b_w))
-                               , 'or')
-        # single strip
-        result = gdspy.boolean(result, gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w - self.b_w / 2,
-                                                        self.center[
-                                                            1] + self.h / 2 + self.asymmetry + 2 * self.b_w - self.b_g),
-                                                       (self.center[0] + self.gap / 2 + self.w - self.b_w / 2 +
-                                                        self.JJ_params['a2'], self.center[
-                                                            1] + self.h / 2 + self.asymmetry + 2 * self.b_w - self.b_g + reach2)),
-                               'or')
-        # placing the junctions in the correct layer
-        result = gdspy.boolean(result, result, 'or', layer=self.layer_configuration.jj_layer)
-
-        angle = self.JJ_params['angle_JJ']
-        result.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
-        return result
-        '''
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict,
                    track_changes: bool = True, cutoff: float = np.inf, epsilon: float = 11.45) -> list:
@@ -926,7 +893,7 @@ class PP_Squid_Coupler:
     5) side - which side the coupler is on
     6) heightl / heightr - height as a fraction of total length
     """
-    def __init__(self, l1,l2,t,side = 'left',coupler_type = 'none',heightl = 1,heightr=1,w= None, g=None, s=None):
+    def __init__(self, l1,l2,t,side = 'left',coupler_type = 'none',heightl = 1,heightr=1,w= None, g=None, s=None,vertical_shift=0):
         self.l1 = l1
         self.l2 = l2
         self.t = t
@@ -941,6 +908,7 @@ class PP_Squid_Coupler:
         self.w = w
         self.g = g
         self.s = s
+        self.vertical_shift = vertical_shift
 
     def render(self, center, g_w,g_h):
         result = 0
@@ -984,6 +952,8 @@ class PP_Squid_Coupler:
             result = gdspy.boolean(result, line, 'or')
             self.connection = (center[0]-g_w/2+self.l1+self.l2/2, center[1]-g_h/2-self.gap-self.t-self.gap)
 
+        self.connection = (self.connection[0], self.connection[1] + self.vertical_shift)
+        result.translate(0, self.vertical_shift)
         self.result_coupler = result
 
         return {
