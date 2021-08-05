@@ -1110,7 +1110,7 @@ class TLSystem:
         for k in s:
             state[k] = initial_state[k - 1]
 
-        # energy of initial state
+        # energy of initial state (зочем)
         self_kerr_matrix = np.diag(kerr_matrix)
         cross_kerr_matrix = kerr_matrix - np.diag(self_kerr_matrix)
 
@@ -1159,7 +1159,7 @@ class TLSystem:
                         state[np.abs(operator)] = 0
                         break
 
-            indexes = tuple([np.abs(operator) - 1 + number_of_modes * (operator < 0) for operator in t])
+            indexes = tuple(sorted([np.abs(operator) - 1 + number_of_modes * (operator < 0) for operator in t]))
             J_kerr_ijkl = hbar * 2 * np.pi * JJ_kerr[indexes]
 
             final_state = list(state.values())
