@@ -235,7 +235,7 @@ CC = [CC1,CC2,CC3]
 
 #CC_tc1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=20,tight = tight),]
 
-CC_tc2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.20,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=43,tight = tight),]
+CC_tc2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.20,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=43,tight = tight,vertical_shift = -250),]
 
 
 
