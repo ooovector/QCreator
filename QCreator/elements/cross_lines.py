@@ -216,14 +216,14 @@ class CrossLinesViaAirbridges(DesignElement):
         cl_t1, ll_t1 = cm.ConformalMapping([self.top_s, self.top_w, self.top_s], epsilon=epsilon).cl_and_Ll()
         cl_t2, ll_t2 = cm.ConformalMapping([self.top_s, self.geometry.pad_width, self.top_s], epsilon=epsilon).cl_and_Ll()
         l_t = tlsim.Inductor(l=(ll_t1[0, 0]+ll_t2[0, 0])/2*2*(self.nar_len+self.geometry.pad_width)+
-                               ll_br*self.geometry.pad_distance,
+                               ll_br[0, 0]*self.geometry.pad_distance,
                              name='{} L_t'.format(self.name))
         c_t1g = tlsim.Capacitor(c=(cl_t1[0, 0]+cl_t2[0,0])/2*(self.nar_len+self.geometry.pad_length)+
-                                  cl_br*self.geometry.pad_distance/2,
+                                  cl_br[0, 0]*self.geometry.pad_distance/2,
                                name='{} C_t1g'.format(self.name))
         c_t2g = tlsim.Capacitor(
             c=(cl_t1[0, 0] + cl_t2[0, 0])/2 *(self.nar_len+self.geometry.pad_length) +
-              cl_br*self.geometry.pad_distance/ 2,
+              cl_br[0, 0]*self.geometry.pad_distance/ 2,
             name='{} C_t2g'.format(self.name))
 
         tls_instance.add_element(l_b, [terminal_mapping['bottom_1'], terminal_mapping['bottom_2']])
