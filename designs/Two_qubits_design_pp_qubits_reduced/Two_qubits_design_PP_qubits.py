@@ -195,7 +195,7 @@ CC1_flux = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type
 #      ]
 
 
-CCc = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.35,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=+60,tight = [True,10]),
+CCc = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.35,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=+110,tight = [True,10]),
       ]
 
 
