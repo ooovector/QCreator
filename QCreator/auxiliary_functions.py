@@ -119,7 +119,7 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
         sample.add(bridge)
         meander_extra = sample.connect_cpw(bridge, closed_end_meander[-1], 'port1', 'port2',
                                            name='Purcell after-short-meander extension', points= [],
-                                           airbridge=airbridge, min_spacing=min_bridge_spacing)
+                                           airbridge=airbridge, min_spacing=min_bridge_spacing*bridge_part_decimation)
 
         coupler_connection_object = bridge
     else:
