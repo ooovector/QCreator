@@ -239,7 +239,7 @@ Y = 1
 qubits   = []
 couplers = []
 
-x_offset=1500
+x_offset=1500-300
 y_offset=-800
 
 s1 = 100-reduced_length/np.sqrt(2)+150/np.sqrt(2)+11+5/np.sqrt(2)
