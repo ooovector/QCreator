@@ -1559,7 +1559,7 @@ class TLSystem:
             phi6 = phi4@phi2
 
             ham -= phi4 * jj.E_J/24 / (hbar*2*np.pi)
-            #ham += phi6 * jj.E_J/720
+            ham += phi6 * jj.E_J/720 / (hbar*2*np.pi)
 
         return ham, basis
 
