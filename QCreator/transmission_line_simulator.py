@@ -536,6 +536,20 @@ class JosephsonJunction(TLSystemElement):
     def is_scdc(self):
         return True
 
+    def hob_phi_op(self, submode, num_levels):
+        """
+        Returns the matrix representation in harmonic oscillator basis of the phi operator across the junction for a given mode
+        :param submode: mode voltages and currents
+        :param num_levels: number of levels in harmonic oscillator basis
+        :return:
+        """
+        prefactor = self.L_lin()/self.phi_0 * submode[2] / np.sqrt(2)
+        sqrt_n = np.diag(np.sqrt(np.arange(num_levels)))
+        operator = np.zeros(sqrt_n.shape, complex)
+        operator[:-1, :] += prefactor * sqrt_n[1:, :]
+        operator[:, :-1] += np.conj(prefactor) * sqrt_n[:, 1:]
+        return operator
+
     def nonlinear_perturbation(self):
         p = np.asarray([
             [0, 0, 0, 0],
@@ -1240,7 +1254,6 @@ class TLSystem:
     def get_second_order_perturbation_kerr2(self, list_of_modes_numbers: list, raw_frequencies = 0):
         omega, kappa, modes = self.get_modes()
         omega_ = np.asarray([omega[m] for m in list_of_modes_numbers]) / (2 * np.pi)
-        omega_corrected = np.asarray([omega[m] for m in list_of_modes_numbers]) / (2 * np.pi)
 
         JJ_kerr = self.get_perturbation_nondiagonal2(list_of_modes_numbers) / 4
 
@@ -1510,8 +1523,51 @@ class TLSystem:
 
         return ham, basis
 
-    def get_perturbation_hamiltonian_kerr(self, modes: list, num_levels: list):
-        ham, basis = self.get_perturbation_hamiltonian(modes, num_levels)
+    def get_perturbation_hamiltonian2(self, modes: list, num_levels: list):
+        """
+        Calculate second order correction to energy with perturbation operator
+        """
+
+        from collections import defaultdict
+        from itertools import product
+
+        omega, kappa, modes_ = self.get_modes()
+        omega_ = np.asarray([omega[m] for m in modes])/(2*np.pi)
+        normalized_modes = self.normalization_of_modes(modes)
+
+        # build junction operators
+        ham = np.zeros((np.prod(num_levels), np.prod(num_levels)), complex)
+        basis = [b for b in product(*[tuple([i for i in range(dof_levels)]) for dof_levels in num_levels])]
+        basis_ = np.asarray(basis)
+
+        ham += np.diag(basis_@omega_) # linear part of hamiltonian
+        for jj in self.JJs:
+            jj_phi_operator = np.zeros_like(ham)
+            for mode_id in range(len(modes)):
+                jj_phi_mode_operator = np.identity(1)
+                for mode2_id in range(len(modes)):
+                    if mode_id == mode2_id:
+                        submode = self.get_element_submode(jj, normalized_modes[mode_id, :])
+                        op = jj.hob_phi_op(submode, num_levels[mode_id])
+                    else:
+                        op = np.identity(num_levels[mode2_id])
+                    jj_phi_mode_operator = np.kron(jj_phi_mode_operator, op)
+                jj_phi_operator += jj_phi_mode_operator
+            #jj_phi_operators.append(jj_phi_operator)
+            phi2 = jj_phi_operator@jj_phi_operator
+            phi4 = phi2@phi2
+            phi6 = phi4@phi2
+
+            ham -= phi4 * jj.E_J/24 / (hbar*2*np.pi)
+            #ham += phi6 * jj.E_J/720
+
+        return ham, basis
+
+    def get_perturbation_hamiltonian_kerr(self, modes: list, num_levels: list, truncation='initial'):
+        if truncation == 'initial':
+            ham, basis = self.get_perturbation_hamiltonian(modes, num_levels)
+        elif truncation == 'intermediate':
+            ham, basis = self.get_perturbation_hamiltonian2(modes, num_levels)
 
         vals, vecs = np.linalg.eigh(ham)
 
