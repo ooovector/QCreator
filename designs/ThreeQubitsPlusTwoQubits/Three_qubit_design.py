@@ -171,7 +171,7 @@ height_tc   = [910-20,600]
 
 
 reduced_length = 350
-height_tc2 = [1600,500,1200+3*28-reduced_length]
+height_tc2 = [1600,550,1200+3*28-reduced_length]
 
 gap_tc      = 70
 ground_w_tc = 630+2*ground_t
@@ -214,7 +214,7 @@ CC3 = [#elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = '
 l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 5, 3, 5, [60,9], 50, 3
 flux_distance = 20
 #for coupler
-flux2 = {'l':150,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4,
+flux2 = {'l':150,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':25,'rotation':np.pi/4,
          'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'inverted_extension':0}
 
 
@@ -323,7 +323,7 @@ qubits.append(Q3)
 center2tc = (origin[0] +1*(spacing+ground_h)/2+width_tc[0]/2-3+x_offset, origin[1] +(spacing+ground_h)/2+shift_y-claw_tc[0]+y_offset-10)
 
 
-a2 = -395
+a2 = -395-25
 a_coupl = -300
 T2 = elements.y_squid_coupler.Y_Squid_C(name='Y_Coupler', center=center2tc,
                                                   width=[100,200],
@@ -348,8 +348,8 @@ T2 = elements.y_squid_coupler.Y_Squid_C(name='Y_Coupler', center=center2tc,
                                                   air_bridge=air2,
                                                   y_gap = 170,
                                                   asymmetry_coupler = a_coupl,
-                                                return_inverted=False,
-                                                    thin_coupler = [True,32.5]
+                                                  return_inverted=False,
+                                                  thin_coupler = [True,32.5]
                                                   )
 
 sample.add(T2)
@@ -478,6 +478,11 @@ def create_restricted(check = False):
 
     rect = gdspy.Rectangle((center2tc[0]-(ground_h_tc+400)/2,center2tc[1]-ground_w_tc/2),(center2tc[0]-(ground_h_tc+400)/2+290,center2tc[1]-ground_w_tc/2+250))
     restricted = gdspy.boolean(restricted, rect, 'not', layer=layers_configuration['inverted'])
+
+    sizex,sizey = 20,30
+    Top_Flux_line_Rectangle = gdspy.Rectangle((4428,1224),
+                                              (4428+sizex,1224+sizey))
+    restricted = gdspy.boolean(restricted, Top_Flux_line_Rectangle, 'not', layer=layers_configuration['inverted'])
 
     sample_all = [i for i in sample.objects]
     for object in sample_all:
