@@ -199,15 +199,15 @@ air2 = [[200,40,100],[400,40,100]]
 
 tight = [True,6]
 
-CC1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.4,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=40,tight = tight),
+CC1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,60,'left',coupler_type = 'coupler',heightl = 0.6,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=40,tight = tight),
        #elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'left',coupler_type = 'coupler',heightl = 0.02*0,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25,tight = tight),
       ]
 
-CC2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.4,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=40,tight = tight),
+CC2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,60,'left',coupler_type = 'coupler',heightl = 0.6,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=40,tight = tight),
       ]
 
 CC3 = [#elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = 'coupler',heightr = 0.06*0,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=-25,tight = tight),
-     elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'coupler',heightl = 0.4,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=40,tight = tight),
+     elements.pp_transmon.PP_Transmon_Coupler(0,0,60,'left',coupler_type = 'coupler',heightl = 0.6,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=40,tight = tight),
       ]
 
 
