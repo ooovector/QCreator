@@ -211,13 +211,6 @@ CC3 = [#elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = '
       ]
 
 
-"""
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 100, fluxline_core, 3, 5, 20, 50, fluxline_gap
-
-fluxline_core, fluxline_gap, fluxline_ground=9,5,10
-flux_distance = 7
-flux = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':fluxline_ground,'w':fluxline_core,'s':fluxline_gap,'rotation':0,'inverted_extension':0}
-"""
 l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 5, 3, 5, [60,9], 50, 3
 flux_distance = 20
 #for coupler
@@ -235,7 +228,7 @@ CC = [CC1,CC2,CC3]
 
 #CC_tc1 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.2,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=20,tight = tight),]
 
-CC_tc2 = [elements.pp_transmon.PP_Transmon_Coupler(0,60,25,'right',coupler_type = 'coupler',heightr = 0.20,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=43,tight = tight,vertical_shift = -180),]
+CC_tc2 = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'right',coupler_type = 'coupler',heightr = 0.20,w=resonator_core,s=resonator_gap,g=resonator_ground,shift_to_qubit=43,tight = tight,vertical_shift = -180),]
 
 
 
