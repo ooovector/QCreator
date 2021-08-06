@@ -200,7 +200,7 @@ CCc = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'co
 
 
 flux_distance = 15
-l, t_m, t_r, gp, l_arm, h_arm, s_gap,asymmetry = 160-flux_distance+0.5, 5, 3, 5, [40/3,58.85-0.2-0.156], 50, resonator_gap,15-4.7
+l, t_m, t_r, gp, l_arm, h_arm, s_gap,asymmetry = 160-flux_distance+0.5+13, 5, 3, 5, [40/3,58.85-0.2-0.156], 50, resonator_gap,15-4.7+30-21+12.5
 flux1 = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':asymmetry,'loop_h': 10 }
 #for coupler
 flux_distance = 0
