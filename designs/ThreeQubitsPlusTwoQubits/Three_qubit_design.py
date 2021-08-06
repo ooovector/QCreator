@@ -370,8 +370,8 @@ couplers.append(T2)
 
 
 
-shiftx = 600-3100-2300
-shifty = -530
+shiftx = 600-3100-2300+2600
+shifty = -530+2600
 center=(6400+shiftx,1200+shifty)
 JJ_test_structure = elements.pp_transmon.PP_Transmon(name='JJ_test',center=center,
                           width = 300,
