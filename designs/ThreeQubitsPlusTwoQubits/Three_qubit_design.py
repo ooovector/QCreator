@@ -9,9 +9,7 @@ from QCreator import general_sample_creator as creator
 from QCreator import meshing
 reload(gdspy)
 
-### to have 50 Oms impedance with eps=11.75
-tl_core = 20.
-tl_gap = 12.
+
 ### to have 50 Oms impedance with eps=11.45
 tl_core = 21.
 tl_gap = 12.
@@ -20,7 +18,7 @@ tl_ground = 6.#<-- changed from 10. to 5.
 resonator_core = 15
 resonator_gap = 10
 resonator_ground = 15 #5
-resonator_tl_ground=13
+resonator_tl_ground=8
 pad_offset = 550
 fluxline_core, fluxline_gap, fluxline_ground=9,5,10
 
@@ -239,7 +237,7 @@ Y = 1
 qubits   = []
 couplers = []
 
-x_offset=1500-300
+x_offset=1500-200
 y_offset=-800
 
 s1 = 100-reduced_length/np.sqrt(2)+150/np.sqrt(2)+11+5/np.sqrt(2)
