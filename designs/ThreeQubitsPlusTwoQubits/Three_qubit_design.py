@@ -477,13 +477,14 @@ def create_restricted(check = False):
     rect = gdspy.Rectangle((center2tc[0]-(ground_h_tc+400)/2,center2tc[1]-ground_w_tc/2),(center2tc[0]-(ground_h_tc+400)/2+290,center2tc[1]-ground_w_tc/2+250))
     restricted = gdspy.boolean(restricted, rect, 'not', layer=layers_configuration['inverted'])
 
+    shift = -200
     sizex, sizey = 20, 30
     Top_Flux_line_Rectangle = gdspy.Rectangle((4428, 1224),
-                                              (4428 + sizex, 1224 + sizey)).translate(-300,0)
+                                              (4428 + sizex, 1224 + sizey)).translate(shift,0)
     restricted = gdspy.boolean(restricted, Top_Flux_line_Rectangle, 'not', layer=layers_configuration['inverted'])
 
-    Fl1 = gdspy.Rectangle((4466.5, 1138), (4477, 1196)).translate(-300,0)
-    Fl2 = gdspy.Polygon([(4395.5, 1193), (4452.5, 1143), (4452.5, 1138), (4395.5, 1138), (4395.5, 1193)]).translate(-300,0)
+    Fl1 = gdspy.Rectangle((4466.5, 1138), (4477, 1196)).translate(shift,0)
+    Fl2 = gdspy.Polygon([(4395.5, 1193), (4452.5, 1143), (4452.5, 1138), (4395.5, 1138), (4395.5, 1193)]).translate(shift,0)
     restricted = gdspy.boolean(restricted, [Fl1, Fl2], 'not', layer=layers_configuration['inverted'])
 
     sample_all = [i for i in sample.objects]
