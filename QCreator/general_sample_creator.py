@@ -16,7 +16,7 @@ class Sample:
         self.chip_geometry = elements.ChipGeometry(**configurations)
         self.name = str(name)
 
-        self.lib = gdspy.GdsLibrary(unit=1e-06, precision=1e-09)
+        self.lib = gdspy.GdsLibrary(unit=1e-06, precision=1e-10)
 
         self.total_cell = self.lib.new_cell(self.name, overwrite_duplicate=True, update_references=True)
         self.restricted_cell = self.lib.new_cell(self.name + ' restricted', overwrite_duplicate=True,
