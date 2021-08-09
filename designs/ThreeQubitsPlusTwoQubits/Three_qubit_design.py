@@ -240,10 +240,10 @@ couplers = []
 x_offset=1500-200
 y_offset=-800
 
-s1 = 100-reduced_length/np.sqrt(2)+150/np.sqrt(2)+11+5/np.sqrt(2)
+s1 = 100-reduced_length/np.sqrt(2)+150/np.sqrt(2)+11+3/np.sqrt(2)
 
 
-s2 = 10/np.sqrt(2)
+s2 = 10.18/np.sqrt(2)
 center1 = (3860-117+x_offset+s1+s2+56,3000+32+y_offset+s1-s2+66)
 
 Q1 = elements.pp_transmon.PP_Transmon(name='Q1', center=center1,
@@ -268,8 +268,8 @@ Q1 = elements.pp_transmon.PP_Transmon(name='Q1', center=center1,
 sample.add(Q1)
 qubits.append(Q1)
 
-s1 = 78-reduced_length/np.sqrt(2)+198/np.sqrt(2)
-s2= -2.5+18/np.sqrt(2)
+s1 = 78-reduced_length/np.sqrt(2)+200.3/np.sqrt(2)
+s2= -2.5+18/np.sqrt(2)-0.75/np.sqrt(2)
 center2 = (3860-120+x_offset+s1+s2+56,1600-70+y_offset-s1+s2+66)
 Q2 = elements.pp_transmon.PP_Transmon(name='Q2', center=center2,
                                            width=width,
@@ -293,7 +293,7 @@ Q2 = elements.pp_transmon.PP_Transmon(name='Q2', center=center2,
 sample.add(Q2)
 qubits.append(Q2)
 s1 = 0
-center3 = (2258-110+x_offset-158+s1-300,2298-20+y_offset+81+s1)
+center3 = (2258-110+x_offset-158+s1-300-0.2,2298-20+y_offset+81+s1+1.5)
 
 Q3 = elements.pp_transmon.PP_Transmon(name='Q3', center=center3,
                                            width=width,
