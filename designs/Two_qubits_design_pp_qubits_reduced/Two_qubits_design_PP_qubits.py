@@ -200,14 +200,13 @@ CCc = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'co
 
 
 flux_distance = 15
-l, t_m, t_r, gp, l_arm, h_arm, s_gap,asymmetry = 160-flux_distance+0.5+13, 5, 3, 5, [40/3,58.85-0.2-0.156], 50, resonator_gap,15-4.7+30-21+12.5
+l, t_m, t_r, gp, l_arm, h_arm, s_gap,asymmetry = 160-flux_distance+12, 5, 3, 5, [40/3,58.85-0.2-0.156], 50, resonator_gap,15-4.7+30-21+12.5
 flux1 = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':asymmetry,'loop_h': 10 }
 #for coupler
 flux_distance = 0
 l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 4, 3, 5, [58.85-0.2-0.156,40/3], 50, resonator_gap
-flux2 = {'l':150,'t_m':5,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':3,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4,'translation':(-58-50/np.sqrt(2),-50/np.sqrt(2)),
+flux2 = {'l':100,'t_m':5,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':3,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4,'translation':(-79.97+7.31,-26.69+12.15),
          'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'inverted_extension':0}
-
 
 
 CC = [CC1_flux,CC2]

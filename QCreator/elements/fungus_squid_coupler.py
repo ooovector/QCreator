@@ -962,12 +962,13 @@ class PP_Squid_Fluxline:
             (center[0] + 100 + self.l_arm + self.t_m, center[1] + g_h / 2 + 2000))
 
         if self.rotation != 0 and self.rotation != None :
-            point = rotate_point(point, self.rotation, (point[0] - self.l - self.t_r, point[1]))
-            result   = result.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
-            restrict = restrict.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
-            remove1  = remove1.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
-            remove2  = remove2.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
-            inverted = inverted.rotate(self.rotation, (point[0] - self.l - self.t_r, point[1]))
+            rotation = rotate_point(point, self.rotation, (point[0] - self.l - self.t_r, point[1]))
+            result   = result.rotate(self.rotation,(rotation[0]-self.l-self.t_r,rotation[1]))
+            restrict = restrict.rotate(self.rotation,(rotation[0]-self.l-self.t_r,rotation[1]))
+            remove1  = remove1.rotate(self.rotation,(rotation[0]-self.l-self.t_r,rotation[1]))
+            remove2  = remove2.rotate(self.rotation,(rotation[0]-self.l-self.t_r,rotation[1]))
+            inverted = inverted.rotate(self.rotation, (rotation[0] - self.l - self.t_r, rotation[1]))
+            point = rotate_point(point, self.rotation, (rotation[0] - self.l - self.t_r, rotation[1]))
 
         if self.translation != (0,0) and self.translation != None :
             dx,dy = self.translation[0],self.translation[1]
