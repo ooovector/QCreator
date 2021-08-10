@@ -14,10 +14,10 @@ reload(gdspy)
 tl_core = 21.
 tl_gap = 12.
 tl_ground = 6.#<-- changed from 10. to 5.
-
-resonator_core = 15
-resonator_gap = 10
-resonator_ground = 15 #5
+# resonator parameters:
+resonator_core = 8
+resonator_gap = 7
+resonator_ground = 10
 resonator_tl_ground=8
 pad_offset = 550
 fluxline_core, fluxline_gap, fluxline_ground=9,5,10
@@ -101,10 +101,7 @@ p22 = pads_right[0]
 
 
 ################################
-# resonator parameters:
-resonator_core = 8
-resonator_gap = 7
-resonator_ground = 10
+
 
 ############### Qubits and Coupler
 
