@@ -122,10 +122,10 @@ ground_h = 750+ground_t*2+100
 
 #jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':np.pi/2}
 
-jj_pp2 = { 'a11':0.538,"a12":0.095,"a2":0.095,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}# hole sizes for the JJs
-jj_pp1 = { 'a1':0.211,"a2":0.211,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10 ,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}# hole sizes for the JJs
+jj_pp2 = { 'a11':0.538,"a12":0.095,"a2":0.095,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10,'bandages_extension':2.5/2,'connection_pad_width':0.6,'connection_pad_gap':0.5*0,'bandages_edge_shift':3.5}# hole sizes for the JJs
+jj_pp1 = { 'a1':0.211,"a2":0.211,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10 ,'bandages_extension':2.5/2,'connection_pad_width':0.6,'connection_pad_gap':0.5*0,'bandages_edge_shift':3.5}# hole sizes for the JJs
 
-jj_pp_c = { 'a11':0.499,"a12":0.189,"a2":0.189,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'rotation':np.pi/4,'translate':(-6.5,6.5-3),'loop_w_shift':10,'strip1_extension':20,'strip2_extension':35,'padding':10}# hole sizes for the JJs
+jj_pp_c = { 'a11':0.499,"a12":0.189,"a2":0.189,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10,'bandages_extension':2.5/2,'connection_pad_width':0.6,'connection_pad_gap':0.5*0,'rotation':np.pi/4,'translate':(-6.5,6.5-3),'loop_w_shift':10,'strip1_extension':20,'strip2_extension':35,'padding':10,'bandages_edge_shift':3.5}# hole sizes for the JJs
 
 
 JJ_pad_offset_x = 10 # for JJ_manhatten
@@ -290,6 +290,9 @@ for i in range(Y):
 
 
 center=(6400,1200)
+jj_pp2 = { 'a11':0.538,"a12":0.095,"a2":0.095,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10,'bandages_extension':2.5/2,'connection_pad_width':0.6,'connection_pad_gap':0.5*0,'bandages_edge_shift':3.5}# hole sizes for the JJs
+jj_pp1 = { 'a1':0.211,"a2":0.211,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10 ,'bandages_extension':2.5/2,'connection_pad_width':0.6,'connection_pad_gap':0.5*0,'bandages_edge_shift':3.5}# hole sizes for the JJs
+
 JJ_test_structure = elements.pp_transmon.PP_Transmon(name='JJ_test',center=center,
                           width = 300,
                           height = 300,
@@ -299,7 +302,7 @@ JJ_test_structure = elements.pp_transmon.PP_Transmon(name='JJ_test',center=cente
                           ground_w = 700,
                           ground_h = 600,
                           ground_t = 10,
-                          jj_params= jj_pp_c,
+                          jj_params= jj_pp2,
                           layer_configuration = sample.layer_configuration,
                           Couplers = [],
                           calculate_capacitance = False,
@@ -316,7 +319,7 @@ JJ_test_structure1 = elements.pp_transmon.PP_Transmon(name='JJ_test1',center=cen
                           ground_w = 700,
                           ground_h = 600,
                           ground_t = 10,
-                          jj_params= jj_pp_c,
+                          jj_params= jj_pp1,
                           layer_configuration = sample.layer_configuration,
                           Couplers = [],
                           calculate_capacitance = False,
