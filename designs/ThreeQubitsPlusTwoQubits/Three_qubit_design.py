@@ -18,7 +18,7 @@ tl_ground = 6.#<-- changed from 10. to 5.
 resonator_core = 8
 resonator_gap = 7
 resonator_ground = 10
-resonator_tl_ground=8
+resonator_tl_ground=5
 pad_offset = 550
 fluxline_core, fluxline_gap, fluxline_ground=9,5,10
 
