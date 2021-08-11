@@ -377,7 +377,11 @@ def create_restricted(check = False):
 
     restricted = gdspy.boolean(restricted,one,'not',layer=layers_configuration['inverted'])
     rect_substr = gdspy.Rectangle((2992,1284),(3133,1030))
-    restricted = gdspy.boolean(restricted,rect_substr,'not',layer=layers_configuration['inverted'])
+
+    flux1 = gdspy.Polygon([(2170.27,1679.27),(2149.5,1728.76),(2073.22,1804.72),(2170.27-160/np.sqrt(2),1679.27+160/np.sqrt(2)),(2170.27,1679.27)])
+    flux2 = gdspy.Polygon([(2210.5,1719.5),(2210.5-160/np.sqrt(2),1719.5+160/np.sqrt(2)),(2085.3,1816.5),(2161,1740.75),(2210.5,1719.5)])
+    subtr = [rect_substr,flux1,flux2]
+    restricted = gdspy.boolean(restricted,subtr,'not',layer=layers_configuration['inverted'])
 
 
     # for airbridges

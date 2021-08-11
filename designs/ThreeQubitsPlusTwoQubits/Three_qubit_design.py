@@ -206,10 +206,10 @@ CC3 = [#elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = '
       ]
 
 
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 5, 3, 5, [60,9], 50, 3
+l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 5, 3, 5, [60,60], 50, 3
 flux_distance = 20
 #for coupler
-flux2 = {'l':150,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':25,'rotation':np.pi/4,
+flux2 = {'l':150,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':3,'w':5,'s':3,'asymmetry':25,'rotation':np.pi/4,
          'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'inverted_extension':0}
 
 
@@ -476,13 +476,13 @@ def create_restricted(check = False):
 
     shift = -200
     sizex, sizey = 20, 30
-    Top_Flux_line_Rectangle = gdspy.Rectangle((4428, 1224),
+    Top_Flux_line_Rectangle = gdspy.Rectangle((4428, 1224-20),
                                               (4428 + sizex, 1224 + sizey)).translate(shift,0)
     restricted = gdspy.boolean(restricted, Top_Flux_line_Rectangle, 'not', layer=layers_configuration['inverted'])
 
-    Fl1 = gdspy.Rectangle((4466.5, 1138), (4477, 1196)).translate(shift,0)
+    #Fl1 = gdspy.Rectangle((4466.5, 1138), (4477, 1196)).translate(shift,0)
     Fl2 = gdspy.Polygon([(4395.5, 1193), (4452.5, 1143), (4452.5, 1138), (4395.5, 1138), (4395.5, 1193)]).translate(shift,0)
-    restricted = gdspy.boolean(restricted, [Fl1, Fl2], 'not', layer=layers_configuration['inverted'])
+    restricted = gdspy.boolean(restricted, [ Fl2], 'not', layer=layers_configuration['inverted'])
 
     sample_all = [i for i in sample.objects]
     for object in sample_all:
@@ -490,6 +490,11 @@ def create_restricted(check = False):
             continue
         restricted = gdspy.boolean(restricted,object.render()['positive'],'not',layer=layers_configuration['inverted'])
         one = gdspy.boolean(one,object.render()['positive'],'not',layer=layers_configuration['vertical gridlines'])
+
+    t1 = gdspy.Polygon([(4200,1193),(4200,1182),(4255.5,1144.36),(4200,1193)])
+    t2 = gdspy.Rectangle((4277,1196),(4277+50,1196+10))
+    modified_flux = [t1,t2]
+    restricted = gdspy.boolean(restricted,modified_flux,'or',layer=layers_configuration['inverted'])
 
     sample.total_cell.add(one)
     sample.total_cell.add(restricted)
