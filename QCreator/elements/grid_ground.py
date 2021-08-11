@@ -59,14 +59,17 @@ class GridGround(DesignElement):
                     result_x = gdspy.boolean(result_x, object_polys['restrict'], 'not', layer=self.layer_configuration.gridline_x_layer)
                     result_y = gdspy.boolean(result_y, object_polys['restrict'], 'not', layer=self.layer_configuration.gridline_y_layer)
                 if self.render_inverse:
-                    inverted_result = gdspy.boolean(inverted_result, object_polys['restrict'], 'not', layer=self.layer_configuration.inverted)
+                    inverted_result = gdspy.boolean(inverted_result, object_polys['restrict'], 'not',
+                                                    layer=self.layer_configuration.inverted)
+                    #inverted_result = gdspy.boolean(inverted_result, object_polys['restrict'], 'not', layer=self.layer_configuration.airbridges_layer )
             elif 'positive' in object_polys:
                 if self.render_direct:
                     result_x = gdspy.boolean(result_x, object_polys['positive'], 'not', layer=self.layer_configuration.gridline_x_layer)
                     result_y = gdspy.boolean(result_y, object_polys['positive'], 'not', layer=self.layer_configuration.gridline_y_layer)
                 if self.render_inverse:
-                    inverted_result = gdspy.boolean(inverted_result, object_polys['positive'], 'not',
-                                                layer=self.layer_configuration.inverted)
+                    inverted_result = gdspy.boolean(inverted_result, object_polys['restrict'], 'not',
+                                                    layer=self.layer_configuration.inverted)
+                    #inverted_result = gdspy.boolean(inverted_result, object_polys['restrict'], 'not', layer=self.layer_configuration.airbridges_layer )
 
 #        if self.render_inverse:
 #            inverted_result_filtered = []
