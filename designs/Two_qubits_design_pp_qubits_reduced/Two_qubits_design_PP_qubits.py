@@ -381,7 +381,7 @@ def create_restricted(check = False):
 
     flux4 = gdspy.Polygon([(3835,1065.7),(3835,1069),(3769.14,1065.3),(3766,1062),(3835,1065.7)])
     flux5 = gdspy.Rectangle((3823.3,1104),(3871.3,1144))
-    flux8 = gdspy.Polygon([(3823.3,1119.85),(3822.37,1118.57),(3823.59,1116.76),(3823.3,1119.85)])
+    flux8 = gdspy.Polygon([(3823.3,1119.85),(3822.37,1118.57),(3823.59,1116.56),(3823.3,1119.85)])
     add = [flux4,flux5,flux8]
     restricted = gdspy.boolean(restricted, add, 'or', layer=layers_configuration['inverted'])
 
