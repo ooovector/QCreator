@@ -378,10 +378,24 @@ def create_restricted(check = False):
     restricted = gdspy.boolean(restricted,one,'not',layer=layers_configuration['inverted'])
     rect_substr = gdspy.Rectangle((2992,1284),(3133,1030))
 
+
+    flux4 = gdspy.Polygon([(3835,1065.7),(3835,1069),(3769.14,1065.3),(3766,1062),(3835,1065.7)])
+    flux5 = gdspy.Rectangle((3823.3,1104),(3871.3,1144))
+    flux8 = gdspy.Polygon([(3823.3,1119.85),(3822.37,1118.57),(3823.59,1116.76),(3823.3,1119.85)])
+    add = [flux4,flux5,flux8]
+    restricted = gdspy.boolean(restricted, add, 'or', layer=layers_configuration['inverted'])
+
+
+
     flux1 = gdspy.Polygon([(2170.27,1679.27),(2149.5,1728.76),(2073.22,1804.72),(2170.27-160/np.sqrt(2),1679.27+160/np.sqrt(2)),(2170.27,1679.27)])
     flux2 = gdspy.Polygon([(2210.5,1719.5),(2210.5-160/np.sqrt(2),1719.5+160/np.sqrt(2)),(2085.3,1816.5),(2161,1740.75),(2210.5,1719.5)])
-    subtr = [rect_substr,flux1,flux2]
+    flux3 = gdspy.Rectangle((3763.9,1064.25),(3763.9+2.12,1064.25-35))
+    flux6 = gdspy.Rectangle((3763.9, 1064.25), (3763.9 + 3, 1064.25 - 35))
+    flux7 = gdspy.Rectangle((3822.44,1122.81), (3822.44+60,1122.81-3))
+
+    subtr = [rect_substr,flux1,flux2,flux3,flux6,flux7]
     restricted = gdspy.boolean(restricted,subtr,'not',layer=layers_configuration['inverted'])
+
 
 
     # for airbridges
