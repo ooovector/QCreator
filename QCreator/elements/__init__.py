@@ -22,3 +22,4 @@ from .y_squid_coupler import Y_Squid_C
 from .alignment_structure import AirbridgeAlignmentMarks
 from .wmi_logos import WMILogos
 from .alignment_markers import AlignmentMarkers
+from .gflux_squid import GFluxControllableSquid
