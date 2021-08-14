@@ -476,7 +476,7 @@ class TLCoupler(TLSystemElement):
         return "TL {} (n={})".format(self.name, self.n)
 
 
-class JosephsonJunction(TLSystemElement):
+class JosephsonJunctionChain(TLSystemElement):
     """
     JosephsonJunction is a nonlinear element with energy E = E_J(1 − cos φ).
     However, in approximation it can be represented as element with linear inductance L_J = Φ_0 / (2 pi I_c),
@@ -506,28 +506,15 @@ class JosephsonJunction(TLSystemElement):
         ]) / 2
         return energy
 
-    # def scdc(self, submode):
-    #     return [self.E_J / self.phi_0 * np.sin((submode[1] - submode[0])) * 1e6 + submode[2], ## TODO: fix JJ energy
-    #             (submode[2] + submode[3])]
-    #
-    # def scdc_energy(self, submode):
-    #     return [self.E_J / self.phi_0 * ]
-    #
-    # def scdc_constrains(self):
-    #     return [[0, 0, 1, 1]]
-    #
-    # def scdc_gradient(self, submode):
-    #     return []
-
     def potential(self, submode):
-        return self.E_J * (1 - np.cos(submode[0] - submode[1])) / (hbar / (2 * e)) ** 2 * 1e-9
+        return self.E_J * (1 - np.cos((submode[0] - submode[1])/self.n_junctions)) / (hbar / (2 * e)) ** 2 * 1e-9 * self.n_junctions
 
     def potential_gradient(self, submode):
-        gradient = self.E_J * np.sin(submode[0] - submode[1]) / (hbar / (2 * e)) ** 2 * 1e-9
+        gradient = self.E_J * np.sin((submode[0] - submode[1])/self.n_junctions) / (hbar / (2 * e)) ** 2 * 1e-9
         return gradient * np.asarray([1, -1])
 
     def potential_hessian(self, submode):
-        hessian = self.E_J * np.cos(submode[0] - submode[1]) / (hbar / (2 * e)) ** 2 * 1e-9
+        hessian = self.E_J * np.cos((submode[0] - submode[1])/self.n_junctions) / (hbar / (2 * e)) ** 2 * 1e-9 / self.n_junctions
         return hessian * np.asarray([[1, -1], [-1, 1]])
 
     # def potential_constraints(self):
@@ -558,31 +545,29 @@ class JosephsonJunction(TLSystemElement):
             [0, 0, 0, 0]
         ])
         Phi_0 = self.phi_0 * (2 * np.pi)
-        v = - self.E_J / 4 * ((2 * np.pi / Phi_0) * self.L_lin()) ** 4 * np.kron(p, p)
-
-        # np.conj(np.kron(mode1, mode2)) @ v @ (np.kron(mode1, mode2))
-
+        v = - self.E_J / 4 * ((2 * np.pi / Phi_0) * self.L_lin()) ** 4 * np.kron(p, p) / (self.n_junctions ** 2)
         return v
 
     def nonlinear_perturbation4(self, mode1, mode2, mode3, mode4):
-        v = - self.L_lin() ** 3 / self.phi_0 ** 2 * mode1[2] * mode2[2] * mode3[2] * mode4[2] / 4
-
-        # np.conj(np.kron(mode1, mode2)) @ v @ (np.kron(mode1, mode2))
-
+        v = - self.L_lin() ** 3 / self.phi_0 ** 2 * mode1[2] * mode2[2] * mode3[2] * mode4[2] / 4 / self.n_junctions
         return v
 
-    def __init__(self, e_j=None, name=''):
+    def __init__(self, e_j=None, n_junctions=1, name=''):
         super().__init__('JJ', name)
         self.E_J = e_j
+        self.n_junctions = n_junctions
 
         self.phi_0 = hbar / (2 * e)  # reduced flux quantum
         self.stationary_phase = 0
 
     def L_lin(self):
-        return self.phi_0 ** 2 / (self.E_J * np.cos(self.stationary_phase))  # linear part of JJ
+        return self.phi_0 ** 2 / (self.E_J * np.cos(self.stationary_phase)) * self.n_junctions # linear part of JJ
 
     def set_stationary_phase(self, phase):
         self.stationary_phase = phase
+
+
+JosephsonJunction = JosephsonJunctionChain
 
 
 class TLSystem:
@@ -1558,8 +1543,8 @@ class TLSystem:
             phi4 = phi2@phi2
             phi6 = phi4@phi2
 
-            ham -= phi4 * jj.E_J/24 / (hbar*2*np.pi)
-            ham += phi6 * jj.E_J/720 / (hbar*2*np.pi)
+            ham -= phi4 * jj.E_J/24 / (hbar*2*np.pi) / jj.n_junctions
+            ham += phi6 * jj.E_J/720 / (hbar*2*np.pi) / (jj.n_junctions**2)
 
         return ham, basis
 
