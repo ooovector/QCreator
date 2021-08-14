@@ -609,16 +609,16 @@ class Fungus_Squid_C(DesignElement):
         else:
             loop_extension = 0
         #single strip
-        strip1 = gdspy.Rectangle((self.center[0]+self.gap/2+self.w-self.b_w,self.center[1]+self.h/2+self.JJ_params['a1']/2+self.asymmetry+3*self.b_w-self.b_w/2),(self.center[0]+self.gap/2+self.w-self.b_w+reach1,self.center[1]+self.h/2-self.b_w/2-self.JJ_params['a1']/2+self.asymmetry+3*self.b_w))
+        strip1 = gdspy.Rectangle((self.center[0]+self.gap/2+self.w-self.b_w,self.center[1]+self.h/2+self.JJ_params['a2']/2+self.asymmetry+3*self.b_w-self.b_w/2),(self.center[0]+self.gap/2+self.w-self.b_w+reach1,self.center[1]+self.h/2-self.b_w/2-self.JJ_params['a2']/2+self.asymmetry+3*self.b_w))
         #pad
         pad1 = gdspy.Rectangle((self.center[0]+self.gap/2+self.w-self.b_w,self.center[1]+self.h/2+0.45+self.asymmetry+3*self.b_w-self.b_w/2),(self.center[0]+self.gap/2+self.w-self.b_w-self.JJ_params['h_d']+0.5,self.center[1]+self.h/2-self.b_w/2-0.45+self.asymmetry+3*self.b_w))
         strip1.translate(0,loop_extension)
         pad1.translate(0,loop_extension)
 
         #double strip
-        strip2 = gdspy.Rectangle((self.center[0]+self.gap/2+self.w-self.b_w/2-loop_h/2-self.JJ_params['a2']/2,self.center[1]+self.h/2+self.asymmetry+2*self.b_w-self.b_g),(self.center[0]+self.gap/2+self.w-self.b_w/2+self.JJ_params['a2']/2-loop_h/2,self.center[1]+self.h/2+self.asymmetry+2*self.b_w-self.b_g+reach2))
-        strip3 = gdspy.copy(strip2, +loop_h,0)
-
+        strip2 = gdspy.Rectangle((self.center[0]+self.gap/2+self.w-self.b_w/2-loop_h/2-self.JJ_params['a11']/2,self.center[1]+self.h/2+self.asymmetry+2*self.b_w-self.b_g),(self.center[0]+self.gap/2+self.w-self.b_w/2+self.JJ_params['a11']/2-loop_h/2,self.center[1]+self.h/2+self.asymmetry+2*self.b_w-self.b_g+reach2))
+        strip3 = gdspy.Rectangle((self.center[0]+self.gap/2+self.w-self.b_w/2-loop_h/2-self.JJ_params['a12']/2,self.center[1]+self.h/2+self.asymmetry+2*self.b_w-self.b_g),(self.center[0]+self.gap/2+self.w-self.b_w/2+self.JJ_params['a12']/2-loop_h/2,self.center[1]+self.h/2+self.asymmetry+2*self.b_w-self.b_g+reach2))
+        strip3.translate(loop_h,0)
         #pad2
         pad2 = gdspy.Rectangle((self.center[0] + self.gap / 2 + self.w - self.b_w / 2 - loop_h / 2-0.45,self.center[1] + self.h / 2 + self.asymmetry + 2 * self.b_w - self.b_g-self.JJ_params['h_d']+0.5),
                                                        (self.center[0] + self.gap / 2 + self.w - self.b_w / 2 + 0.45- loop_h / 2, self.center[1] + self.h / 2 + self.asymmetry + 2 * self.b_w - self.b_g))
@@ -962,12 +962,13 @@ class PP_Squid_Fluxline:
             (center[0] + 100 + self.l_arm + self.t_m, center[1] + g_h / 2 + 2000))
 
         if self.rotation != 0 and self.rotation != None :
-            point = rotate_point(point, self.rotation, (point[0] - self.l - self.t_r, point[1]))
-            result   = result.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
-            restrict = restrict.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
-            remove1  = remove1.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
-            remove2  = remove2.rotate(self.rotation,(point[0]-self.l-self.t_r,point[1]))
-            inverted = inverted.rotate(self.rotation, (point[0] - self.l - self.t_r, point[1]))
+            rotation = rotate_point(point, self.rotation, (point[0] - self.l - self.t_r, point[1]))
+            result   = result.rotate(self.rotation,(rotation[0]-self.l-self.t_r,rotation[1]))
+            restrict = restrict.rotate(self.rotation,(rotation[0]-self.l-self.t_r,rotation[1]))
+            remove1  = remove1.rotate(self.rotation,(rotation[0]-self.l-self.t_r,rotation[1]))
+            remove2  = remove2.rotate(self.rotation,(rotation[0]-self.l-self.t_r,rotation[1]))
+            inverted = inverted.rotate(self.rotation, (rotation[0] - self.l - self.t_r, rotation[1]))
+            point = rotate_point(point, self.rotation, (rotation[0] - self.l - self.t_r, rotation[1]))
 
         if self.translation != (0,0) and self.translation != None :
             dx,dy = self.translation[0],self.translation[1]

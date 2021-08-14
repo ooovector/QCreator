@@ -9,18 +9,16 @@ from QCreator import general_sample_creator as creator
 from QCreator import meshing
 reload(gdspy)
 
-### to have 50 Oms impedance with eps=11.75
-tl_core = 20.
-tl_gap = 12.
+
 ### to have 50 Oms impedance with eps=11.45
 tl_core = 21.
 tl_gap = 12.
 tl_ground = 6.#<-- changed from 10. to 5.
-
-resonator_core = 15
-resonator_gap = 10
-resonator_ground = 15 #5
-resonator_tl_ground=13
+# resonator parameters:
+resonator_core = 8
+resonator_gap = 7
+resonator_ground = 10
+resonator_tl_ground=5
 pad_offset = 550
 fluxline_core, fluxline_gap, fluxline_ground=9,5,10
 
@@ -103,10 +101,7 @@ p22 = pads_right[0]
 
 
 ################################
-# resonator parameters:
-resonator_core = 8
-resonator_gap = 7
-resonator_ground = 10
+
 
 ############### Qubits and Coupler
 
@@ -127,19 +122,19 @@ ground_w = 660+ground_t*2+100
 ground_h = 660+ground_t*2+100
 
 #square junctions
-a1    = np.sqrt(0.15*0.3) #Junction height in um
-a2    = a1 # Junction width in um
+# a1    = np.sqrt(0.15*0.3) #Junction height in um
+# a2    = a1 # Junction width in um
 
 
-jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5}# hole sizes for the JJs
+jj_pp = { 'a1':0.203,"a2":0.203,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.5}# hole sizes for the JJs
 
 
+#### qubit 2 in my table
+jj_pp_rotated = { 'a1':0.228,"a2":0.228,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.,'rotation':np.pi/4,'translate':(-5,-6),'bridge_translate':(-5,-16,0,0),'paddingx':0,'paddingy':10,'bandages_edge_shift':3.5}# hole sizes for the JJs
 
-jj_pp_rotated = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.,'rotation':np.pi/4,'translate':(-5,-6),'bridge_translate':(-5,-16,0,0),'paddingx':0,'paddingy':10,'bandages_edge_shift':3.5}# hole sizes for the JJs
+jj_pp_2 = { 'a1':0.252,"a2":0.252,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'inverted_extension':0,'strip1_extension':20,'strip2_extension':25,'loop_h':10,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.,'bandages_edge_shift':3.5}
 
-jj_pp_2 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8, 'squid':False,'inverted_extension':0,'strip1_extension':20,'strip2_extension':25,'loop_h':10,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0.,'bandages_edge_shift':3.5}
-
-jj_pp_3 = { 'a11':a1,"a12":a2,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':3 ,'h_d':8,'squid':True,'loop_h': 13,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0,'strip1_extension':17,'strip2_extension':26,'bandages_edge_shift':3.5}# hole sizes for the JJs
+jj_pp_3 = { 'a11':0.513,"a12":0.236,"a2":0.236,'angle_JJ':0,'manhatten':True,'h_w':3 ,'h_d':8,'squid':True,'loop_h': 13,'bandages_extension':1.25,'connection_pad_width':0.6,'connection_pad_gap':0,'strip1_extension':17,'strip2_extension':26,'bandages_edge_shift':3.5}# hole sizes for the JJs
 
 
 JJ_pad_offset_x = 10 # for JJ_manhatten
@@ -171,7 +166,7 @@ height_tc   = [910-20,600]
 
 
 reduced_length = 350
-height_tc2 = [1600,500,1200+3*28-reduced_length]
+height_tc2 = [1600,550,1200+3*28-reduced_length]
 
 gap_tc      = 70
 ground_w_tc = 630+2*ground_t
@@ -211,10 +206,10 @@ CC3 = [#elements.pp_transmon.PP_Transmon_Coupler(0,0,16,'right',coupler_type = '
       ]
 
 
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 5, 3, 5, [60,9], 50, 3
+l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 5, 3, 5, [60,60], 50, 3
 flux_distance = 20
 #for coupler
-flux2 = {'l':150,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4,
+flux2 = {'l':150,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':3,'w':5,'s':3,'asymmetry':25,'rotation':np.pi/4,
          'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'inverted_extension':0}
 
 
@@ -239,13 +234,13 @@ Y = 1
 qubits   = []
 couplers = []
 
-x_offset=1500
+x_offset=1500-200
 y_offset=-800
 
-s1 = 100-reduced_length/np.sqrt(2)+150/np.sqrt(2)+11+5/np.sqrt(2)
+s1 = 100-reduced_length/np.sqrt(2)+150/np.sqrt(2)+11+3/np.sqrt(2)
 
 
-s2 = 10/np.sqrt(2)
+s2 = 10.18/np.sqrt(2)
 center1 = (3860-117+x_offset+s1+s2+56,3000+32+y_offset+s1-s2+66)
 
 Q1 = elements.pp_transmon.PP_Transmon(name='Q1', center=center1,
@@ -270,8 +265,8 @@ Q1 = elements.pp_transmon.PP_Transmon(name='Q1', center=center1,
 sample.add(Q1)
 qubits.append(Q1)
 
-s1 = 78-reduced_length/np.sqrt(2)+198/np.sqrt(2)
-s2= -2.5+18/np.sqrt(2)
+s1 = 78-reduced_length/np.sqrt(2)+200.3/np.sqrt(2)
+s2= -2.5+18/np.sqrt(2)-0.75/np.sqrt(2)
 center2 = (3860-120+x_offset+s1+s2+56,1600-70+y_offset-s1+s2+66)
 Q2 = elements.pp_transmon.PP_Transmon(name='Q2', center=center2,
                                            width=width,
@@ -295,7 +290,7 @@ Q2 = elements.pp_transmon.PP_Transmon(name='Q2', center=center2,
 sample.add(Q2)
 qubits.append(Q2)
 s1 = 0
-center3 = (2258-110+x_offset-158+s1-300,2298-20+y_offset+81+s1)
+center3 = (2258-110+x_offset-158+s1-300-0.2,2298-20+y_offset+81+s1+1.5)
 
 Q3 = elements.pp_transmon.PP_Transmon(name='Q3', center=center3,
                                            width=width,
@@ -323,7 +318,7 @@ qubits.append(Q3)
 center2tc = (origin[0] +1*(spacing+ground_h)/2+width_tc[0]/2-3+x_offset, origin[1] +(spacing+ground_h)/2+shift_y-claw_tc[0]+y_offset-10)
 
 
-a2 = -395
+a2 = -395-25
 a_coupl = -300
 T2 = elements.y_squid_coupler.Y_Squid_C(name='Y_Coupler', center=center2tc,
                                                   width=[100,200],
@@ -348,8 +343,8 @@ T2 = elements.y_squid_coupler.Y_Squid_C(name='Y_Coupler', center=center2tc,
                                                   air_bridge=air2,
                                                   y_gap = 170,
                                                   asymmetry_coupler = a_coupl,
-                                                return_inverted=False,
-                                                    thin_coupler = [True,32.5]
+                                                  return_inverted=False,
+                                                  thin_coupler = [True,32.5]
                                                   )
 
 sample.add(T2)
@@ -479,12 +474,27 @@ def create_restricted(check = False):
     rect = gdspy.Rectangle((center2tc[0]-(ground_h_tc+400)/2,center2tc[1]-ground_w_tc/2),(center2tc[0]-(ground_h_tc+400)/2+290,center2tc[1]-ground_w_tc/2+250))
     restricted = gdspy.boolean(restricted, rect, 'not', layer=layers_configuration['inverted'])
 
+    shift = -200
+    sizex, sizey = 20, 30
+    Top_Flux_line_Rectangle = gdspy.Rectangle((4428, 1224-20),
+                                              (4428 + sizex, 1224 + sizey)).translate(shift,0)
+    restricted = gdspy.boolean(restricted, Top_Flux_line_Rectangle, 'not', layer=layers_configuration['inverted'])
+
+    #Fl1 = gdspy.Rectangle((4466.5, 1138), (4477, 1196)).translate(shift,0)
+    Fl2 = gdspy.Polygon([(4395.5, 1193), (4452.5, 1143), (4452.5, 1138), (4395.5, 1138), (4395.5, 1193)]).translate(shift,0)
+    restricted = gdspy.boolean(restricted, [ Fl2], 'not', layer=layers_configuration['inverted'])
+
     sample_all = [i for i in sample.objects]
     for object in sample_all:
         if not hasattr(object.render()['positive'],'layers'):
             continue
         restricted = gdspy.boolean(restricted,object.render()['positive'],'not',layer=layers_configuration['inverted'])
         one = gdspy.boolean(one,object.render()['positive'],'not',layer=layers_configuration['vertical gridlines'])
+
+    t1 = gdspy.Polygon([(4200,1193),(4200,1182),(4255.5,1144.36),(4200,1193)])
+    t2 = gdspy.Rectangle((4277,1196),(4277+50,1196+10))
+    modified_flux = [t1,t2]
+    restricted = gdspy.boolean(restricted,modified_flux,'or',layer=layers_configuration['inverted'])
 
     sample.total_cell.add(one)
     sample.total_cell.add(restricted)

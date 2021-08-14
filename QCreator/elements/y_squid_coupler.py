@@ -315,8 +315,11 @@ class Y_Squid_C(DesignElement):
             f = self.fluxline_params
             l, t_m, t_r, gap, l_arm, h_arm, s_gap = f['l'],f['t_m'],f['t_r'],f['gap'],f['l_arm'],f['h_arm'],f['s_gap']
             flux_distance = f['flux_distance']
+            flux_asymmetry = 0
+            if 'asymmetry' in f:
+                flux_asymmetry = f['asymmetry']
             #result_restricted, to ct off hanging parts from the fluxline, None for no cutoff
-            flux = PP_Squid_Fluxline(l, t_m, t_r, gap, l_arm, h_arm, s_gap,flux_distance,self.w,self.h,self.gap,self.b_w,self.b_g,ground = None,asymmetry = self.asymmetry,g = f.get('g'),w = f.get('w'),s = f.get('s'),extend = f.get('extend_to_ground'))
+            flux = PP_Squid_Fluxline(l, t_m, t_r, gap, l_arm, h_arm, s_gap,flux_distance,self.w,self.h,self.gap,self.b_w,self.b_g,ground = None,asymmetry = self.asymmetry+flux_asymmetry,g = f.get('g'),w = f.get('w'),s = f.get('s'),extend = f.get('extend_to_ground'))
 
             fluxline = flux.render(self.center, self.w, self.h,self.g_h,self.g_t)['positive']
 

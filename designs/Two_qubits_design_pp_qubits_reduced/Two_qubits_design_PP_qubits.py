@@ -117,14 +117,15 @@ ground_w = 710+ground_t*2+100
 ground_h = 750+ground_t*2+100
 
 #square junctions
-a1    = np.sqrt(0.17*0.3) #Junction height in um
-a2    = a1 # Junction width in um
+# a1    = np.sqrt(0.17*0.3) #Junction height in um
+# a2    = a1 # Junction width in um
 
 #jj_pp = { 'a1':a1,"a2":a2,'angle_JJ':np.pi/2}
-jj_pp2 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}# hole sizes for the JJs
-jj_pp1 = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10 ,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5}# hole sizes for the JJs
 
-jj_pp_c = { 'a1':a1,"a2":a2,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10,'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'rotation':np.pi/4,'translate':(-6.5,6.5-3),'loop_w_shift':10,'strip1_extension':20,'strip2_extension':35,'padding':10}# hole sizes for the JJs
+jj_pp2 = { 'a11':0.538,"a12":0.095,"a2":0.095,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10,'bandages_extension':2.5/2,'connection_pad_width':0.6,'connection_pad_gap':0.5*0,'bandages_edge_shift':3.5}# hole sizes for the JJs
+jj_pp1 = { 'a1':0.211,"a2":0.211,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10 ,'bandages_extension':2.5/2,'connection_pad_width':0.6,'connection_pad_gap':0.5*0,'bandages_edge_shift':3.5}# hole sizes for the JJs
+
+jj_pp_c = { 'a11':0.499,"a12":0.189,"a2":0.189,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10,'bandages_extension':2.5/2,'connection_pad_width':0.6,'connection_pad_gap':0.5*0,'rotation':np.pi/4,'translate':(-6.5,6.5-3),'loop_w_shift':10,'strip1_extension':20,'strip2_extension':35,'padding':10,'bandages_edge_shift':3.5}# hole sizes for the JJs
 
 
 JJ_pad_offset_x = 10 # for JJ_manhatten
@@ -200,14 +201,14 @@ CCc = [elements.pp_transmon.PP_Transmon_Coupler(0,0,25,'left',coupler_type = 'co
 
 
 flux_distance = 15
-l, t_m, t_r, gp, l_arm, h_arm, s_gap,asymmetry = 160-flux_distance+0.5, 5, 3, 5, [40/3,58.85-0.2-0.156], 50, resonator_gap,15-4.7
-flux1 = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':asymmetry,'loop_h': 10 }
+#l, t_m, t_r, gp, l_arm, h_arm, s_gap,asymmetry = 160-flux_distance+12, 5, 3, 5, [40/3,58.85-0.2-0.156], 50, resonator_gap,15-4.7+30-21+12.5
+l, t_m, t_r, gp, l_arm, h_arm, s_gap,asymmetry = 160-flux_distance+12, 5, 3, 5, 23, 50, 3,0
+flux1 = {'l':l,'t_m':t_m,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':s_gap,'g':3,'w':5,'s':3,'asymmetry':asymmetry,'loop_h': 10 }
 #for coupler
 flux_distance = 0
-l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 4, 3, 5, [58.85-0.2-0.156,40/3], 50, resonator_gap
-flux2 = {'l':150,'t_m':5,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':3,'g':resonator_ground,'w':resonator_core,'s':resonator_gap,'asymmetry':0,'rotation':np.pi/4,'translation':(-58-50/np.sqrt(2),-50/np.sqrt(2)),
+l, t_m, t_r, gp, l_arm, h_arm, s_gap = 110-8-ground_t, 4, 3, 5, [58.85-0.2-0.156,40/3], 50, 3
+flux2 = {'l':100,'t_m':5,'t_r':t_r,'flux_distance':flux_distance,'gap':gp,'l_arm':l_arm,'h_arm':h_arm,'s_gap':3,'g':3,'w':5,'s':3,'asymmetry':0,'rotation':np.pi/4,'translation':(-79.97+7.31,-26.69+12.15),
          'bandages_extension':2.5,'connection_pad_width':0.9,'connection_pad_gap':0.5,'inverted_extension':0}
-
 
 
 CC = [CC1_flux,CC2]
@@ -289,6 +290,9 @@ for i in range(Y):
 
 
 center=(6400,1200)
+jj_pp2 = { 'a11':0.538,"a12":0.095,"a2":0.095,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':True,'loop_h': 10,'bandages_extension':2.5/2,'connection_pad_width':0.6,'connection_pad_gap':0.5*0,'bandages_edge_shift':3.5}# hole sizes for the JJs
+jj_pp1 = { 'a1':0.211,"a2":0.211,'angle_JJ':0,'manhatten':True,'h_w':5 ,'h_d':8,'squid':False,'loop_h': 10 ,'bandages_extension':2.5/2,'connection_pad_width':0.6,'connection_pad_gap':0.5*0,'bandages_edge_shift':3.5}# hole sizes for the JJs
+
 JJ_test_structure = elements.pp_transmon.PP_Transmon(name='JJ_test',center=center,
                           width = 300,
                           height = 300,
@@ -298,7 +302,7 @@ JJ_test_structure = elements.pp_transmon.PP_Transmon(name='JJ_test',center=cente
                           ground_w = 700,
                           ground_h = 600,
                           ground_t = 10,
-                          jj_params= jj_pp_c,
+                          jj_params= jj_pp2,
                           layer_configuration = sample.layer_configuration,
                           Couplers = [],
                           calculate_capacitance = False,
@@ -315,7 +319,7 @@ JJ_test_structure1 = elements.pp_transmon.PP_Transmon(name='JJ_test1',center=cen
                           ground_w = 700,
                           ground_h = 600,
                           ground_t = 10,
-                          jj_params= jj_pp_c,
+                          jj_params= jj_pp1,
                           layer_configuration = sample.layer_configuration,
                           Couplers = [],
                           calculate_capacitance = False,
@@ -373,7 +377,25 @@ def create_restricted(check = False):
 
     restricted = gdspy.boolean(restricted,one,'not',layer=layers_configuration['inverted'])
     rect_substr = gdspy.Rectangle((2992,1284),(3133,1030))
-    restricted = gdspy.boolean(restricted,rect_substr,'not',layer=layers_configuration['inverted'])
+
+
+    flux4 = gdspy.Polygon([(3835,1065.7),(3835,1069),(3769.14,1065.3),(3766,1062),(3835,1065.7)])
+    flux5 = gdspy.Rectangle((3823.3,1104),(3871.3,1144))
+    flux8 = gdspy.Polygon([(3823.3,1119.85),(3822.37,1118.57),(3823.59,1116.56),(3823.3,1119.85)])
+    add = [flux4,flux5,flux8]
+    restricted = gdspy.boolean(restricted, add, 'or', layer=layers_configuration['inverted'])
+
+
+
+    flux1 = gdspy.Polygon([(2170.27,1679.27),(2149.5,1728.76),(2073.22,1804.72),(2170.27-160/np.sqrt(2),1679.27+160/np.sqrt(2)),(2170.27,1679.27)])
+    flux2 = gdspy.Polygon([(2210.5,1719.5),(2210.5-160/np.sqrt(2),1719.5+160/np.sqrt(2)),(2085.3,1816.5),(2161,1740.75),(2210.5,1719.5)])
+    flux3 = gdspy.Rectangle((3763.9,1064.25),(3763.9+2.12,1064.25-35))
+    flux6 = gdspy.Rectangle((3763.9, 1064.25), (3763.9 + 3, 1064.25 - 35))
+    flux7 = gdspy.Rectangle((3822.44,1122.81), (3822.44+60,1122.81-3))
+
+    subtr = [rect_substr,flux1,flux2,flux3,flux6,flux7]
+    restricted = gdspy.boolean(restricted,subtr,'not',layer=layers_configuration['inverted'])
+
 
 
     # for airbridges
