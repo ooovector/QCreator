@@ -2,16 +2,18 @@ import gdspy
 
 
 class JJ_2:
-    def __init__(self, x0, y0, Hb, parametr2, parametr3, parametr4, parametr5, parametr6, add_JJ=False,
-                 hole_in_squid_pad=True):
+    def __init__(self, x0, y0, Hb, jj1_width, jj1_height, jj2_width, jj2_height, jj3_width, jj3_height, parametr6,
+                 add_JJ=False, hole_in_squid_pad=False):
         self._x0 = x0
         self._y0 = y0
 
         self._parametr1 = Hb
-        self._parametr2 = parametr2
-        self._parametr3 = parametr3
-        self._parametr4 = parametr4
-        self._parametr5 = parametr5
+        self.jj1_width = jj1_width
+        self.jj1_height = jj1_height
+        self.jj2_width = jj2_width
+        self.jj2_height = jj2_height
+        self.jj3_width = jj3_width
+        self.jj3_height = jj3_height
         self._parametr6 = parametr6
         self.add_JJ = add_JJ
         self.hole_in_squid_pad = hole_in_squid_pad
@@ -70,8 +72,8 @@ class JJ_2:
         else:
             points1 = [(x1 - 3 * H_a, y1 - H_b / 3),
                        (x1 + H_a, y1 - H_b / 3),
-                       (x1 + H_a, y1 - H_b / 3 - self._parametr4),
-                       (x1 - 2 * H_a, y1 - H_b / 3 - self._parametr4),
+                       (x1 + H_a, y1 - H_b / 3 - self.jj3_height),
+                       (x1 - 2 * H_a, y1 - H_b / 3 - self.jj3_height),
                        (x1 - 2 * H_a, y1 - H_b),
                        (x1 - 3 * H_a, y1 - H_b)
                        ]
@@ -79,8 +81,8 @@ class JJ_2:
             points1_1 = [(x1 - H_a, y1),
                          (x1 - H_a/4, y1),
                          (x1 - H_a/4, y1 - H_b / 4),
-                         (x1 - H_a + self._parametr3, y1 - H_b / 4),
-                         (x1 - H_a + self._parametr3, y1 - H_b / 3 + h),
+                         (x1 - H_a + self.jj3_width, y1 - H_b / 4),
+                         (x1 - H_a + self.jj3_width, y1 - H_b / 3 + h),
                          (x1 - H_a, y1 - H_b / 3 + h)
                          ]
 
@@ -93,9 +95,9 @@ class JJ_2:
                    (x2 - L_a / 2, y2 - L_b)
                    ]
 
-        H1_a = self._parametr2#0.8
+        H1_a = self.jj2_width#0.8
         H1_b = 1#2
-        H2_a = self._parametr2#0.8
+        H2_a = self.jj1_width#0.8
         H2_b = 1#2
 
         x3 = x2 - L_a / 2 + H1_a / 2
@@ -124,9 +126,9 @@ class JJ_2:
         # parametr2=pad1_a
         # parametr3=pad2_a
 
-        pad1_a = self._parametr3
+        pad1_a = self.jj2_width
         pad1_b = 1#3
-        pad2_a = self._parametr2
+        pad2_a = self.jj1_width
         pad2_b = 1#3
 
         points5_for_pad1 = [(x5, y5),
@@ -178,10 +180,10 @@ class JJ_2:
         # parametr5=pad4_b
 
         pad3_a = 1.5#2.5
-        pad3_b = self._parametr4
+        pad3_b = self.jj2_height
 
         pad4_a = 1.5#2.5
-        pad4_b = self._parametr5
+        pad4_b = self.jj1_height
 
         points8_for_pad3 = [(x8, y8),
 

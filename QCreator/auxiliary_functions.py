@@ -199,7 +199,10 @@ def draw_purcell(sample, coupler_start_x, coupler_start_y, coupler_length,
     if object1 is None:
         object1 = sample.open_end(closed_end_res_meander[-1], 'port2', 'open end')
     else:
-        open_end_res = sample.connect_cpw(closed_end_res_meander[-1], object1, 'port2', port, name='open end connection',
+        bridge, bridge_port = sample.airbridge(
+            object1, port, name='Airbridge over %s resonator' % object1.name, geometry=airbridge)
+
+        open_end_res = sample.connect_cpw(closed_end_res_meander[-1], bridge, 'port2', bridge_port, name='open end connection',
                                       points=[], airbridge=airbridge, min_spacing=min_bridge_spacing, r=meander_r)
         total_length.append(open_end_res[0].length)
 

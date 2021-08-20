@@ -183,10 +183,12 @@ class Coaxmon(DesignElement):
 
     def generate_JJ(self):
         self.JJ = squid3JJ.JJ_2(self.JJ_coordinates[0], self.JJ_coordinates[1],
-                                self.JJ_params['a1'], self.JJ_params['a2'],
-                                self.JJ_params['b1'], self.JJ_params['b2'],
-                                self.JJ_params['c1'], self.JJ_params['c2'], add_JJ=self.third_JJ,
-                                      hole_in_squid_pad=self.hole_in_squid_pad)
+                                self.JJ_params['a1'],
+                                self.JJ_params['jj1_width'], self.JJ_params['jj1_height'],
+                                self.JJ_params['jj2_width'], self.JJ_params['jj2_height'],
+                                self.JJ_params['jj3_width'], self.JJ_params['jj3_height'],
+                                self.JJ_params['c2'], add_JJ=self.third_JJ,
+                                hole_in_squid_pad=self.hole_in_squid_pad)
         result = self.JJ.generate_jj()
         result = gdspy.boolean(result, result, 'or', layer=self.layer_configuration.jj_layer)
         angle = self.JJ_params['angle_JJ']
@@ -273,7 +275,6 @@ class Coaxmon(DesignElement):
         bandages = gdspy.boolean(bandage_to_island, [bandage_to_fluxline, bandage_to_ground], 'or',
                                  layer=self.layer_configuration.bandages_layer)
         return bandages
-
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True,
                    cutoff: float = np.inf, epsilon: float = 11.45) -> list:

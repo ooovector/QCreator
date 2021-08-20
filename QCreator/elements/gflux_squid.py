@@ -38,10 +38,10 @@ class GFluxControllableSquid(DesignElement):
             orientation_fluxline = np.pi/2
         elif squid_params['squid_orientation'] == 'vertical':
             orientation_cpw = np.pi/2
-            orientation_fluxline = 0
+            orientation_fluxline = np.pi
 
         if invert_x:
-            if squid_params['squid_orientation'] == 'horizontal':
+            if squid_params['squid_orientation'] == 'vertical':
                 orientation_fluxline -= np.pi
             rectangles[:, :, 0] = -rectangles[:, :, 0]
             bandage_rectangles[:, :, 0] = -bandage_rectangles[:, :, 0]
