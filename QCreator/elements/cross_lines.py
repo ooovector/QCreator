@@ -11,7 +11,6 @@ from .. import transmission_line_simulator as tlsim
 from scipy.constants import epsilon_0
 
 
-
 class CrossLinesViaAirbridges(DesignElement):
     def __init__(self, name: str, position: Tuple[float, float], orientation: float,
                  top_w: float, top_s: float, top_g: float, bot_w: float, bot_s: float, bot_g: float, narrowing_length: float, geometry: AirBridgeGeometry):
@@ -76,7 +75,6 @@ class CrossLinesViaAirbridges(DesignElement):
                                 layer_configuration=self.geometry.layer_configuration,
                                 length=self.nar_len)
 
-
         positive = narrowing_1.render()['positive']
         restrict = narrowing_1.render()['restrict']
 
@@ -91,7 +89,6 @@ class CrossLinesViaAirbridges(DesignElement):
                                 layer_configuration=self.geometry.layer_configuration,
                                 length=self.nar_len)
 
-
         positive = gdspy.boolean(positive, narrowing_2.render()['positive'], 'or', layer=self.geometry.layer_configuration.total_layer)
         restrict = gdspy.boolean(restrict, narrowing_2.render()['restrict'], 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
 
@@ -103,7 +100,6 @@ class CrossLinesViaAirbridges(DesignElement):
                                          s=self.bot_s,
                                          g=self.bot_g,
                                          geometry=self.geometry)
-
 
         positive = gdspy.boolean(positive, bridge_center.render()['positive'], 'or', layer=self.geometry.layer_configuration.total_layer)
         restrict = gdspy.boolean(restrict, bridge_center.render()['restrict'], 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
@@ -119,7 +115,6 @@ class CrossLinesViaAirbridges(DesignElement):
                                      g=self.bot_g,
                                      geometry=self.geometry)
 
-
         positive = gdspy.boolean(positive, bridge_up.render()['positive'], 'or', layer=self.geometry.layer_configuration.total_layer)
         restrict = gdspy.boolean(restrict, bridge_up.render()['restrict'], 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
         contacts = gdspy.boolean(contacts, bridge_up.render()['airbridges_pads'], 'or', layer=self.geometry.layer_configuration.airbridges_pad_layer)
@@ -134,7 +129,6 @@ class CrossLinesViaAirbridges(DesignElement):
                                        g=self.bot_g,
                                        geometry=self.geometry)
 
-
         positive = gdspy.boolean(positive, bridge_down.render()['positive'], 'or', layer=self.geometry.layer_configuration.total_layer)
         restrict = gdspy.boolean(restrict, bridge_down.render()['restrict'], 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
         contacts = gdspy.boolean(contacts, bridge_down.render()['airbridges_pads'], 'or', layer=self.geometry.layer_configuration.airbridges_pad_layer)
@@ -145,6 +139,13 @@ class CrossLinesViaAirbridges(DesignElement):
                                 (self.position[0]+self.bot_w/2, self.position[1]+3*p_wid/2+self.top_s))
         positive = gdspy.boolean(positive, aux_w, 'or', layer=self.geometry.layer_configuration.total_layer)
 
+        aux_restrict_1 = gdspy.Rectangle((self.position[0] + self.geometry.bridge_length/2, self.position[1] + p_wid/2 + self.top_s + p_wid),
+                                         (self.position[0] + self.geometry.bridge_length/2 - self.geometry.pad_length, self.position[1] - p_wid/2 - self.top_s - p_wid))
+        restrict = gdspy.boolean(restrict, aux_restrict_1, 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
+
+        aux_restrict_2 = gdspy.Rectangle((self.position[0] - self.geometry.bridge_length/2, self.position[1] + p_wid/2 + self.top_s + p_wid),
+                                         (self.position[0] - self.geometry.bridge_length/2 + self.geometry.pad_length, self.position[1] - p_wid/2 - self.top_s - p_wid))
+        restrict = gdspy.boolean(restrict, aux_restrict_2, 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
         # Rotate everything if needed:
         if self.orientation is not 0:
             positive.rotate(self.orientation, self.position)
@@ -192,7 +193,7 @@ class CrossLinesViaAirbridges(DesignElement):
 
         h = 2 * 1e-6  # bridge height 2 mu m # TODO: CONSTANTS IN CODE OMG REMOVE THIS
         s = 1e-12*self.geometry.narrow_width*self.bot_w
-        epsilon = 1 # TODO: CONSTANTS IN CODE OMG REMOVE THIS
+        epsilon = 1  # TODO: CONSTANTS IN CODE OMG REMOVE THIS
         c_bridge_cpw = epsilon_0 * epsilon * s / h
 
         cl_br, ll_br = cm.ConformalMapping([self.top_s+2*(self.geometry.pad_width-self.geometry.narrow_width),
