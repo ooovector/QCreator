@@ -1,6 +1,7 @@
 import numpy as np
 from abc import *
 from scipy.constants import e, hbar
+from scipy.optimize import minimize
 
 
 class TLSystemElement:
@@ -768,6 +769,17 @@ class TLSystem:
                     np.meshgrid(submatrix_indeces, submatrix_indeces)]
 
         return energy_hessian
+
+    def set_scdc_subsystem_phases(self, subsystems):
+        # subsystems = self.get_scdc_subsystems()
+        for subsystem_id, subsystem in enumerate(subsystems):
+            scdc_subnodes, scdc_shorts, scdc_subelements = subsystem
+            initial = np.zeros(len(scdc_subnodes))
+            solution = minimize(lambda x: self.scdc_energy(x, subsystem_id), initial,
+                                jac=lambda x: self.scdc_energy_gradient(x, subsystem_id),
+                                hess=lambda x: self.scdc_energy_hessian(x, subsystem_id))
+            self.set_phases(solution.x, subsystem_id)
+
 
     def get_element_energies_from_dynamic(self, state):
         # number of nodes
