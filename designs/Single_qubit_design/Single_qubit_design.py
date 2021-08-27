@@ -14,8 +14,8 @@ tl_core = 10.
 tl_gap = 6.
 tl_ground = 20.
 
-resonator_core = 8#10
-resonator_gap = 7#6
+resonator_core = 10#8
+resonator_gap = 6#7
 resonator_ground = 20
 
 pad_offset = 800
@@ -103,7 +103,7 @@ Couplers_qubit_alone=[elements.coaxmon.CoaxmonCoupler(arc_start=-1/6-1/100+shift
         elements.coaxmon.CoaxmonCoupler(arc_start=3/6+1/100+shift,arc_finish=5/6-1/100+shift,phi=1/2,
                                           coupler_type=None, w =8,g=20,s=7), #one upper
           elements.coaxmon.CoaxmonCoupler(arc_start=1/6+1/100+shift+1/20,arc_finish=3/6-1/100+shift-1/10,phi=phi1,
-                                          coupler_type='coupler', w =8,g=20,s=7),# for resonator
+                                          coupler_type='coupler', w =10,g=20,s=6),# for resonator
           elements.coaxmon.CoaxmonCoupler(arc_start=-1/6+1/100+1+shift,arc_finish=1/6-1/100+1+shift,phi=1,
                                           coupler_type=None, w =10),
           elements.coaxmon.CoaxmonCoupler(arc_start=-1/6+1/100+shift,arc_finish=1/6-1/100+shift,phi=0,
@@ -116,7 +116,7 @@ Couplers_qubit_alone1=[elements.coaxmon.CoaxmonCoupler(arc_start=-1/6-3/100+shif
         elements.coaxmon.CoaxmonCoupler(arc_start=3/6+1/100+shift,arc_finish=5/6-1/100+shift,phi=1/2,
                                           coupler_type=None, w =8,g=10,s=7), #one upper
           elements.coaxmon.CoaxmonCoupler(arc_start=1/6+1/100+shift+1/20,arc_finish=3/6-1/100+shift-1/10,phi=phi1,
-                                          coupler_type='coupler', w =8,g=20,s=7),# for resonator
+                                          coupler_type='coupler', w =10,g=20,s=6),# for resonator
           elements.coaxmon.CoaxmonCoupler(arc_start=-1/6+1/100+1+shift,arc_finish=1/6-1/100+1+shift,phi=1,
                                           coupler_type=None, w =10),
           elements.coaxmon.CoaxmonCoupler(arc_start=-1/6+1/100+shift,arc_finish=1/6-1/100+shift,phi=0,
@@ -143,36 +143,8 @@ jj_coaxmon_sm_SQUID = {
     'ic2': 0.15 * 0.5 * jc,
     'ic3': 0.15 * 0.15 * jc,
     'lm': 4.2e-12}
-    # {'a1':20,
-    #            'b1':0.2,
-    #            'a2':0.45,
-    #            'b2':0.243,
-    #            'c1':0.45,
-    #            'c2':10,
-    #            'angle_qubit':-np.pi/2+np.pi/60,#-np.pi/2-np.pi/3+np.pi/16,
-    #            'angle_JJ': 0,
-    #            'length':10,
-    #            'width':5,
-    #           'ic1': 0.45 * 0.45 * jc,
-    #           'ic2': -0.2 * 0.243 * jc,
-    #           'ic3': 0.2 * 0.243 * jc,
-    #           'lm': 4.2e-12
-    #           }
+
 jj_coaxmon_big_rad = {'a1':20,#65,
-#                'b1':0.3,
-#                'a2':0.55,
-#                'b2':0.3,
-#                'c1':0.55,
-#                'c2':10,
-#                'angle_qubit':-np.pi/2+np.pi/15,#-np.pi+np.pi/30,
-#                'angle_JJ': 0,
-#                'length':10,
-#                'width':5,
-#               'ic1': 0.55 * 0.55 * jc,
-#               'ic2': -0.3 * 0.3 * jc,
-#               'ic3': 0.3 * 0.3 * jc,
-#               'lm': 4.2e-12
-# {'a1':20,#65,
                       'jj1_width': 0.5,
                       'jj1_height': 0.3,
                       'jj2_width': 0.2,
@@ -350,11 +322,11 @@ jj3 = {
 
 # this will be changed in the future
 crab_terminals = {
-    'up_w':8,
-    'up_s':7,
+    'up_w':10,
+    'up_s':6,
     'up_g':20,
-    'down_w':8,
-    'down_s':7,
+    'down_w':10,
+    'down_s':6,
     'down_g':20,
     'left_w':10,
     'left_s':10,
