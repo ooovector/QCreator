@@ -511,10 +511,13 @@ class Xmon(DesignElement):
         self._y0 = self.center[1]-self.length-self.s/2+ self.contact_pad_b_outer-contact_pad_b_outer/2
 
         self._parametr1 = 10#Hb
-        self._parametr2 = self.jj['side_r_thick']
-        self._parametr3 = self.jj['up_l_thick']
-        self._parametr4 = self.jj['side_l_thick']
-        self._parametr5 = self.jj['side_r_thick']
+
+        self.jj1_width = self.jj['up_r_thick']
+        self.jj1_height = self.jj['side_r_thick']
+        self.jj2_width = self.jj['up_l_thick']
+        self.jj2_height = self.jj['side_l_thick']
+        self.jj3_width = self.jj['3jj_thick']
+        self.jj3_height = self.jj['3jj_height']
 
         # Add contact pad1
         points0 = [(self._x0 - contact_pad_a_outer / 2, self._y0 - contact_pad_b_outer),
@@ -551,8 +554,8 @@ class Xmon(DesignElement):
 
         points1 = [(x1 - 3 * H_a, y1 - H_b / 2),
                    (x1 + H_a, y1 - H_b / 2),
-                   (x1 + H_a, y1 - H_b / 2 - self._parametr4),
-                   (x1 - 2 * H_a, y1 - H_b / 2 - self._parametr4),
+                   (x1 + H_a, y1 - H_b / 2 - self.jj3_height),
+                   (x1 - 2 * H_a, y1 - H_b / 2 - self.jj3_height),
                    (x1 - 2 * H_a, y1 - H_b),
                    (x1 - 3 * H_a, y1 - H_b)
                    ]
@@ -560,8 +563,8 @@ class Xmon(DesignElement):
         points1_1 = [(x1 - H_a, y1),
                      (x1 - H_a / 4, y1),
                      (x1 - H_a / 4, y1 - H_b / 3),
-                     (x1 - H_a + self._parametr3, y1 - H_b / 3),
-                     (x1 - H_a + self._parametr3, y1 - H_b / 2 + h),
+                     (x1 - H_a + self.jj3_width, y1 - H_b / 3),
+                     (x1 - H_a + self.jj3_width, y1 - H_b / 2 + h),
                      (x1 - H_a, y1 - H_b / 2 + h)
                      ]
 
@@ -574,9 +577,9 @@ class Xmon(DesignElement):
                    (x2 - L_a / 2, y2 - L_b)
                    ]
 
-        H1_a = 0.8
+        H1_a = self.jj2_width#0.8
         H1_b = 2
-        H2_a = 0.8
+        H2_a = self.jj1_width#0.8
         H2_b = 2
 
         x3 = x2 - L_a / 2 + H1_a / 2
@@ -605,9 +608,9 @@ class Xmon(DesignElement):
         # parametr2=pad1_a
         # parametr3=pad2_a
 
-        pad1_a = self._parametr3
+        pad1_a = self.jj2_width
         pad1_b = 3
-        pad2_a = self._parametr2
+        pad2_a = self.jj1_width
         pad2_b = 3
 
         points5_for_pad1 = [(x5, y5),
@@ -637,10 +640,10 @@ class Xmon(DesignElement):
         y9 = self._y0 - contact_pad_b_outer - H_b - L_b - H1_b - pad1_b - h
 
         pad3_a = 4.5  # 2.5
-        pad3_b = self._parametr4
+        pad3_b = self.jj2_height
 
         pad4_a = 4.5  # 2.5
-        pad4_b = self._parametr5
+        pad4_b = self.jj1_height
 
         points8_for_pad3 = [(x8, y8),
 

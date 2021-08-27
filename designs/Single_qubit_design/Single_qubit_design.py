@@ -14,8 +14,8 @@ tl_core = 10.
 tl_gap = 6.
 tl_ground = 20.
 
-resonator_core = 8
-resonator_gap = 7
+resonator_core = 8#10
+resonator_gap = 7#6
 resonator_ground = 20
 
 pad_offset = 800
@@ -27,7 +27,7 @@ coupler_delta = 500
 coupler_length = 320
 num_couplers = 1
 
-jc = 0.5e-6 # uA/um^2
+jc = 1e-6#uA/um^2
 
 layers_configuration = {
     'total':0,
@@ -126,50 +126,85 @@ Couplers_qubit_alone1=[elements.coaxmon.CoaxmonCoupler(arc_start=-1/6-3/100+shif
 ]
 
 
-jj_coaxmon_sm_SQUID = {'a1':20,
-               'b1':0.2,
-               'a2':0.45,
-               'b2':0.243,
-               'c1':0.45,
-               'c2':10,
-               'angle_qubit':-np.pi/2+np.pi/60,#-np.pi/2-np.pi/3+np.pi/16,
-               'angle_JJ': 0,
-               'length':10,
-               'width':5,
-              'ic1': 0.45 * 0.45 * jc,
-              'ic2': -0.2 * 0.243 * jc,
-              'ic3': 0.2 * 0.243 * jc,
-              'lm': 4.2e-12
-              }
+jj_coaxmon_sm_SQUID = {
+    'a1': 20,
+    'jj1_width': 0.5,
+    'jj1_height': 0.5,
+    'jj2_width': 0.15,
+    'jj2_height': 0.5,
+    'jj3_width': 0.15,
+    'jj3_height': 0.15,
+    'c2': 10,
+    'angle_qubit': -np.pi/2+np.pi/60,
+    'angle_JJ': 0,
+    'length': 10,
+    'width': 5,
+    'ic1': 0.5 * 0.5 * jc,
+    'ic2': 0.15 * 0.5 * jc,
+    'ic3': 0.15 * 0.15 * jc,
+    'lm': 4.2e-12}
+    # {'a1':20,
+    #            'b1':0.2,
+    #            'a2':0.45,
+    #            'b2':0.243,
+    #            'c1':0.45,
+    #            'c2':10,
+    #            'angle_qubit':-np.pi/2+np.pi/60,#-np.pi/2-np.pi/3+np.pi/16,
+    #            'angle_JJ': 0,
+    #            'length':10,
+    #            'width':5,
+    #           'ic1': 0.45 * 0.45 * jc,
+    #           'ic2': -0.2 * 0.243 * jc,
+    #           'ic3': 0.2 * 0.243 * jc,
+    #           'lm': 4.2e-12
+    #           }
 jj_coaxmon_big_rad = {'a1':20,#65,
-               'b1':0.3,
-               'a2':0.55,
-               'b2':0.3,
-               'c1':0.55,
-               'c2':10,
-               'angle_qubit':-np.pi/2+np.pi/15,#-np.pi+np.pi/30,
-               'angle_JJ': 0,
-               'length':10,
-               'width':5,
-              'ic1': 0.55 * 0.55 * jc,
-              'ic2': -0.3 * 0.3 * jc,
-              'ic3': 0.3 * 0.3 * jc,
-              'lm': 4.2e-12
-              }
+#                'b1':0.3,
+#                'a2':0.55,
+#                'b2':0.3,
+#                'c1':0.55,
+#                'c2':10,
+#                'angle_qubit':-np.pi/2+np.pi/15,#-np.pi+np.pi/30,
+#                'angle_JJ': 0,
+#                'length':10,
+#                'width':5,
+#               'ic1': 0.55 * 0.55 * jc,
+#               'ic2': -0.3 * 0.3 * jc,
+#               'ic3': 0.3 * 0.3 * jc,
+#               'lm': 4.2e-12
+# {'a1':20,#65,
+                      'jj1_width': 0.5,
+                      'jj1_height': 0.3,
+                      'jj2_width': 0.2,
+                      'jj2_height': 0.2,
+                      'jj3_width': 0.2,
+                      'jj3_height': 0.2,
+                      'c2': 10,
+                      'angle_qubit': -np.pi/2+np.pi/15,
+                      'angle_JJ': 0,
+                      'length': 10,
+                      'width': 5,
+                      'ic1': 0.5 * 0.3 * jc,
+                      'ic2': 0.2 * 0.2 * jc,
+                      'ic3': 0.2 * 0.2 * jc,
+                      'lm': 4.2e-12}
+
 jj_coaxmon_2JJ = {'a1':20,
-               'b1':0.15,#0.16,
-               'a2':0.2,#0.45,
-               'b2':0.15,#0.2,
-               'c1':0.3,#0.486,
-               'c2':10,
-               'angle_qubit':-np.pi/2+np.pi/26.5,#-np.pi/2-np.pi/3,
-               'angle_JJ': 0,
-               'length':10,
-               'width':5,
-              'ic1': 0.2 * 0.3 * jc,
-              'ic2': 0.15 * 0.15 * jc,
-              'lm': 4.2e-12
-              }
+                   'jj1_width':0.15,  #0.16,
+                   'jj1_height':0.3,  #0.2,
+                  'jj2_width': 0.15,  # 0.45,
+                   'jj2_height':0.15,  #0.486,
+                  'jj3_height': None,  # 0.2,
+                  'jj3_width': None,  # 0.486,
+                   'c2':10,
+                   'angle_qubit':-np.pi/2+np.pi/26.5,  #-np.pi/2-np.pi/3,
+                   'angle_JJ': 0,
+                   'length':10,
+                   'width':5,
+                  'ic1': 0.15 * 0.3 * jc,
+                  'ic2': 0.15 * 0.15 * jc,
+                  'lm': 4.2e-12
+                  }
 
 bridge = elements.airbridge.AirBridgeGeometry(pad_width = 36,pad_length = 22,pad_distance = 62,
                                       narrow_width = 20, narrow_length = 46, sm_pad_length = 10,
@@ -279,7 +314,7 @@ jj = {
     'side_rect_h': 5,
     'side_rect_w': 5,
     'side_l_thick': 0.15,#0.2,
-    'side_r_thick': 0.2,#0.486,
+    'side_r_thick': 0.15,#0.486,
     'up_l_thick': 0.15,#0.16,
     'up_r_thick': 0.3,#0.45,
     'side_l_length': 7,#9,
@@ -289,7 +324,7 @@ jj = {
     'up_rect_shift': 4,
     'side_rect_shift': 3,
     'ic_l': 0.15*0.15*jc,
-    'ic_r': 0.2*0.3*jc
+    'ic_r': 0.15*0.3*jc
 }
 
 jj3 = {
@@ -298,17 +333,19 @@ jj3 = {
     'up_rect_w': 12,
     'side_rect_h': 6,
     'side_rect_w': 6,
-    'side_l_thick': 0.2,#0.2,
-    'side_r_thick': 0.45,#0.486,
-    'up_l_thick': 0.243,#0.16,
-    'up_r_thick': 0.45,#0.45,
+    'side_l_thick': 0.15,#0.2,
+    'side_r_thick': 0.5,#0.486,
+    'up_l_thick': 0.5,#0.16,
+    'up_r_thick': 0.5,#0.45,
+    '3jj_thick': 0.15,
+    '3jj_height': 0.15,
     'side_l_length': 4,#9,
     'side_r_length': 4,#9,
     'up_l_length': 7 - 0.16,
     'up_r_length': 7 - 0.16,
-    'ic_l': 0.243*0.2*jc,
-    'ic_r': 0.45*0.45*jc,
-    'ic3': 0.243 * 0.2 * jc
+    'ic_l': 0.15*0.5*jc,
+    'ic_r': 0.5*0.5*jc,
+    'ic3': 0.15*0.15 * jc
 }
 
 # this will be changed in the future
