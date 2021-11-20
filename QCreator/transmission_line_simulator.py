@@ -2,7 +2,6 @@ import numpy as np
 from abc import *
 from scipy.constants import e, hbar, h
 from scipy.optimize import minimize
-from tls_plot_functions import *
 import matplotlib.pyplot as plt
 
 
@@ -43,7 +42,7 @@ class TLSystemElement:
     def get_capacitance_matrix(self):
         return 0
 
-    def get_inductance_matrix(self):
+    def get_inv_inductance_matrix(self):
         return 0
 
     def nonlinearity_in_taylor_expansion(self):
@@ -195,8 +194,8 @@ class Inductor(TLSystemElement):
         ]) / 2
         return emat
 
-    def get_inductance_matrix(self):
-        return np.asarray([[self.L, -self.L], [-self.L, self.L]])
+    def get_inv_inductance_matrix(self):
+        return np.asarray([[1 / self.L, - 1 / self.L], [- 1 / self.L, 1 / self.L]])
 
     def __init__(self, l=None, name=''):
         super().__init__('L', name)
@@ -370,7 +369,7 @@ class TLCoupler(TLSystemElement):
         Capacitance matrix in dynamic basis
         """
         m = self.n * self.num_modes
-        capacitance_matrix = np.zeros((self.num_terminals() + m, self.num_terminals() + m))
+        capacitance_matrix = np.zeros((self.num_terminals() + m, self.num_terminals() + m), dtype=complex)
         e_c = np.zeros((m, m))
 
         for i in range(self.num_modes):
@@ -386,26 +385,32 @@ class TLCoupler(TLSystemElement):
 
         return capacitance_matrix
 
-    def get_inductance_matrix(self):
-        '''
+    def get_inv_inductance_matrix(self):
+        """
         Inverse inductance matrix in dynamic basis
-        '''
+        """
         from numpy.linalg import inv
         m = self.n * self.num_modes
-        inductance_matrix = np.zeros((self.num_terminals() + m, self.num_terminals() + m))
+        inductance_matrix = np.zeros((self.num_terminals() + m, self.num_terminals() + m), dtype=complex)
+        if self.n == 1:
+            inv_Ll = 1 / self.Ll
+        else:
+            inv_Ll = inv(self.Ll)
         e_l = np.zeros((m, m))
         for i in range(self.num_modes):
             for j in range(self.num_modes):
-                e_l_ = self.l * self.Ll / 2 * (
-                        (1 / 2) ** (i + j + 1) - (- 1 / 2) ** (i + j + 1)) / (i + j + 1)
+                if i + j == 1:
+                    e_l_ = np.zeros((self.n, self.n))
+                else:
+                    e_l_ = 1 * inv_Ll / (2 * self.l) * i * j / (i + j - 1) * ((1 / 2) ** (i + j - 1) - (- 1 / 2) ** (i + j - 1))
+                # e_l_ = self.l * inv_Ll / 2 * (
+                #         (1 / 2) ** (i + j + 1) - (- 1 / 2) ** (i + j + 1)) / (i + j + 1)
                 space = np.zeros((self.num_modes, self.num_modes))
                 space[i][j] = 1
                 e_l += np.kron(e_l_, space)
-                # e_l[i][j] = self.l * self.Ll / 2 * (
+                # e_l[i][j] = self.l * inv_Ll / 2 * (
                 #         (1 / 2) ** (i + j + 1) - (- 1 / 2) ** (i + j + 1)) / (i + j + 1)
-
-        inductance_matrix[self.num_terminals(): self.num_terminals() + m,
-        self.num_terminals(): self.num_terminals() + m] = e_l * 2
+        inductance_matrix[self.num_terminals(): self.num_terminals() + m, self.num_terminals(): self.num_terminals() + m] = e_l * 2
         return inductance_matrix
 
     def energy_matrix(self):
@@ -569,8 +574,8 @@ class JosephsonJunctionChain(TLSystemElement):
         ]) / 2
         return energy
 
-    def get_inductance_matrix(self):
-        return np.asarray([[self.L_lin(), -self.L_lin()], [-self.L_lin(), self.L_lin()]])
+    def get_inv_inductance_matrix(self):
+        return np.asarray([[1 / self.L_lin(), - 1 / self.L_lin()], [- 1 / self.L_lin(), 1 / self.L_lin()]])
 
     def potential(self, submode):
         return self.E_J * (1 - np.cos((submode[0] - submode[1]) / self.n_junctions)) / (
@@ -671,22 +676,6 @@ class TLSystem:
         self.terminal_node_mapping.append(nodes)
         return
 
-    def dofs_of_hamiltonian(self):
-        """
-        This method removes all short and port nodes from degrees of freedom and makes them grounded
-        """
-        from copy import deepcopy
-        dofs_nodes = deepcopy(self.nodes)
-
-        grounded_nodes = []
-        for elem_id, elem in enumerate(self.elements):
-            if elem.type_ in ['Port', 'Short']:
-                nodes = self.terminal_node_mapping[elem_id]
-                for node in nodes:
-                    dofs_nodes.remove(node)
-                    grounded_nodes.append(node)
-        return dofs_nodes, grounded_nodes
-
     def grounded_node_ind(self):
         gnd_ind = []
         for elem_id, elem in enumerate(self.elements):
@@ -711,7 +700,7 @@ class TLSystem:
         internal_dof_no = np.sum(e.num_degrees_of_freedom_dynamic() for e in self.elements if e.type_ == 'TL')
         # kinetic dofs = voltages + coefficients in taylor expansion for voltage
         kinetic_dofs = node_no + int(internal_dof_no / 2)
-        capacitance_matrix = np.zeros((kinetic_dofs, kinetic_dofs))
+        capacitance_matrix = np.zeros((kinetic_dofs, kinetic_dofs), dtype=complex)
 
         internal_dof_offset = node_no
         for elem_id, elem in enumerate(self.elements):
@@ -721,10 +710,10 @@ class TLSystem:
                 elem_terminals = self.terminal_node_mapping[elem_id]
                 # fill nodes voltages degrees of freedom
                 for node1_id, node1 in enumerate(elem_terminals):
-                        for node2_id, node2 in enumerate(elem_terminals):
-                            ind1 = self.nodes.index(node1)
-                            ind2 = self.nodes.index(node2)
-                            capacitance_matrix[ind1][ind2] += cap_mat[node1_id][node2_id]
+                    for node2_id, node2 in enumerate(elem_terminals):
+                        ind1 = self.nodes.index(node1)
+                        ind2 = self.nodes.index(node2)
+                        capacitance_matrix[ind1][ind2] += cap_mat[node1_id][node2_id]
                 if no_kinetic_internal_dofs > 0:
                     for dof1 in range(no_kinetic_internal_dofs):
                         for dof2 in range(no_kinetic_internal_dofs):
@@ -734,7 +723,7 @@ class TLSystem:
 
         return capacitance_matrix
 
-    def inductance_matrix(self, jj_lin=True):
+    def inv_inductance_matrix(self, jj_lin=True):
         """
         Create capacitance matrix in basis (node currents: I, currents degrees of freedom: i)
         """
@@ -746,31 +735,31 @@ class TLSystem:
         internal_dof_no = np.sum(e.num_degrees_of_freedom_dynamic() for e in self.elements if e.type_ == 'TL')
         # kinetic dofs = voltages + coefficients in taylor expansion for voltage
         potential_dofs = node_no + int(internal_dof_no / 2)
-        inductance_matrix = np.zeros((potential_dofs, potential_dofs))
+        inv_inductance_matrix = np.zeros((potential_dofs, potential_dofs), dtype=complex)
 
         internal_dof_offset = node_no
         for elem_id, elem in enumerate(self.elements):
-            ind_mat = elem.get_inductance_matrix()
+            inv_ind_mat = elem.get_inv_inductance_matrix()
             no_potential_internal_dofs = int(elem.num_degrees_of_freedom_dynamic() / 2)
             if not jj_lin:
                 if elem.type_ == 'JJ':
-                    ind_mat = 0
-            if type(ind_mat) is not int:
+                    inv_ind_mat = 0
+            if type(inv_ind_mat) is not int:
                 elem_terminals = self.terminal_node_mapping[elem_id]
                 # fill nodes currents degrees of freedom
                 for node1_id, node1 in enumerate(elem_terminals):
-                        for node2_id, node2 in enumerate(elem_terminals):
-                            ind1 = self.nodes.index(node1)
-                            ind2 = self.nodes.index(node2)
-                            inductance_matrix[ind1][ind2] += ind_mat[node1_id][node2_id]
+                    for node2_id, node2 in enumerate(elem_terminals):
+                        ind1 = self.nodes.index(node1)
+                        ind2 = self.nodes.index(node2)
+                        inv_inductance_matrix[ind1][ind2] += inv_ind_mat[node1_id][node2_id]
 
                 if no_potential_internal_dofs > 0:
                     for dof1 in range(no_potential_internal_dofs):
                         for dof2 in range(no_potential_internal_dofs):
-                            inductance_matrix[internal_dof_offset + dof1][internal_dof_offset + dof2] += \
-                                ind_mat[len(elem_terminals) + dof1][len(elem_terminals) + dof2]
+                            inv_inductance_matrix[internal_dof_offset + dof1][internal_dof_offset + dof2] += \
+                                inv_ind_mat[len(elem_terminals) + dof1][len(elem_terminals) + dof2]
                     internal_dof_offset += no_potential_internal_dofs
-        return inductance_matrix
+        return inv_inductance_matrix
 
     def mode_vector_indexes(self):
         node_no = len(self.nodes)
@@ -783,33 +772,37 @@ class TLSystem:
         # fill indexes corresponding to node voltages
         for i in range(node_no):
             indexes[i] = i
+
         # fill indexes corresponding to internal degrees of freedom
         internal_dof_offset = node_no
         for elem_id, elem in enumerate(self.elements):
             if elem.type_ == 'TL':
                 internal_dofs = self.get_element_dofs(elem)[2]
-                for ind_id, ind in enumerate(internal_dofs):
+                for ind_id, ind in enumerate(internal_dofs[: int(len(internal_dofs) / 2)]):
                     indexes[internal_dof_offset + ind_id] = ind
+                internal_dof_offset += int(len(internal_dofs) / 2)
         return indexes
 
     def voltages_mode_vector(self, mode):
         indexes = list(self.mode_vector_indexes())
-        return mode[indexes]
+        return mode[indexes].reshape(len(indexes), 1)
 
     def currents_mode_vector(self, omega, mode):
         voltage_vector = self.voltages_mode_vector(mode)
         currents_vector = 1j * omega * self.capacitance_matrix() @ voltage_vector
         return currents_vector
 
-    def harmonic_mode_constanst(self, mode):
-        v = self.voltages_mode_vector(mode)
-        capacitance = np.real(v.T @ self.capacitance_matrix() @ v)
-        inductance = np.real(v.T @ self.inductance_matrix(jj_lin=False) @ v)
-
-        phi_0 = hbar / (2 * e)
+    def harmonic_mode_constants(self, omega, mode):
+        v_ = self.voltages_mode_vector(mode)
+        capacitance = np.real(np.conj(v_).T @ self.capacitance_matrix() @ v_)
+        inv_inductance = np.real(np.conj(v_).T @ self.inv_inductance_matrix(jj_lin=False) @ v_)
+        o = 1 / np.sqrt(capacitance/inv_inductance) / (2 * np.pi)
+        print('Omega', o / 1e9, 'GHz')
+        phi_0 = hbar / (2*e)
         e_c = e ** 2 / (2 * capacitance)
-        e_l = phi_0 ** 2 / inductance
+        e_l = phi_0 ** 2 * inv_inductance
         return e_c, e_l
+
 
     def map_dofs(self):
         # count nodes
@@ -1214,6 +1207,7 @@ class TLSystem:
 
         return modes_energies
 
+
     def normalization_of_modes(self, list_of_modes_numbers: list):
         """
         Calculate normalized modes to satisfy normalization condition: total energy of a mode equals to energy quantum
@@ -1361,8 +1355,9 @@ class TLSystem:
             num = len(subspace)
             subspace_dict = {'subsystem_id': subspace, 'Ec': np.zeros((num, num)), 'El': np.zeros((num, num)), 'Ej': [],
                              'alpha': np.zeros((num_junction, num))}
+            print(np.zeros((num_junction, num)))
             for mode_id, mode in enumerate(subspace):
-                e_c, e_l = self.harmonic_mode_constanst(modes[mode])  # define harmonic constants of a mode
+                e_c, e_l = self.harmonic_mode_constants(omegas[mode], modes[mode])  # define harmonic constants of a mode
                 subspace_dict['Ec'][mode_id][mode_id] = e_c
                 subspace_dict['El'][mode_id][mode_id] = e_l
             if num == 1:
@@ -1376,7 +1371,7 @@ class TLSystem:
                         subspace_dict['Ej'].append(jj.E_J)
                         elem_submode_i = self.get_element_submode(jj, modes[mode])[:2][0]
                         elem_submode_j = self.get_element_submode(jj, modes[mode])[:2][1]
-                        subspace_dict['alpha'][:, jj_id] = np.real(elem_submode_i - elem_submode_j)
+                        subspace_dict['alpha'][jj_id][mode_id] = np.real(elem_submode_i - elem_submode_j)
             else:
                 for jj_id, jj in enumerate(self.JJs):
                     subspace_dict['Ej'].append(jj.E_J)
@@ -1388,6 +1383,7 @@ class TLSystem:
             hamiltonian_parameters['subsystem' + ' ' + str(subspace_id)] = subspace_dict
 
         return hamiltonian_parameters
+
     ###################################################################################
     # Plot
     ###################################################################################
@@ -1405,7 +1401,8 @@ class TLSystem:
         plt.xlabel('$\\phi$')
         plt.show()
 
-    def plot_potential_2d(self, num_system: int, phi_start: list = None, phi_stop: list = None, num_points: list = None):
+    def plot_potential_2d(self, num_system: int, phi_start: list = None, phi_stop: list = None,
+                          num_points: list = None):
         if not phi_start:
             phi_start = [-np.pi, -np.pi]
         if not phi_stop:
@@ -1435,9 +1432,11 @@ class TLSystem:
         a_x = - 4 * parameters['Ec'][0][0]
         # create L operator
         operator_l = np.diag(u - 2 * a_x / d ** 2)
-        for i in range(num_points-1):
+        for i in range(num_points - 1):
             operator_l[i][i + 1] = a_x / d ** 2
+        for i in range(1, num_points):
             operator_l[i][i - 1] = a_x / d ** 2
+        # print('l_operator', operator_l)
         eigenvalues, eigenvectors = eig(operator_l)
         order = np.argsort(eigenvalues)
         energies = np.asarray(np.real(eigenvalues))[order][:cutoff]
@@ -1457,9 +1456,11 @@ class TLSystem:
         plt.xlabel('$\\phi$')
         for energy_id, energy in enumerate(energies):
             plt.plot(phi_, (energy + 2 * energy * wavefunctions[energy_id]) / h / 1e9)
-            plt.fill_between(phi_, energy / h / 1e9, (energy + 2 * energy * wavefunctions[energy_id]) / h / 1e9, alpha=0.25)
+            plt.fill_between(phi_, energy / h / 1e9, (energy + 2 * energy * wavefunctions[energy_id]) / h / 1e9,
+                             alpha=0.25)
         plt.plot(phi_, u_1d / h / 1e9)
         plt.show()
+
     ###################################################################################
     # Second order perturbation analysis
     ###################################################################################
@@ -1988,19 +1989,19 @@ class TLSystem:
     ###################################################################################
     # Energy distribution
     ###################################################################################
-    def energies_participations(self, normaliazed_modes):
+    def energies_participations(self, modes):
         """
-        Returns sorted list of energies (in GHz) in modes
-        :param normaliazed_modes:
+        Returns sorted list of energies in modes
+        :param modes:
         """
-        number_of_modes = normaliazed_modes.shape[0]
-        dict_of_modes = {}
+        number_of_modes = modes.shape[0]
+        dict_of_modes = dict.fromkeys(['Mode'+str(i) for i in range(number_of_modes)])
         for i in range(number_of_modes):
-            dict_of_modes['Mode' + str(i)] = None
-        for i in range(number_of_modes):
+            total_mode_energy = 0
             energies_list = []
             for elem in self.elements:
-                elem_energy = self.element_energy(element=elem, mode=normaliazed_modes[i]).real / h / 1e9
+                elem_energy = self.element_energy(element=elem, mode=modes[i]).real
+                total_mode_energy += elem_energy
                 energies_list.append((elem, elem_energy))
             # sort elements by energies
             for k in range(len(energies_list) - 1):
@@ -2011,21 +2012,21 @@ class TLSystem:
             dict_of_modes['Mode' + str(i)] = energies_list
         return dict_of_modes
 
-    def energy_distribution_cell(self, normaliazed_modes, element_cell):
+    def energy_distribution_cell(self, modes, element_cell):
         """
         Returns sorted modes for the element cell where element cell is a list of elements
-        :param normaliazed_modes:
+        :param modes:
         :param element_cell:
         """
-        number_of_modes = normaliazed_modes.shape[0]
+        number_of_modes = modes.shape[0]
         energies_list = []
         for i in range(number_of_modes):
             if type(element_cell) == list:
                 elem_energy = 0
                 for element in element_cell:
-                    elem_energy += self.element_energy(element=element, mode=normaliazed_modes[i]).real / h / 1e9
+                    elem_energy += self.element_energy(element=element, mode=modes[i]).real
             else:
-                elem_energy = self.element_energy(element=element_cell, mode=normaliazed_modes[i]).real / h / 1e9
+                elem_energy = self.element_energy(element=element_cell, mode=modes[i]).real
             energies_list.append(('Mode' + str(i), elem_energy))
 
         # sort modes by energies values
@@ -2036,3 +2037,17 @@ class TLSystem:
 
         energies_list.reverse()
         return energies_list
+
+def potential_1d(phi, e_l, e_j, alpha):
+    potential = 1 / 2 * e_l[0][0] * phi ** 2
+    for jj_id, e_j in enumerate(e_j):
+        potential += e_j * (1 - np.cos(alpha[jj_id][0] * phi))
+    return potential
+
+
+def potential_2d(phi_1, phi_2, e_l, e_j, alpha):
+    xx, yy = np.meshgrid(phi_1, phi_2)
+    potential = 1 / 2 * e_l[0][0] * xx ** 2 + 1 / 2 * e_l[1][1] * yy ** 2
+    for jj_id, e_j in enumerate(e_j):
+        potential += e_j * (1 - np.cos(alpha[jj_id][0] * xx + alpha[jj_id][1] * yy))
+    return xx, yy, potential
