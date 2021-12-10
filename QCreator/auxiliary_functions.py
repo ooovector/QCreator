@@ -779,7 +779,10 @@ def draw_double_resonator_plus_double_qubit(sample,
     # get some resonator parameters
     res_params1 = (closed_end_meander_length1+open_end_resonator1[0].length+coupler_length, z01, cl[0,0])
     res_params2 = (closed_end_meander_length2+open_end_resonator2[0].length+coupler_length, z02, cl[0,0])
-    return g1, g2, res_params1, res_params2
+
+    cpw_elements = {'resonator1': closed_end_meander1 + [main_coupler] + open_end_resonator1,
+                'resonator2': closed_end_meander2 + [main_coupler] + open_end_resonator2}
+    return g1, g2, res_params1, res_params2, cpw_elements
 
 
 def search_for_resonators_qubits(f,delta,min_freq,max_freq):

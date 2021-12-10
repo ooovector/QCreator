@@ -79,6 +79,8 @@ class Sample:
                 self.total_cell.add(result['airbridges_sm_pads'])
             if 'airbridges' in result:
                 self.total_cell.add(result['airbridges'])
+            if 'dielectric' in result:
+                self.total_cell.add(result['dielectric'])
             if 'inverted' in result:
                 self.total_cell.add(result['inverted'])
             #elif 'positive' in result and 'restrict' in result:

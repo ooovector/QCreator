@@ -83,6 +83,7 @@ class AirbridgeOverCPW(DesignElement):
     def render(self):
         bend_radius = self.g
         precision = 0.001
+        result = {}
 
         # create CPW line under airbridge
         cpw_line = gdspy.FlexPath(points=[self.position - self.p, self.position + self.p],
@@ -98,29 +99,38 @@ class AirbridgeOverCPW(DesignElement):
              self.position[1] + self.geometry.pad_distance / 2 + self.geometry.pad_length),
             layer=self.geometry.layer_configuration.airbridges_pad_layer)
 
-        pad1_sm = gdspy.Rectangle(
-            (self.position[0] + self.geometry.narrow_width / 2, self.position[1] + self.geometry.sm_pad_distance / 2),
-            (self.position[0] - self.geometry.narrow_width / 2,
-             self.position[1] + self.geometry.sm_pad_distance / 2 + self.geometry.sm_pad_length),
-            layer=self.geometry.layer_configuration.airbridges_sm_pad_layer)
-
         pad2 = gdspy.Rectangle(
             (self.position[0] - self.geometry.pad_width / 2, self.position[1] - self.geometry.pad_distance / 2),
             (self.position[0] + self.geometry.pad_width / 2,
              self.position[1] - self.geometry.pad_distance / 2 - self.geometry.pad_length),
             layer=self.geometry.layer_configuration.airbridges_pad_layer)
 
-        pad2_sm = gdspy.Rectangle(
-            (self.position[0] - self.geometry.narrow_width / 2, self.position[1] - self.geometry.sm_pad_distance / 2),
-            (self.position[0] + self.geometry.narrow_width / 2,
-             self.position[1] - self.geometry.sm_pad_distance / 2 - self.geometry.sm_pad_length),
-            layer=self.geometry.layer_configuration.airbridges_sm_pad_layer)
-
         contacts = gdspy.boolean(pad1, pad2, 'or', layer=self.geometry.layer_configuration.airbridges_pad_layer)
         contacts.rotate(self.orientation, self.position)
+        result['airbridges_pads'] = contacts
 
-        contacts_sm = gdspy.boolean(pad1_sm, pad2_sm, 'or', layer=self.geometry.layer_configuration.airbridges_sm_pad_layer)
-        contacts_sm.rotate(self.orientation, self.position)
+        if hasattr(self.geometry.layer_configuration, 'airbridges_sm_pad_layer'):
+            pad1_sm = gdspy.Rectangle(
+                (self.position[0] + self.geometry.narrow_width / 2, self.position[1] + self.geometry.sm_pad_distance / 2),
+                (self.position[0] - self.geometry.narrow_width / 2, self.position[1] + self.geometry.sm_pad_distance / 2 + self.geometry.sm_pad_length),
+                layer=self.geometry.layer_configuration.airbridges_sm_pad_layer)
+
+            pad2_sm = gdspy.Rectangle(
+                (self.position[0] - self.geometry.narrow_width / 2, self.position[1] - self.geometry.sm_pad_distance / 2),
+                (self.position[0] + self.geometry.narrow_width / 2, self.position[1] - self.geometry.sm_pad_distance / 2 - self.geometry.sm_pad_length),
+                layer=self.geometry.layer_configuration.airbridges_sm_pad_layer)
+
+            contacts_sm = gdspy.boolean(pad1_sm, pad2_sm, 'or', layer=self.geometry.layer_configuration.airbridges_sm_pad_layer)
+            contacts_sm.rotate(self.orientation, self.position)
+            result['airbridges_sm_pads'] = contacts_sm
+
+        if hasattr(self.geometry.layer_configuration, 'airbridges_dielectric_layer'):
+            dielectric = gdspy.Rectangle(
+            (self.position[0] - self.geometry.pad_width / 2, self.position[1] - self.geometry.pad_distance / 2),
+            (self.position[0] + self.geometry.pad_width / 2, self.position[1] + self.geometry.pad_distance / 2),
+            layer=self.geometry.layer_configuration.airbridges_dielectric_layer)
+            dielectric.rotate(self.orientation, self.position)
+            result['dielectric'] = dielectric
 
         # create bridge
 
@@ -147,6 +157,7 @@ class AirbridgeOverCPW(DesignElement):
                 layer=self.geometry.layer_configuration.airbridges_layer)
 
         bridge.rotate(self.orientation, self.position)
+        result['airbridges'] = bridge
 
         restrict_total = gdspy.FlexPath(points=[self.position - self.p, self.position + self.p],
                                         width=self.w + 2 * self.s + 2 * self.g,
@@ -154,10 +165,11 @@ class AirbridgeOverCPW(DesignElement):
                                         layer=self.geometry.layer_configuration.restricted_area_layer)
 
         restrict_total = gdspy.boolean(restrict_total, contacts, 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
+        result['restrict'] = restrict_total
         positive = gdspy.boolean(cpw_line, contacts, 'or', layer=self.geometry.layer_configuration.total_layer)
+        result['positive'] = positive
 
-        return {'positive': positive, 'airbridges_pads': contacts, 'airbridges_sm_pads': contacts_sm,
-                'airbridges': bridge, 'restrict': restrict_total}
+        return result
 
     def get_terminals(self) -> dict:
         return self.terminals
