@@ -88,8 +88,8 @@ class Fluxonium(DesignElement):
             self.couplers_distance_from_center = couplers_params["distance_from_center"]
 
         # self. 'lm': 3.3e-12,
-        self.JJ_params = {'ic': 1e-6, #1e-6 # uA/um^2
-                          'lm': 3.3e-12}
+        self.JJ_params = {'ic': 10e-9, #1e-6 # uA/um^2
+                          'lm': 20e-9}
         self.tls_cache = []
 
         # calculate capacitance:
@@ -108,7 +108,9 @@ class Fluxonium(DesignElement):
 
         self.terminals = {"qubit": None,
                           "left_coupler": None,
-                          "right_coupler": None}
+                          "right_coupler": None,
+                          "node_l": None,
+                          "node_r": None}
 
 
         if self.couplers["left"] is True:
@@ -443,15 +445,15 @@ class Fluxonium(DesignElement):
         node_1 = terminal_mapping['left_coupler']
         node_2 = terminal_mapping['right_coupler']
         node_qubit = terminal_mapping['qubit']
-        node_r = 'node_r'
-        node_l = 'node_l'
-        node_g = 'node_g'
+        node_r = terminal_mapping['node_r']
+        node_l = terminal_mapping['node_l']
+        node_g = 0
 
 
         jj = tlsim.JosephsonJunction(self.JJ_params['ic'] * hbar / (2 * e), name=self.name + ' jj')
         jj_chain1 = tlsim.Inductor(self.JJ_params['lm'], name=self.name + ' qubit-l1')
         jj_chain2 = tlsim.Inductor(self.JJ_params['lm'], name=self.name + ' qubit-l2')
-        m = tlsim.Inductor(3.3e-12, name=self.name + ' qubit-g')
+        m = tlsim.Inductor(self.JJ_params['lm'], name=self.name + ' qubit-g')
         c = tlsim.Capacitor(c=self.C['qubit'] * scal_C, name=self.name + ' lr')
 
         tls_instance.add_element(jj, [node_r, node_l])

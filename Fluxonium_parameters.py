@@ -20,8 +20,8 @@ from QCreator.elements.gflux_squid import GFluxControllableSquid
 from QCreator.elements.fluxonium import Fluxonium
 
 
-### to have 50 Oms impedance with eps=11.45
-#wet etching subtracts 0.5 um, so we add that to all structures where it matters, coplers,Junction region and Fluxline
+# ## to have 50 Oms impedance with eps=11.45
+# wet etching subtracts 0.5 um, so we add that to all structures where it matters, coplers,Junction region and Fluxline
 
 # used in pads
 tl_width = 4.
