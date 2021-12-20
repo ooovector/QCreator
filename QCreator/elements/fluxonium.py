@@ -90,7 +90,7 @@ class Fluxonium(DesignElement):
         # self. 'lm': 3.3e-12,
         self.JJ_params = {'ic': 1e-6, #1e-6 # uA/um^2
                           'lm': 3.3e-12}
-        self.tls_cache = None
+        self.tls_cache = []
 
         # calculate capacitance:
         self.calculate_capacitance = calculate_capacitance
@@ -449,15 +449,16 @@ class Fluxonium(DesignElement):
 
 
         jj = tlsim.JosephsonJunction(self.JJ_params['ic'] * hbar / (2 * e), name=self.name + ' jj')
-        jj_chain = tlsim.Inductor(self.JJ_params['lm'], name=self.name + ' qubit-l')
+        jj_chain1 = tlsim.Inductor(self.JJ_params['lm'], name=self.name + ' qubit-l1')
+        jj_chain2 = tlsim.Inductor(self.JJ_params['lm'], name=self.name + ' qubit-l2')
         m = tlsim.Inductor(3.3e-12, name=self.name + ' qubit-g')
         c = tlsim.Capacitor(c=self.C['qubit'] * scal_C, name=self.name + ' lr')
 
         tls_instance.add_element(jj, [node_r, node_l])
         tls_instance.add_element(c, [node_r, node_l])
-        tls_instance.add_element(jj_chain, [node_qubit, node_r])
+        tls_instance.add_element(jj_chain1, [node_qubit, node_r])
         tls_instance.add_element(m, [node_qubit, node_g])
-        tls_instance.add_element(jj_chain, [node_g, node_l])
+        tls_instance.add_element(jj_chain2, [node_g, node_l])
 
 
         c_lg = tlsim.Capacitor(c=self.C['C_lg'] * scal_C, name=self.name + ' lg')
@@ -470,17 +471,17 @@ class Fluxonium(DesignElement):
         tls_instance.add_element(c_l1, [node_l, node_1])
         tls_instance.add_element(c_r2, [node_r, node_2])
 
-        GND = tlsim.Short()
-        tls_instance.add_element(GND, [node_g])
+        # GND = tlsim.Short()
+        # tls_instance.add_element(GND, [node_g])
 
-        line_end = tlsim.Port(50, name='flux line')
-        tls_instance.add_element(line_end, [node_qubit])
-        current = 0.13e-3
-        line_end.idc = current
+        # line_end = tlsim.Port(50, name='flux line')
+        # tls_instance.add_element(line_end, [node_qubit])
+        # current = 0.13e-3
+        # line_end.idc = current
 
 
-        cache = [jj, jj_chain, m, c, c_lg, c_l1, c_rg, c_r2]
-        self.tls_cache = cache
+        cache = [jj, jj_chain1, jj_chain2, m, c, c_lg, c_l1, c_rg, c_r2]
+        #self.tls_cache = cache
 
         # mut_cap = []
         # cap_g = []
