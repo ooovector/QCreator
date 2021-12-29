@@ -6,13 +6,13 @@ from .core import LayerConfiguration
 
 from scipy import optimize as opt
 
+
 def meander_creation(name: str, initial_position: Tuple[(float, float)], w: float, s: float, g: float,
                      orientation: float,
                      meander_length: float,
                      length_left: float, length_right: float, first_step_orientation: float,
                      meander_orientation: float, end_point: Tuple[(float, float)], end_orientation: float,
-                     layer_configuration: LayerConfiguration, meander_type: str = 'round', r: float=None):
-
+                     layer_configuration: LayerConfiguration, meander_type: str = 'round', r: float = None):
     # make small indent from the starting point
     if r is None:
         bend_radius = 40
@@ -25,17 +25,16 @@ def meander_creation(name: str, initial_position: Tuple[(float, float)], w: floa
     points.append((initial_position[0] + np.cos(orientation + np.pi) * indent_length,
                    initial_position[1] + np.sin(orientation + np.pi) * indent_length))
 
-    if first_step_orientation =='left':
+    if first_step_orientation == 'left':
         indent_first = length_left
         points.append((points[-1][0] + np.cos(meander_orientation) * indent_first,
                        points[-1][1] + np.sin(meander_orientation) * indent_first))
-    elif first_step_orientation =='right':
+    elif first_step_orientation == 'right':
         indent_first = length_right
-        points.append((points[-1][0] + np.cos(meander_orientation+np.pi) * indent_first,
-                       points[-1][1] + np.sin(meander_orientation+np.pi) * indent_first))
+        points.append((points[-1][0] + np.cos(meander_orientation + np.pi) * indent_first,
+                       points[-1][1] + np.sin(meander_orientation + np.pi) * indent_first))
     else:
         raise print('meander first step orientation is wrong')
-
 
     if end_point is not None:
         end_point_indent = [(end_point[0] + np.cos(end_orientation + np.pi) * indent_length,
@@ -48,10 +47,10 @@ def meander_creation(name: str, initial_position: Tuple[(float, float)], w: floa
                             corner_type=meander_type)
 
     if rendering_meander.length > meander_length:
-        print('length is too small, change first step meander length to %f' %(meander_length-indent_length))
+        print('length is too small, change first step meander length to %f' % (meander_length - indent_length))
 
     # lets fill the whole rectangular
-    default_bend_diameter = bend_radius * 2 + 5
+    default_bend_diameter = bend_radius * 2  # + 5
     if meander_type == 'flush':
         meander_step = length_left + length_right + default_bend_diameter
     elif meander_type == 'round':
@@ -60,15 +59,15 @@ def meander_creation(name: str, initial_position: Tuple[(float, float)], w: floa
 
     N = int((meander_length - rendering_meander.length) // meander_step)
 
-    if N == 0 and (meander_length-rendering_meander.length)==0:
-       return rendering_meander
+    if N == 0 and (meander_length - rendering_meander.length) == 0:
+        return rendering_meander
     # subtract one to connect to the end point, here i assume that the distance
     # from the end of the meander is less than the meander step
     # if end_orientation is not None:
     #     N = N - 1
     if first_step_orientation == 'right':
-        N=N+1
-        i=2
+        N = N + 1
+        i = 2
     else:
         i = 1
     # make a meander
@@ -86,7 +85,7 @@ def meander_creation(name: str, initial_position: Tuple[(float, float)], w: floa
     # if end_orientation is not None:
     #     i = 0
     # else:
-    rendering_meander = CPW(name=name, points=deepcopy(points+end_point_indent), w=w, s=s, g=g,
+    rendering_meander = CPW(name=name, points=deepcopy(points + end_point_indent), w=w, s=s, g=g,
                             layer_configuration=layer_configuration, r=bend_radius,
                             corner_type=meander_type)
 
@@ -96,7 +95,7 @@ def meander_creation(name: str, initial_position: Tuple[(float, float)], w: floa
         list = [(points[-1][0] + np.sin(meander_orientation - np.pi / 2 + np.pi * ((i) % 2)) * tail,
                  points[-1][1] - np.cos(meander_orientation - np.pi / 2 + np.pi * ((i) % 2)) * tail)]
         points.extend(list)
-        rendering_meander = CPW(name=name, points=deepcopy(points+end_point_indent), w=w, s=s, g=g,
+        rendering_meander = CPW(name=name, points=deepcopy(points + end_point_indent), w=w, s=s, g=g,
                                 layer_configuration=layer_configuration, r=bend_radius,
                                 corner_type=meander_type)
     elif tail < (default_bend_diameter - 2 * bend_radius) + np.pi * bend_radius + 1:
@@ -104,7 +103,7 @@ def meander_creation(name: str, initial_position: Tuple[(float, float)], w: floa
                  points[-1][1] - np.cos(meander_orientation) * (bend_radius + 1))]
         points.extend(list)
 
-        rendering_meander = CPW(name=name, points=deepcopy(points+end_point_indent), w=w, s=s, g=g,
+        rendering_meander = CPW(name=name, points=deepcopy(points + end_point_indent), w=w, s=s, g=g,
                                 layer_configuration=layer_configuration, r=bend_radius,
                                 corner_type=meander_type)
         tail = np.abs(np.floor(rendering_meander.length - meander_length))
@@ -112,7 +111,7 @@ def meander_creation(name: str, initial_position: Tuple[(float, float)], w: floa
         list = [(points[-1][0] + np.sin(meander_orientation) * tail,
                  points[-1][1] - np.cos(meander_orientation) * tail)]
         points.extend(list)
-        rendering_meander = CPW(name=name, points=deepcopy(points+end_point_indent), w=w, s=s, g=g,
+        rendering_meander = CPW(name=name, points=deepcopy(points + end_point_indent), w=w, s=s, g=g,
                                 layer_configuration=layer_configuration, r=bend_radius,
                                 corner_type=meander_type)
 
@@ -121,7 +120,7 @@ def meander_creation(name: str, initial_position: Tuple[(float, float)], w: floa
         list = [(points[-1][0] + np.sin(meander_orientation) * default_bend_diameter,
                  points[-1][1] - np.cos(meander_orientation) * default_bend_diameter)]
         points.extend(list)
-        rendering_meander = CPW(name=name, points=deepcopy(points+end_point_indent), w=w, s=s, g=g,
+        rendering_meander = CPW(name=name, points=deepcopy(points + end_point_indent), w=w, s=s, g=g,
                                 layer_configuration=layer_configuration, r=bend_radius,
                                 corner_type=meander_type)
 
@@ -132,7 +131,7 @@ def meander_creation(name: str, initial_position: Tuple[(float, float)], w: floa
                  points[-1][1] - np.cos(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) *
                  error)]
         points.extend(list)
-        rendering_meander = CPW(name=name, points=deepcopy(points+end_point_indent), w=w, s=s, g=g,
+        rendering_meander = CPW(name=name, points=deepcopy(points + end_point_indent), w=w, s=s, g=g,
                                 layer_configuration=layer_configuration, r=bend_radius,
                                 corner_type=meander_type)
 
@@ -142,7 +141,7 @@ def meander_creation(name: str, initial_position: Tuple[(float, float)], w: floa
                  points[-1][1] - np.cos(meander_orientation - np.pi / 2 + np.pi * ((i - 1) % 2)) *
                  (error))]
         points.extend(list)
-        rendering_meander = CPW(name=name, points=deepcopy(points+end_point_indent), w=w, s=s, g=g,
+        rendering_meander = CPW(name=name, points=deepcopy(points + end_point_indent), w=w, s=s, g=g,
                                 layer_configuration=layer_configuration, r=bend_radius, orientation2=end_orientation,
                                 corner_type=meander_type)
 
@@ -250,10 +249,10 @@ def meander_creation(name: str, initial_position: Tuple[(float, float)], w: floa
 
 
 def meander_creation2(name: str, begin_point: Tuple[(float, float)],
-                    begin_orientation: float, end_point: Tuple[(float, float)], end_orientation: float,
-                    meander_length: float, length_left : float, length_right : float,
-                    radius_limit : Tuple[(float, float)], w: float, s: float, g: float,
-                    layer_configuration: LayerConfiguration):
+                      begin_orientation: float, end_point: Tuple[(float, float)], end_orientation: float,
+                      meander_length: float, length_left: float, length_right: float,
+                      radius_limit: Tuple[(float, float)], w: float, s: float, g: float,
+                      layer_configuration: LayerConfiguration):
     """
      :param length_left: width meander limit from begin point to the left
      :param length_right: width meander limit from begin point to the right
@@ -264,45 +263,48 @@ def meander_creation2(name: str, begin_point: Tuple[(float, float)],
     delta_y = end_point[1] - begin_point[1]
     delta_x = end_point[0] - begin_point[0]
     rotation = False
-    if (begin_orientation%np.pi)!=(end_orientation%np.pi):
+    if (begin_orientation % np.pi) != (end_orientation % np.pi):
         raise ValueError('begin end end orientations are incompatible')
     ## Turn meander pi/2 clockwise if its orientations are not 0, pi, etc
-    if np.abs(np.cos(begin_orientation))!=1:
+    if np.abs(np.cos(begin_orientation)) != 1:
         rotation = True
-        begin_orientation+=-np.pi/2
-        end_orientation +=-np.pi / 2
+        begin_orientation += -np.pi / 2
+        end_orientation += -np.pi / 2
         delta_x = end_point[1] - begin_point[1]
         delta_y = -end_point[0] + begin_point[0]
         begin_point = begin_point[::-1]
         end_point = end_point[::-1]
 
-    n_max = np.int(np.abs(delta_y)/2/radius_limit[0])
-    n_min = np.int(np.abs(delta_y)/2/radius_limit[1])
+    n_max = np.int(np.abs(delta_y) / 2 / radius_limit[0])
+    n_min = np.int(np.abs(delta_y) / 2 / radius_limit[1])
     result = []
-    for n in np.linspace(n_min, n_max, n_max-n_min+1):
+    for n in np.linspace(n_min, n_max, n_max - n_min + 1):
         if np.cos(begin_orientation) == np.cos(end_orientation) and n % 2 != 0:
             pass
         elif np.cos(begin_orientation) != np.cos(end_orientation) and n % 2 == 0:
             pass
         else:
             continue
-        r = np.abs(delta_y)/2/n
-        A_max = length_right*(1+np.cos(begin_orientation))/2 \
-                + length_left*(1-np.cos(begin_orientation))/2 - (r+w/2+s)
-        B_max = (length_right-delta_x)*(1+np.cos(end_orientation))/2\
-                + (length_left+delta_x)*(1-np.cos(end_orientation))/2 - (r+w/2+s)
+        r = np.abs(delta_y) / 2 / n
+        A_max = length_right * (1 + np.cos(begin_orientation)) / 2 \
+                + length_left * (1 - np.cos(begin_orientation)) / 2 - (r + w / 2 + s)
+        B_max = (length_right - delta_x) * (1 + np.cos(end_orientation)) / 2 \
+                + (length_left + delta_x) * (1 - np.cos(end_orientation)) / 2 - (r + w / 2 + s)
+        K_max = length_right + length_left - 2 * (r + w / 2 + s)
 
-        print(A_max, B_max)
+        print('A_max, B_max', A_max, B_max)
+        if A_max < 0 or B_max < 0:
+            continue
 
         if np.cos(begin_orientation) != np.cos(end_orientation):
-            if n!= 0:
-                K = (meander_length - delta_x*np.cos(begin_orientation))/n - np.pi*r
-                A = (K + delta_x*np.cos(begin_orientation)) / 2
+            if n != 0:
+                K = (meander_length - delta_x * np.cos(begin_orientation)) / n - np.pi * r
+                A = (K + delta_x * np.cos(begin_orientation)) / 2
                 B = A
-                print(K + delta_x*np.cos(begin_orientation))
+                print(K + delta_x * np.cos(begin_orientation))
                 if (A >= A_max) or (B >= B_max):
-                    AB = opt.lsq_linear([1,1], K + delta_x*np.cos(begin_orientation),
-                                         bounds= ([0,0], [A_max, B_max]))
+                    AB = opt.lsq_linear([1, 1], K + delta_x * np.cos(begin_orientation),
+                                        bounds=([0, 0], [A_max, B_max]))
                     A = AB.x[0]
                     B = AB.x[1]
 
@@ -310,36 +312,38 @@ def meander_creation2(name: str, begin_point: Tuple[(float, float)],
                 A = meander_length
                 B = 0
                 K = 0
-            print(A, K, B)
+            print('A, K, B = ', A, K, B)
 
         if np.cos(begin_orientation) == np.cos(end_orientation):
-            if n!= 1:
-                K = (meander_length - n*np.pi*r)/(n + 1) + np.abs(delta_x*np.cos(begin_orientation))/(n + 1)
-                if delta_x*np.cos(begin_orientation) > 0:  # A>B
+            if n != 1:
+                K = (meander_length - n * np.pi * r) / (n + 1) + np.abs(delta_x * np.cos(begin_orientation)) / (n + 1)
+                if delta_x * np.cos(begin_orientation) > 0:  # A>B
                     A = K
-                    B = A - delta_x*np.cos(begin_orientation)
+                    B = A - delta_x * np.cos(begin_orientation)
                 else:
                     B = K
-                    A = B + delta_x*np.cos(begin_orientation)
+                    A = B + delta_x * np.cos(begin_orientation)
             else:
                 A = (meander_length - np.pi * r) / 2
                 B = A
                 K = 0
                 if (A >= A_max) or (B >= B_max):
-                    AB = opt.lsq_linear([1,1], meander_length - np.pi * r,
-                                         bounds= ([0,0], [A_max, B_max]))
+                    AB = opt.lsq_linear([1, 1], meander_length - np.pi * r,
+                                        bounds=([0, 0], [A_max, B_max]))
                     A = AB.x[0]
                     B = AB.x[1]
 
-        if (0<=A <= A_max) and (0<=B <= B_max):
+            print('A, K, B = ', A, K, B)
+
+        if (0 <= A <= A_max) and (0 <= B <= B_max) and (0 <= K <= K_max):
             result.append([A, K, B, n, r])
 
-    if result==[]:
+    if result == []:
         raise ValueError('No variants were found')
 
     if rotation:
-        begin_orientation+=np.pi/2
-        end_orientation+=np.pi/2
+        begin_orientation += np.pi / 2
+        end_orientation += np.pi / 2
         begin_point = begin_point[::-1]
         end_point = end_point[::-1]
         delta_y = end_point[1] - begin_point[1]
@@ -354,15 +358,21 @@ def meander_creation2(name: str, begin_point: Tuple[(float, float)],
 
     A, K, B, n, r = result[0]
     points = []
+    real_points = []
     shift = r
     points.append(begin_point)
-    if n!= 0:
+    real_points.append(begin_point)
+    if n != 0:
         # points.append((begin_point[0] + (A + shift) * np.cos(begin_orientation), begin_point[1]))
         # mid_segm_x = begin_point[0] + (A + shift) * np.cos(begin_orientation)
         points.append((begin_point[0] + (A + shift) * np.cos(begin_orientation), begin_point[1] +
                        (A + shift) * np.sin(begin_orientation)))
+        real_points.append((begin_point[0] + A * np.cos(begin_orientation), begin_point[1] +
+                            A * np.sin(begin_orientation)))
         mid_segm_x = begin_point[0] + (A + shift) * np.cos(begin_orientation)
         mid_segm_y = begin_point[1] + (A + shift) * np.sin(begin_orientation)
+        real_mid_segm_x = begin_point[0] + A * np.cos(begin_orientation)
+        real_mid_segm_y = begin_point[1] + A * np.sin(begin_orientation)
 
     if n > 1:
         for turn in range(1, np.int(n)):
@@ -370,33 +380,50 @@ def meander_creation2(name: str, begin_point: Tuple[(float, float)],
                 # points.append((mid_segm_x, begin_point[1] + np.sign(delta_y)*2*r*turn))
                 # points.append((mid_segm_x + (K + 2*shift) * np.cos(np.pi - begin_orientation),
                 #                begin_point[1] + np.sign(delta_y) * 2 * r * turn))
-                points.append((mid_segm_x + np.sign(delta_x)*2*r*turn*np.abs(np.sin(begin_orientation)),
-                               mid_segm_y + np.sign(delta_y)*2*r*turn*np.abs(np.cos(begin_orientation))))
-                points.append((mid_segm_x + (K + 2*shift) * np.cos(np.pi - begin_orientation) +
-                               np.sign(delta_x)*2*r*turn*np.abs(np.sin(begin_orientation)),
-                               mid_segm_y + (K + 2*shift) * np.sin(np.pi + begin_orientation) +
-                               np.sign(delta_y)*2*r*turn*np.abs(np.cos(begin_orientation))))
+                points.append((mid_segm_x + np.sign(delta_x) * 2 * r * turn * np.abs(np.sin(begin_orientation)),
+                               mid_segm_y + np.sign(delta_y) * 2 * r * turn * np.abs(np.cos(begin_orientation))))
+                points.append((mid_segm_x + (K + 2 * shift) * np.cos(np.pi - begin_orientation) +
+                               np.sign(delta_x) * 2 * r * turn * np.abs(np.sin(begin_orientation)),
+                               mid_segm_y + (K + 2 * shift) * np.sin(np.pi + begin_orientation) +
+                               np.sign(delta_y) * 2 * r * turn * np.abs(np.cos(begin_orientation))))
+                real_points.append(
+                    (real_mid_segm_x + np.sign(delta_x) * 2 * r * turn * np.abs(np.sin(begin_orientation)),
+                     real_mid_segm_y + np.sign(delta_y) * 2 * r * turn * np.abs(np.cos(begin_orientation))))
+                real_points.append((real_mid_segm_x + K * np.cos(np.pi - begin_orientation) +
+                                    np.sign(delta_x) * 2 * r * turn * np.abs(np.sin(begin_orientation)),
+                                    real_mid_segm_y + K * np.sin(np.pi + begin_orientation) +
+                                    np.sign(delta_y) * 2 * r * turn * np.abs(np.cos(begin_orientation))))
             else:
                 # points.append((mid_segm_x + (K + 2*shift) * np.cos(np.pi - begin_orientation),
                 #                begin_point[1] + np.sign(delta_y) * 2 * r * turn))
                 # points.append((mid_segm_x, begin_point[1] + np.sign(delta_y) * 2 * r * turn))
-                points.append((mid_segm_x + (K + 2*shift) * np.cos(np.pi - begin_orientation) +
-                               np.sign(delta_x)*2*r*turn*np.abs(np.sin(begin_orientation)),
-                               mid_segm_y + (K + 2*shift) * np.sin(np.pi + begin_orientation) +
-                               np.sign(delta_y)*2*r*turn*np.abs(np.cos(begin_orientation))))
-                points.append((mid_segm_x + np.sign(delta_x)*2*r*turn*np.abs(np.sin(begin_orientation)),
-                               mid_segm_y + np.sign(delta_y)*2*r*turn*np.abs(np.cos(begin_orientation))))
+                points.append((mid_segm_x + (K + 2 * shift) * np.cos(np.pi - begin_orientation) +
+                               np.sign(delta_x) * 2 * r * turn * np.abs(np.sin(begin_orientation)),
+                               mid_segm_y + (K + 2 * shift) * np.sin(np.pi + begin_orientation) +
+                               np.sign(delta_y) * 2 * r * turn * np.abs(np.cos(begin_orientation))))
+                points.append((mid_segm_x + np.sign(delta_x) * 2 * r * turn * np.abs(np.sin(begin_orientation)),
+                               mid_segm_y + np.sign(delta_y) * 2 * r * turn * np.abs(np.cos(begin_orientation))))
+                real_points.append((real_mid_segm_x + K * np.cos(np.pi - begin_orientation) +
+                                    np.sign(delta_x) * 2 * r * turn * np.abs(np.sin(begin_orientation)),
+                                    real_mid_segm_y + K * np.sin(np.pi + begin_orientation) +
+                                    np.sign(delta_y) * 2 * r * turn * np.abs(np.cos(begin_orientation))))
+                real_points.append(
+                    (real_mid_segm_x + np.sign(delta_x) * 2 * r * turn * np.abs(np.sin(begin_orientation)),
+                     real_mid_segm_y + np.sign(delta_y) * 2 * r * turn * np.abs(np.cos(begin_orientation))))
 
-    last_segm_x = points[-1][0] + np.sign(delta_x)*2*r*np.abs(np.sin(begin_orientation))
-    last_segm_y = points[-1][1] + np.sign(delta_y)*2*r*np.abs(np.cos(begin_orientation))
-    if n!= 0:
+    last_segm_x = points[-1][0] + np.sign(delta_x) * 2 * r * np.abs(np.sin(begin_orientation))
+    last_segm_y = points[-1][1] + np.sign(delta_y) * 2 * r * np.abs(np.cos(begin_orientation))
+    real_last_segm_x = end_point[0] + B * np.cos(end_orientation)
+    real_last_segm_y = end_point[1] + B * np.sin(end_orientation)
+    if n != 0:
         points.append((last_segm_x, last_segm_y))
+        real_points.append((real_last_segm_x, real_last_segm_y))
     points.append((end_point[0], end_point[1]))
+    real_points.append((end_point[0], end_point[1]))
 
-    print(points, begin_orientation, end_orientation)
+    print('points', points, 'real points', real_points, begin_orientation, end_orientation)
 
     meander = CPW(name, points, w, s, g, layer_configuration, r, corner_type='round',
                   orientation1=begin_orientation, orientation2=end_orientation)
 
-
-    return result, points, meander
+    return result, points, real_points, meander

@@ -39,6 +39,9 @@ class TLSystemElement:
     def is_scdc(self):
         return False
 
+    def is_sc_island(self):
+        return False
+
     def get_capacitance_matrix(self):
         return 0
 
@@ -76,6 +79,9 @@ class Resistor(TLSystemElement):
 
     def energy_matrix(self):
         return 0
+
+    def is_sc_island(self):
+        return True
 
     def __init__(self, r=None, name=''):
         super().__init__('R', name)
@@ -124,6 +130,9 @@ class Capacitor(TLSystemElement):
         return np.asarray([
             [self.C, -self.C],
             [-self.C, self.C]])
+
+    def is_sc_island(self):
+        return True
 
     def __init__(self, c=None, name=''):
         super().__init__('C', name)
@@ -183,6 +192,9 @@ class Inductor(TLSystemElement):
     #     return []
 
     def is_scdc(self):
+        return True
+
+    def is_sc_island(self):
         return True
 
     def energy_matrix(self):
@@ -245,6 +257,9 @@ class Short(TLSystemElement):
     def is_scdc(self):
         return True
 
+    def is_sc_island(self):
+        return True
+
     def energy(self, mode):
         return 0
 
@@ -300,6 +315,9 @@ class Port(TLSystemElement):
 
     def energy(self, mode):
         return 0
+
+    def is_sc_island(self):
+        return True
 
     def energy_matrix(self):
         return 0
@@ -811,7 +829,6 @@ class TLSystem:
 
     def harmonic_mode_constants(self, mode, i_dc, jj=False):
         p_ = self.phases_mode_vector(mode)
-
         # transition for quadratic form
         capacitance = np.real(np.conj(p_).T @ self.capacitance_matrix() @ p_)
         inv_inductance = np.real(np.conj(p_).T @ self.inv_inductance_matrix(jj_lin=jj) @ p_)
@@ -1486,7 +1503,7 @@ class TLSystem:
                 quasi_independent_subspaces.append([mode])
         return quasi_independent_subspaces
 
-    def define_modes_parameters(self, omegas, modes, kerr_matrix, dc_phase, epsilon_cross=0.01, epsilon_self=0.001):
+    def define_modes_parameters(self, omegas, modes, kerr_matrix, dc_phase, epsilon_cross=0.001, epsilon_self=0.0001):
         """
         This methods calculate effective hamiltonian for uncoupled or coupled subsystems for all modes presended
         in the circuit
@@ -1498,7 +1515,7 @@ class TLSystem:
         :param epsilon_self:
         """
         independent_subspaces = self.check_cross_non_linearity(omegas, kerr_matrix, epsilon_cross)
-        dict_self = self.check_self_non_linearity(omegas, kerr_matrix, epsilon_cross)
+        dict_self = self.check_self_non_linearity(omegas, kerr_matrix, epsilon_self)
         hamiltonian_parameters = dict.fromkeys([str(i) for i in range(len(independent_subspaces))])
         num_junction = len(self.JJs)
         for subspace_id, subspace in enumerate(independent_subspaces):
@@ -1534,22 +1551,111 @@ class TLSystem:
 
         return hamiltonian_parameters
 
+    def define_modes_parameters_dc(self, omegas, modes, kerr_matrix, i_dc_list, epsilon_cross=0.001, epsilon_self=0.0001):
+        independent_subspaces = self.check_cross_non_linearity(omegas, kerr_matrix, epsilon_cross)
+        dict_self = self.check_self_non_linearity(omegas, kerr_matrix, epsilon_self)
+        hamiltonian_parameters = dict.fromkeys([str(i) for i in range(len(independent_subspaces))])
+        num_junction = len(self.JJs)
+        for subspace_id, subspace in enumerate(independent_subspaces):
+            num = len(subspace)
+            dc_phase_initial = [np.zeros((num_junction, num)) for i in range(len(i_dc_list))]
+            subspace_dict_dc = {'subsystem_id': subspace, 'dc_phase': dc_phase_initial}
+            for mode_id, mode in enumerate(subspace):
+                if num == 1:
+                    mode = subspace[0]
+                    if (mode in dict_self['Quasi harmonic modes']) or (mode in dict_self['Harmonic modes']):
+                        continue
+                    else:
+                        for i_dc_id, i_dc in enumerate(i_dc_list):
+                            dc_phase = self.get_phi_dc(modes, i_dc)
+                            for jj_id, jj in enumerate(self.JJs):
+                                jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
+                                subspace_dict_dc['dc_phase'][i_dc_id][jj_id][mode_id] = np.real(jj_dc_phase_i - jj_dc_phase_j)
+                else:
+                    for i_dc_id, i_dc in enumerate(i_dc_list):
+                        dc_phase = self.get_phi_dc(modes, i_dc)
+                        for jj_id, jj in enumerate(self.JJs):
+                            jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
+                            subspace_dict_dc['dc_phase'][i_dc_id][jj_id][mode_id] = np.real(jj_dc_phase_i - jj_dc_phase_j)
+            hamiltonian_parameters[str(subspace_id)] = subspace_dict_dc
+
+        return hamiltonian_parameters
+
+    ###################################################################################
+    # Superconducting islands
+    ###################################################################################
+    def node_connected_elements(self, nodes):
+        connections = dict.fromkeys([str(i) for i in nodes])
+        for node in nodes:
+            node_connected_elements = []
+            node_connections = []
+            for elem_id, elem in enumerate(self.elements):
+                terminals = self.terminal_node_mapping[elem_id]
+                connections_of_elem = []
+                if node in terminals:
+                    for terminal in terminals:
+                        if terminal != node:
+                            connections_of_elem.append(terminal)
+                    node_connected_elements.append(elem)
+                    node_connections.append(connections_of_elem)
+            connections[str(node)] = (node_connected_elements, node_connections)
+        return connections
+
+    # def get_superconducting_islands(self):
+
+    #
+    # def get_superconducting_islands(self):
+    #     # find short nodes
+    #     short_nodes = []
+    #     for elem_id, elem in enumerate(self.elements):
+    #         if elem.type_ == 'Short':
+    #             short_nodes.append(self.terminal_node_mapping[elem_id])
+    #
+    #     islands = []
+    #     for node_id, node in enumerate(self.nodes):
+    #         if node in short_nodes:
+    #             continue
+    #         else:
+    #             node_connected_elements = self.node_connected_elements(node)
+    #             types_node_connected_elements = [elem.type_ for elem in node_connected_elements]
+
+
+
+
+
+        # bound_elements = []
+        # unbound_elements = []
+        # bound_nodes = []
+        # unbound_nodes = []
+        # shorts = []
+        # short_nodes = []
+        # for elem_id, elem in enumerate(self.elements):
+        #     if elem.type_ == 'C' or elem.type_ == 'JJ':
+        #         bound_elements.append(elem)
+        #         bound_nodes.append(self.terminal_node_mapping[elem_id])
+        #     elif elem.type_ == 'Short':
+        #         shorts.append(elem)
+        #         short_nodes.append(self.terminal_node_mapping[elem_id])
+        #     elif elem.type_ == 'L':
+        #         unbound_elements.append(elem)
+        #         unbound_nodes.append(self.terminal_node_mapping[elem_id])
+
     ###################################################################################
     # Plot
     ###################################################################################
 
-    def plot_potential_1d(self, subsystem, phi):
+    def plot_potential_1d(self, subsystem, phi_grid, dc_phase):
         """
         Plot in phase basis, U GHz
         """
-        phi_grid = phi
         u_1d = potential_1d(phi=phi_grid, e_l=subsystem['El'], e_j=subsystem['Ej'],
-                            alpha=subsystem['alpha'], phi_dc=subsystem['dc_phase'])
+                            alpha=subsystem['alpha'], phi_dc=dc_phase)
         plt.plot(phi_grid, u_1d / h / 1e9)
         plt.ylabel('Energy, GHz')
         plt.xlabel('$\\phi$')
         plt.show()
 
+    # TODO: solve eigenvalue problem for 2d system
     def plot_potential_2d(self, num_system: int, phi_start: list = None, phi_stop: list = None,
                           num_points: list = None):
         if not phi_start:
@@ -1568,11 +1674,11 @@ class TLSystem:
         plt.show()
         pass
 
-    def solve_hamiltonian_eig_1d(self, subsystem, phi_grid, cutoff=4):
+    def solve_hamiltonian_eig_1d(self, subsystem, phi_grid, dc_phase, cutoff=4):
         from scipy.linalg import eig
         d = np.abs(phi_grid[0] - phi_grid[1])  # step of grid
         u = potential_1d(phi=phi_grid, e_l=subsystem['El'], e_j=subsystem['Ej'],
-                         alpha=subsystem['alpha'], phi_dc=subsystem['dc_phase'])
+                         alpha=subsystem['alpha'], phi_dc=dc_phase)
         # u = np.asarray(
         #     [potential_1d(phi=phi_i, e_l=subsystem['El'], e_j=subsystem['Ej'], alpha=subsystem['alpha'],
         #                   phi_0=subsystem['dc_phase']) for phi_i in
@@ -1593,17 +1699,17 @@ class TLSystem:
             wavefunctions.append(eigenvectors[:, state_id])
         return energies, wavefunctions
 
-    def plot_wavefunctions_1d(self, subsystem, phi, cutoff=5):
+    def plot_wavefunctions_1d(self, subsystem, phi_grid, dc_phase, cutoff=5):
         """
         Returns plotted potential and wavefunctions
         :param subsystem:
-        :param phi: phase grid
+        :param phi_grid:
+        :param dc_phase:
         :param cutoff:
         """
-        phi_grid = phi
         u_1d = potential_1d(phi=phi_grid, e_l=subsystem['El'], e_j=subsystem['Ej'],
-                            alpha=subsystem['alpha'], phi_dc=subsystem['dc_phase'])
-        energies, wavefunctions = self.solve_hamiltonian_eig_1d(subsystem, phi_grid, cutoff)
+                            alpha=subsystem['alpha'], phi_dc=dc_phase)
+        energies, wavefunctions = self.solve_hamiltonian_eig_1d(subsystem, phi_grid, dc_phase, cutoff)
 
         plt.ylabel('Energy, GHz')
         plt.xlabel('$\\phi$')

@@ -5,13 +5,13 @@ import gdspy
 from .. import conformal_mapping as cm
 from .. import transmission_line_simulator as tlsim
 from typing import List, Tuple, Mapping, Union, Iterable, Dict
-from copy import  deepcopy
+from copy import deepcopy
 
 
 class CPWCoupler(DesignElement):
     def __init__(self, name: str, points: List[Tuple[float, float]], w: List[float], s: List[float], g: float,
                  layer_configuration: LayerConfiguration, r: float, corner_type: str = 'round',
-                 orientation1: float = None, orientation2: float = None, kinetic_inductance = None):
+                 orientation1: float = None, orientation2: float = None, kinetic_inductance=None):
         """
         Create a coplanar waveguide (CPW) through points.
         :param name: element identifier
@@ -55,7 +55,8 @@ class CPWCoupler(DesignElement):
             'port1': DesignTerminal(self.points[0], orientation1, g=g, s=s, w=w, type='mc-cpw', order=False),
             'port2': DesignTerminal(self.points[-1], orientation2, g=g, s=s, w=w, type='mc-cpw')}
 
-        self.width_total, self.widths, self.offsets, self.holes, self.holes_offsets = widths_offsets(self.w, self.s, self.g)
+        self.width_total, self.widths, self.offsets, self.holes, self.holes_offsets = widths_offsets(self.w, self.s,
+                                                                                                     self.g)
 
         self.segments = []
         self.finalize_points()
@@ -84,6 +85,7 @@ class CPWCoupler(DesignElement):
             orientation2_delta = np.abs(orientation2_delta)
         if orientation2_delta > eps:
             blast_point = self.points[-1] + adapter_length * orientation2 * np.tan(orientation2_delta / 2 + 0.001)
+            # blast_point = self.points[-1] + adapter_length * orientation2 * np.tan(orientation2_delta / 2)
             adapted_points = adapted_points[:-1] + [blast_point, adapted_points[-1]]
 
         # remove duplicates
@@ -114,7 +116,7 @@ class CPWCoupler(DesignElement):
             if self.corner_type == 'round':
                 current_corner_type = 'round'
                 next_point = adapted_points[point_id + 1]
-                #last_point = adapted_points[point_id - 1]
+                # last_point = adapted_points[point_id - 1]
 
                 length1 = np.sqrt(np.sum((point - last_point) ** 2))
                 length2 = np.sqrt(np.sum((point - next_point) ** 2))
@@ -139,7 +141,7 @@ class CPWCoupler(DesignElement):
 
                 assert np.all(np.isfinite(replaced_point2)) and np.all(np.isfinite(replaced_point1))
 
-                if replaced_length > length1+eps or replaced_length > length2:
+                if replaced_length > length1 + eps or replaced_length > length2:
                     raise ValueError('Too short segment in line to round corner with given radius')
 
                 if length1 - replaced_length > eps:
@@ -147,9 +149,38 @@ class CPWCoupler(DesignElement):
                                           'length': np.sqrt(np.sum((last_point - replaced_point1) ** 2))})
                 else:
                     replaced_point1 = last_point
+                if turn <= 0:
+                    normal_vector1 = np.asarray([direction1[1], -direction1[0]])
+                    normal_vector2 = np.asarray([-direction2[1], direction2[0]])
+                else:
+                    normal_vector1 = np.asarray([-direction1[1], direction1[0]])
+                    normal_vector2 = np.asarray([direction2[1], -direction2[0]])
+
+                # eq of line l2 Ax + By + C = 0
+                A = normal_vector2[0]
+                B = normal_vector2[1]
+                C = - normal_vector2[0] * replaced_point2[0] - normal_vector2[1] * replaced_point2[1]
+
+                # eq of line n2 Ax + By + C = 0
+                a = direction2[0]
+                b = direction2[1]
+                c = - direction2[0] * replaced_point2[0] - direction2[1] * replaced_point2[1]
+
+                matrix_for_center = np.asarray([[A, B],
+                                                [a, b]])
+                vector_for_center = np.asarray([self.r * np.sqrt(A ** 2 + B ** 2) - C, -c])
+
+                from numpy.linalg import solve
+                solution_for_center = solve(matrix_for_center, vector_for_center)
+                start_angle = np.arctan2(-solution_for_center[1] + replaced_point1[1],
+                                         -solution_for_center[0] + replaced_point1[0])
+                end_angle = start_angle + turn
                 self.segments.append({'type': 'turn', 'turn': turn, 'startpoint': replaced_point1,
-                                      'endpoint': replaced_point2, 'length': np.abs(turn)*self.r,
-                                      'instead_point': point})
+                                      'endpoint': replaced_point2, 'length': np.abs(turn) * self.r,
+                                      'instead_point': point, 'direction1': direction1, 'direction2': direction2,
+                                      'normal1': normal_vector1, 'normal2': normal_vector2,
+                                      'center': solution_for_center, 'start_angle': start_angle,
+                                      'end_angle': end_angle})
 
                 self.length += (np.sqrt(np.sum((replaced_point1 - last_point) ** 2)) + np.abs(turn) * self.r)
                 last_point = replaced_point2
@@ -167,12 +198,12 @@ class CPWCoupler(DesignElement):
         bend_radius = self.g
         precision = 0.001
         p1 = gdspy.FlexPath([self.segments[0]['endpoint']], width=self.widths, offset=self.offsets, ends='flush',
-                                 corners='natural', bend_radius=bend_radius, precision=precision,
-                                 layer=self.layer_configuration.total_layer)
+                            corners='natural', bend_radius=bend_radius, precision=precision,
+                            layer=self.layer_configuration.total_layer)
         p2 = gdspy.FlexPath([self.segments[0]['endpoint']], width=self.width_total, offset=0, ends='flush',
-                                 corners='natural', bend_radius=self.g, precision=precision,
-                                 layer=self.layer_configuration.restricted_area_layer)
-        p3 = gdspy.FlexPath([self.segments[0]['endpoint']], width=self.holes,offset=self.holes_offsets,ends='flush',
+                            corners='natural', bend_radius=self.g, precision=precision,
+                            layer=self.layer_configuration.restricted_area_layer)
+        p3 = gdspy.FlexPath([self.segments[0]['endpoint']], width=self.holes, offset=self.holes_offsets, ends='flush',
                             corners='natural', bend_radius=self.g, precision=precision,
                             layer=self.layer_configuration.inverted)
         for segment in self.segments[1:]:
@@ -184,7 +215,7 @@ class CPWCoupler(DesignElement):
                 p1.segment(segment['endpoint'])
                 p2.segment(segment['endpoint'])
                 p3.segment(segment['endpoint'])
-        return {'positive': p1.to_polygonset(), 'restrict': p2.to_polygonset(), 'inverted':p3.to_polygonset()}
+        return {'positive': p1.to_polygonset(), 'restrict': p2.to_polygonset(), 'inverted': p3.to_polygonset()}
 
     def get_terminals(self):
         return self.terminals
@@ -251,6 +282,12 @@ class CPW(CPWCoupler):
                  orientation1: float = None, orientation2: float = None):
         super().__init__(name, points, [w], [s, s], g, layer_configuration, r, corner_type, orientation1, orientation2)
 
+        self.w = w
+        self.s = s
+        self.g = g
+
+        self.r = r
+
         self.terminals['port1'].type = 'cpw'
         self.terminals['port1'].w = w
         self.terminals['port1'].s = s
@@ -260,6 +297,85 @@ class CPW(CPWCoupler):
         self.terminals['port2'].w = w
         self.terminals['port2'].s = s
         self.terminals['port2'].g = g
+
+    def render(self):
+        bend_radius = self.g
+        precision = 0.001
+
+        positive = None
+        restrict = None
+        inverted = None
+
+        for segment_id, segment in enumerate(self.segments):
+            if segment['type'] == 'segment' or segment['type'] == 'endpoint':
+                if 'startpoint' in segment.keys():
+                    start = (segment['startpoint'][0],
+                             segment['startpoint'][1]
+                             )
+                    end = (segment['endpoint'][0],
+                           segment['endpoint'][1]
+                           )
+                    p1 = gdspy.FlexPath([start, end], width=self.widths, offset=self.offsets,
+                                        ends='flush',
+                                        corners='natural', bend_radius=bend_radius, precision=precision,
+                                        layer=self.layer_configuration.total_layer)
+                    p2 = gdspy.FlexPath([start, end], width=self.width_total, offset=0, ends='flush',
+                                        corners='natural', bend_radius=self.g, precision=precision,
+                                        layer=self.layer_configuration.restricted_area_layer)
+
+                    p3 = gdspy.FlexPath([start, end], width=self.holes, offset=self.holes_offsets,
+                                        ends='flush',
+                                        corners='natural', bend_radius=self.g, precision=precision,
+                                        layer=self.layer_configuration.inverted)
+
+                    positive = gdspy.boolean(positive, p1.to_polygonset(), 'or',
+                                             layer=self.layer_configuration.total_layer)
+
+                    restrict = gdspy.boolean(restrict, p2.to_polygonset(), 'or',
+                                             layer=self.layer_configuration.restricted_area_layer)
+
+                    inverted = gdspy.boolean(inverted, p3.to_polygonset(), 'or',
+                                             layer=self.layer_configuration.inverted)
+
+            elif segment['type'] == 'turn':
+                p1_round1 = gdspy.Round((segment['center'][0], segment['center'][1]),
+                                        radius=self.r + self.w / 2 + self.s + self.g,
+                                        inner_radius=self.r + self.w / 2 + self.s,
+                                        initial_angle=segment['start_angle'],
+                                        final_angle=segment['end_angle'],
+                                        layer=self.layer_configuration.total_layer)
+
+                p1_round2 = gdspy.Round((segment['center'][0], segment['center'][1]),
+                                        radius=self.r + self.w / 2,
+                                        inner_radius=self.r - self.w / 2,
+                                        initial_angle=segment['start_angle'],
+                                        final_angle=segment['end_angle'],
+                                        layer=self.layer_configuration.total_layer)
+
+                p1_round3 = gdspy.Round((segment['center'][0], segment['center'][1]),
+                                        radius=self.r - self.w / 2 - self.s,
+                                        inner_radius=self.r - self.w / 2 - self.s - self.g,
+                                        initial_angle=segment['start_angle'],
+                                        final_angle=segment['end_angle'],
+                                        layer=self.layer_configuration.total_layer)
+
+                p2 = gdspy.Round((segment['center'][0], segment['center'][1]),
+                                 radius=self.r + self.w / 2 + self.s + self.g,
+                                 inner_radius=self.r - self.w / 2 - self.s - self.g,
+                                 initial_angle=segment['start_angle'],
+                                 final_angle=segment['end_angle'],
+                                 layer=self.layer_configuration.restricted_area_layer)
+
+                for p1 in [p1_round1, p1_round2, p1_round3]:
+                    positive = gdspy.boolean(positive, p1, 'or',
+                                             layer=self.layer_configuration.total_layer)
+
+                restrict = gdspy.boolean(restrict, p2, 'or',
+                                         layer=self.layer_configuration.restricted_area_layer)
+
+                inverted = gdspy.boolean(restrict, p1, 'not',
+                                         layer=self.layer_configuration.inverted)
+        return {'positive': positive, 'restrict': restrict, 'inverted': inverted}
 
     def __repr__(self):
         return 'CPW "{}", l={:4.3f}'.format(self.name, np.round(self.length, 3))
@@ -373,9 +489,9 @@ class Narrowing(DesignElement):
         cl1, ll1 = cm.ConformalMapping([self.s1, self.w1, self.s1], epsilon=epsilon).cl_and_Ll()
         cl2, ll2 = cm.ConformalMapping([self.s2, self.w2, self.s2], epsilon=epsilon).cl_and_Ll()
 
-        l = tlsim.Inductor(l=(ll1[0,0] + ll2[0,0]) / 2 * self.length, name='CPW Narrowing {} L'.format(self.name))
-        c1 = tlsim.Capacitor(c=cl1[0,0] / 2 * self.length, name='CPW Narrowing {} C1'.format(self.name))
-        c2 = tlsim.Capacitor(c=cl2[0,0] / 2 * self.length, name='CPW Narrowing {} C2'.format(self.name))
+        l = tlsim.Inductor(l=(ll1[0, 0] + ll2[0, 0]) / 2 * self.length, name='CPW Narrowing {} L'.format(self.name))
+        c1 = tlsim.Capacitor(c=cl1[0, 0] / 2 * self.length, name='CPW Narrowing {} C1'.format(self.name))
+        c2 = tlsim.Capacitor(c=cl2[0, 0] / 2 * self.length, name='CPW Narrowing {} C2'.format(self.name))
 
         if track_changes:
             self.tls_cache.append([l, c1, c2])
@@ -391,14 +507,14 @@ def widths_offsets(w, s, g):
     width_total = g * 2 + sum(s) + sum(w)
     widths = [g] + w + [g]
     holes = s
-    holes_offsets = [-(sum(s) + sum(w)-s[0]) / 2]
+    holes_offsets = [-(sum(s) + sum(w) - s[0]) / 2]
     offsets = [-(width_total - g) / 2]
     for c in range(len(widths) - 1):
         offsets.append(offsets[-1] + widths[c] / 2 + s[c] + widths[c + 1] / 2)
     for c in range(len(w)):
-        holes_offsets.append(holes_offsets[-1] + holes[c]/2 + w[c] + holes[c + 1] / 2)
+        holes_offsets.append(holes_offsets[-1] + holes[c] / 2 + w[c] + holes[c + 1] / 2)
 
-    return width_total, widths, offsets,holes,holes_offsets
+    return width_total, widths, offsets, holes, holes_offsets
 
 
 class RectGrounding(DesignElement):
@@ -473,7 +589,7 @@ class RectGrounding(DesignElement):
         if len(delta_list) > len(short_list):
             widths_of_cpw_new.extend(delta_list[len(delta_list) - 1])
 
-        #if reverse_type == 'Negative':
+        # if reverse_type == 'Negative':
         #    widths_of_cpw_new.reverse()
 
         list_of_conductors = []
@@ -577,7 +693,7 @@ class RectGrounding(DesignElement):
         cache = []
 
         if len(self.terminals.keys()) == 1:
-            #print (self.name, self.w, terminal_mapping)
+            # print (self.name, self.w, terminal_mapping)
             if len(self.w) > 1 and ('wide', 0) in terminal_mapping:
                 for conductor_id in range(len(self.w)):  # loop over all conductors
                     zero_resistor = tlsim.Resistor(r=0, name=self.name + str(len(self.w)))
@@ -692,7 +808,7 @@ class RectFanout(DesignElement):
 
     def __init__(self, name: str, port: DesignTerminal, grouping: Tuple[int, int],
                  layer_configuration: LayerConfiguration, down_s_right: float = None, center_s_left: float = None,
-                 center_s_right: float = None, up_s_left: float = None, kinetic_inductance = None):
+                 center_s_right: float = None, up_s_left: float = None, kinetic_inductance=None):
         """
         Create fanout element for coupled CPWs. Ground electrodes are added between the groups.
         :param name: element identifier
@@ -731,7 +847,8 @@ class RectFanout(DesignElement):
         else:
             self.kinetic_inductance = [0 for i in range(len(self.w))]
 
-        self.width_total, self.widths, self.offsets, self.holes, self.holes_offsets = widths_offsets(self.w, self.s, self.g)
+        self.width_total, self.widths, self.offsets, self.holes, self.holes_offsets = widths_offsets(self.w, self.s,
+                                                                                                     self.g)
 
         if down_s_right is None:
             down_s_right = self.s[0]
@@ -766,7 +883,8 @@ class RectFanout(DesignElement):
         for group_exists, group_w, group_s, first_conductor in zip(self.groups_exist, self.groups_w, self.groups_s,
                                                                    self.groups_first_conductor):
             if group_exists:
-                group_width_total, group_widths, group_offsets, group_holes, group_holes_offsets = widths_offsets(group_w, group_s, self.g)
+                group_width_total, group_widths, group_offsets, group_holes, group_holes_offsets = widths_offsets(
+                    group_w, group_s, self.g)
                 group_global_offset = self.offsets[first_conductor + 1] - group_offsets[1]
             else:
                 group_width_total, group_widths, group_offsets = 0, [], []
@@ -982,7 +1100,8 @@ class RectFanout(DesignElement):
             group_cl, group_ll = cm.ConformalMapping(
                 cross_section(structure_of_fanout[group]['w'], structure_of_fanout[group]['s']), epsilon).cl_and_Ll()
 
-            group_ll = group_ll + np.asarray(structure_of_fanout[group]['kinetic_inductance'])/np.asarray(structure_of_fanout[group]['w'])
+            group_ll = group_ll + np.asarray(structure_of_fanout[group]['kinetic_inductance']) / np.asarray(
+                structure_of_fanout[group]['w'])
 
             structure_for_tls[group] = {'n': structure_of_fanout[group]['noc'],
                                         'l': structure_of_fanout[group]['l'],
@@ -1046,7 +1165,6 @@ class RectFanout(DesignElement):
                     end_conductor = conductor_bounds[3]
 
                 for conductor_id in range(begin_conductor, end_conductor):
-
                     mapping_ += [terminal_mapping[('middle', conductor_id)]]
 
                 if elem in terminal_mapping:
@@ -1253,7 +1371,7 @@ class OpenEnd(DesignElement):
                                         layer=self.layer_configuration.restricted_area_layer)
 
         positive_total = gdspy.boolean(operand1=continue_ground, operand2=add_connection, operation='or')
-        negative = gdspy.boolean(restrict_total,positive_total, 'not', layer=self.layer_configuration.inverted)
+        negative = gdspy.boolean(restrict_total, positive_total, 'not', layer=self.layer_configuration.inverted)
         return {'positive': positive_total, 'restrict': restrict_total.to_polygonset(), 'inverted': negative}
 
     def get_terminals(self) -> Mapping[str, DesignTerminal]:
@@ -1263,7 +1381,7 @@ class OpenEnd(DesignElement):
                    cutoff: float = np.inf, epsilon=11.45) -> list:
         if self.number_of_conductors == 1:
             cache = []
-            capacitance_value = 1e-15*20*0
+            capacitance_value = 1e-15 * 20 * 0
             capacitor = tlsim.Capacitor(capacitance_value, 'open_end')
             cache.append(capacitor)
             tls_instance.add_element(capacitor,
@@ -1286,6 +1404,7 @@ class OpenEnd(DesignElement):
 
     def __repr__(self):
         return "OpenEnd {}".format(self.name)
+
 
 '''
 class RectFanout(DesignElement):
