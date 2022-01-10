@@ -282,11 +282,10 @@ class CPW(CPWCoupler):
                  orientation1: float = None, orientation2: float = None):
         super().__init__(name, points, [w], [s, s], g, layer_configuration, r, corner_type, orientation1, orientation2)
 
-        self.w = w
-        self.s = s
-        self.g = g
-
         self.r = r
+
+        self.w_ = w
+        self.s_ = s
 
         self.terminals['port1'].type = 'cpw'
         self.terminals['port1'].w = w
@@ -339,29 +338,29 @@ class CPW(CPWCoupler):
 
             elif segment['type'] == 'turn':
                 p1_round1 = gdspy.Round((segment['center'][0], segment['center'][1]),
-                                        radius=self.r + self.w / 2 + self.s + self.g,
-                                        inner_radius=self.r + self.w / 2 + self.s,
+                                        radius=self.r + self.w_ / 2 + self.s_ + self.g,
+                                        inner_radius=self.r + self.w_ / 2 + self.s_,
                                         initial_angle=segment['start_angle'],
                                         final_angle=segment['end_angle'],
                                         layer=self.layer_configuration.total_layer)
 
                 p1_round2 = gdspy.Round((segment['center'][0], segment['center'][1]),
-                                        radius=self.r + self.w / 2,
-                                        inner_radius=self.r - self.w / 2,
+                                        radius=self.r + self.w_ / 2,
+                                        inner_radius=self.r - self.w_ / 2,
                                         initial_angle=segment['start_angle'],
                                         final_angle=segment['end_angle'],
                                         layer=self.layer_configuration.total_layer)
 
                 p1_round3 = gdspy.Round((segment['center'][0], segment['center'][1]),
-                                        radius=self.r - self.w / 2 - self.s,
-                                        inner_radius=self.r - self.w / 2 - self.s - self.g,
+                                        radius=self.r - self.w_ / 2 - self.s_,
+                                        inner_radius=self.r - self.w_ / 2 - self.s_ - self.g,
                                         initial_angle=segment['start_angle'],
                                         final_angle=segment['end_angle'],
                                         layer=self.layer_configuration.total_layer)
 
                 p2 = gdspy.Round((segment['center'][0], segment['center'][1]),
-                                 radius=self.r + self.w / 2 + self.s + self.g,
-                                 inner_radius=self.r - self.w / 2 - self.s - self.g,
+                                 radius=self.r + self.w_ / 2 + self.s_ + self.g,
+                                 inner_radius=self.r - self.w_ / 2 - self.s_ - self.g,
                                  initial_angle=segment['start_angle'],
                                  final_angle=segment['end_angle'],
                                  layer=self.layer_configuration.restricted_area_layer)
@@ -373,7 +372,7 @@ class CPW(CPWCoupler):
                 restrict = gdspy.boolean(restrict, p2, 'or',
                                          layer=self.layer_configuration.restricted_area_layer)
 
-                inverted = gdspy.boolean(restrict, p1, 'not',
+                inverted = gdspy.boolean(restrict, positive, 'not',
                                          layer=self.layer_configuration.inverted)
         return {'positive': positive, 'restrict': restrict, 'inverted': inverted}
 
