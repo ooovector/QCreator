@@ -939,7 +939,7 @@ class RectFanout(DesignElement):
                     group_orientation -= 2 * np.pi
                 self.terminals[name] = DesignTerminal(position=points[-1] + position_correction,
                                                       orientation=group_orientation, type=type_,
-                                                      w=w, s=s, g=self.g, disconnected='short')
+                                                      w=w, s=s, g=self.g, disconnected='short', order=False)
 
         # correction of points
         # it is a dictionary with creation points for every type of points
