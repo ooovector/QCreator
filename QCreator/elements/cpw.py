@@ -829,7 +829,7 @@ class RectFanout(DesignElement):
 
         self.terminals = {'wide': DesignTerminal(position=self.port.position, orientation=self.port.orientation + np.pi,
                                                  type='mc-cpw', w=self.port.w, s=self.port.s, g=self.port.g,
-                                                 disconnected='short')}
+                                                 disconnected='short', order=False)}
 
         if not self.port.order:
             self.w = self.port.w[::-1]
@@ -939,7 +939,7 @@ class RectFanout(DesignElement):
                     group_orientation -= 2 * np.pi
                 self.terminals[name] = DesignTerminal(position=points[-1] + position_correction,
                                                       orientation=group_orientation, type=type_,
-                                                      w=w, s=s, g=self.g, disconnected='short', order=False)
+                                                      w=w, s=s, g=self.g, disconnected='short')
 
         # correction of points
         # it is a dictionary with creation points for every type of points
