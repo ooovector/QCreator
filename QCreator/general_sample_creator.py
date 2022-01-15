@@ -151,7 +151,16 @@ class Sample:
                         T.translate(ter.position[0],ter.position[1])
                         self.total_cell.add(T)
 
-
+    def get_graph(self):
+        import networkx as nx
+        g = nx.Graph()
+        for element, mapping in zip(self.elements, self.terminal_node_mapping):
+            for left_node_id in range(len(mapping)//2):
+                g.add_edge(mapping[left_node_id], mapping[left_node_id + len(mapping)//2], color='black', weight=2)
+                for right_node_id in range(left_node_id+1+len(mapping)//2, len(mapping)):
+                    #g.add_edge(mapping[left_node_id], mapping[right_node_id], color='blue', weight=1)
+                    pass
+        return g
 
 
 
@@ -405,13 +414,16 @@ class Sample:
                 i = i + 1
         return True
 
+    #TODO: qubit-speicific code in sample class.
+    # This function should go into qubit classes
+    # specifically into add_to_tls
     def fill_cap_matrix_grounded(self, qubit, caps):
         qubit.C['qubit'] = caps[1][1]
         print(caps)
         i = 2
         # print(qubit.C)
         for key, value in qubit.terminals.items():
-            if value is not None and key is not 'flux':
+            if value is not None and key != 'flux':
                 # print(key, value)
                 qubit.C[key] = (caps[i][i]+caps[1][i], -caps[1][i])
                 qubit.C['qubit'] += caps[1][i] # remove from qubit-ground
