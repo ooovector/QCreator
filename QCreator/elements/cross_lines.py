@@ -146,6 +146,11 @@ class CrossLinesViaAirbridges(DesignElement):
         aux_restrict_2 = gdspy.Rectangle((self.position[0] - self.geometry.bridge_length/2, self.position[1] + p_wid/2 + self.top_s + p_wid),
                                          (self.position[0] - self.geometry.bridge_length/2 + self.geometry.pad_length, self.position[1] - p_wid/2 - self.top_s - p_wid))
         restrict = gdspy.boolean(restrict, aux_restrict_2, 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
+
+        aux_restrict_3 = gdspy.Rectangle((self.position[0] - self.geometry.bridge_length/2, self.position[1] + p_wid/2 + self.top_s + p_wid),
+                                         (self.position[0] + self.geometry.bridge_length/2, self.position[1] - p_wid/2 - self.top_s - p_wid))
+
+        restrict = gdspy.boolean(restrict, aux_restrict_3, 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
         # Rotate everything if needed:
         if self.orientation is not 0:
             positive.rotate(self.orientation, self.position)
