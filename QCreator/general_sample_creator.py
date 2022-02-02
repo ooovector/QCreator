@@ -257,7 +257,7 @@ class Sample:
 
         return closed_end
 
-    def open_end(self, o: elements.DesignElement, port: str, name: str):
+    def open_end(self, o: elements.DesignElement, port: str, name: str, h1=20, h2=20):
         position_ = o.get_terminals()[port].position
         orientation_ = o.get_terminals()[port].orientation
 
@@ -274,7 +274,8 @@ class Sample:
         else:
             raise ValueError('Unexpected data types of CPW parameters')
 
-        open_end = elements.OpenEnd(name, position_, w_, s_, g_, orientation_+np.pi, self.layer_configuration)
+        open_end = elements.OpenEnd(name, position_, w_, s_, g_, orientation_+np.pi, self.layer_configuration,
+                                    h1=h1, h2=h2)
         # open_end = elements.OpenEnd(name, o.get_terminals()[port], self.layer_configuration)
         self.add(open_end)
 
