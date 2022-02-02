@@ -433,7 +433,7 @@ class Sample:
     def get_tls(self, cutoff=np.inf):
         """
         Create a transmission line system of the design
-        :return:
+        :return: tls, connections_flat, element_assignments
         """
         tls = tlsim.TLSystem()
         GND = tlsim.Short()

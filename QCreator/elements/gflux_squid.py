@@ -194,7 +194,7 @@ class GFluxControllableSquid(DesignElement):
 
         for rectangle_id in range((chain_junctions - 1) // 2):
             chain_rectangles.append([[outer_chain_position, current_position],
-                                     [outer_chain_position - chain_width,
+                                     [outer_chain_position + chain_width,
                                       current_position - chain_rectangle_height]])
             current_position -= chain_rectangle_height + chain_jj_distance
 
@@ -447,10 +447,10 @@ class GFluxControllableSquid(DesignElement):
                        cutoff: float = np.inf, epsilon: float = 11.45) -> list:
         from scipy.constants import hbar, e
         jj_small = tlsim.JosephsonJunction(self.squid_params['ics'] * hbar / (2 * e), name=self.name + ' jj small')
-        jj_left = tlsim.JosephsonJunction(self.squid_params['icb'] * hbar / (2 * e),
+        jj_left = tlsim.JosephsonJunctionChain(self.squid_params['icb'] * hbar / (2 * e),
                                           name=self.name + ' jj big left',
                                           n_junctions=self.squid_params['chain_junctions'])
-        jj_right = tlsim.JosephsonJunction(self.squid_params['icb'] * hbar / (2 * e),
+        jj_right = tlsim.JosephsonJunctionChain(self.squid_params['icb'] * hbar / (2 * e),
                                            name=self.name + ' jj big right',
                                            n_junctions=self.squid_params['chain_junctions'])
 
