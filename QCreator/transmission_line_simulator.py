@@ -1535,18 +1535,18 @@ class TLSystem:
                             subspace_dict['Ej'].append(0)
                     else:
                         for jj_id, jj in enumerate(self.JJs):
-                            subspace_dict['Ej'].append(jj.E_J)
+                            subspace_dict['Ej'].append(jj.E_J*jj.n_junctions)
                             jj_submode_i, jj_submode_j = self.get_element_submode(jj, modes[mode])[:2]
-                            subspace_dict['alpha'][jj_id][mode_id] = np.real(jj_submode_i - jj_submode_j)
+                            subspace_dict['alpha'][jj_id][mode_id] = np.real(jj_submode_i - jj_submode_j)/jj.n_junctions
                             jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
-                            subspace_dict['dc_phase'][jj_id][mode_id] = np.real(jj_dc_phase_i - jj_dc_phase_j)
+                            subspace_dict['dc_phase'][jj_id][mode_id] = np.real(jj_dc_phase_i - jj_dc_phase_j)/jj.n_junctions
                 else:
                     for jj_id, jj in enumerate(self.JJs):
-                        subspace_dict['Ej'].append(jj.E_J)
+                        subspace_dict['Ej'].append(jj.E_J*jj.n_junctions)
                         jj_submode_i, jj_submode_j = self.get_element_submode(jj, modes[mode])[:2]
-                        subspace_dict['alpha'][jj_id][mode_id] = np.real(jj_submode_i - jj_submode_j)
+                        subspace_dict['alpha'][jj_id][mode_id] = np.real(jj_submode_i - jj_submode_j)/jj.n_junctions
                         jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
-                        subspace_dict['dc_phase'][jj_id][mode_id] = np.real(jj_dc_phase_i - jj_dc_phase_j)
+                        subspace_dict['dc_phase'][jj_id][mode_id] = np.real(jj_dc_phase_i - jj_dc_phase_j)/jj.n_junctions
             hamiltonian_parameters[str(subspace_id)] = subspace_dict
 
         return hamiltonian_parameters
