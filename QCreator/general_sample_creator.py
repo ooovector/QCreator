@@ -176,6 +176,10 @@ class Sample:
             result = object_.get()
             if 'qubit_cap' in result:
                 if result['qubit_cap'] is not None:
+                    try:
+                        self.lib.remove('qubit capacitance cell ' + str(qubit_cap_cell_counter))
+                    except ValueError:
+                        pass
                     cap_cell = self.lib.new_cell('qubit capacitance cell ' + str(qubit_cap_cell_counter),
                                                  overwrite_duplicate=True, update_references=True)
                     cap_cell.add(result['qubit_cap'])
