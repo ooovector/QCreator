@@ -31,7 +31,7 @@ class Meshing:
 
 
     def read_data_from_gds_file(self):
-        new_cells = [gdspy.GdsLibrary()] * len(self.layers)
+        new_cells = [gdspy.GdsLibrary() for i in range(len(self.layers))]
         cells = []
         for i, num_layer in enumerate(self.layers):
             cells.append(new_cells[i].read_gds(infile=self.path).cells[self.cell_name])
