@@ -1,0 +1,40 @@
+Running /opt/layout/bin/fastcap LayoutEditor 0.1 (fastlc)
+  Input: /home/alena/QCreator/designs/8qubit_desigh/mesh_4k_data
+  Date: Fri Jan  7 23:41:56 2022
+  Host: ThinkPad
+
+INPUT SUMMARY
+  Expansion order: 2
+  Number of partitioning levels: 7
+  Overall permittivity factor: 1
+Title: `'
+  Total number of panels: 18989
+    Number of conductor panels: 18989
+    Number of dielectric interface panels: 0
+    Number of thin conductor on dielectric interface panels: 0
+  Number of conductors: 6
+No expansions at level 7 (lowest)
+Percentage of multiplies done by multipole: 99.2%
+
+ITERATION DATA
+Starting on column 1 (1.0%GROUP1)
+1 2 3 4 5 6 7 8 9 10 11 12 
+Starting on column 2 (2.0%GROUP1)
+1 2 3 4 5 6 7 8 9 10 11 
+Starting on column 3 (3.0%GROUP1)
+1 2 3 4 5 6 7 8 9 10 11 
+Starting on column 4 (4.0%GROUP1)
+1 2 3 4 5 6 7 8 9 10 11 
+Starting on column 5 (5.0%GROUP1)
+1 2 3 4 5 6 7 8 9 10 11 
+Starting on column 6 (6.0%GROUP1)
+1 2 3 4 5 6 7 8 9 10 11 
+
+CAPACITANCE MATRIX, picofarads
+                       1            2            3            4            5            6 
+1.0%GROUP1 1    2.429e+04        -4514        -2438        -1648        -2322        -2016
+2.0%GROUP1 2        -4514    1.025e+04        -1172       -845.2       -866.3         -581
+3.0%GROUP1 3        -2438        -1172         6510       -778.9       -50.57       -888.4
+4.0%GROUP1 4        -1648       -845.2       -778.9         4299       -124.5        -34.4
+5.0%GROUP1 5        -2322       -866.3       -50.57       -124.5         4258       -18.81
+6.0%GROUP1 6        -2016         -581       -888.4        -34.4       -18.81         4160

@@ -80,9 +80,6 @@ class Resistor(TLSystemElement):
     def energy_matrix(self):
         return 0
 
-    def is_sc_island(self):
-        return True
-
     def __init__(self, r=None, name=''):
         super().__init__('R', name)
         self.R = r
@@ -194,9 +191,6 @@ class Inductor(TLSystemElement):
     def is_scdc(self):
         return True
 
-    def is_sc_island(self):
-        return True
-
     def energy_matrix(self):
         emat = np.asarray([
             [0, 0, 0, 0],
@@ -257,9 +251,6 @@ class Short(TLSystemElement):
     def is_scdc(self):
         return True
 
-    def is_sc_island(self):
-        return True
-
     def energy(self, mode):
         return 0
 
@@ -315,9 +306,6 @@ class Port(TLSystemElement):
 
     def energy(self, mode):
         return 0
-
-    def is_sc_island(self):
-        return True
 
     def energy_matrix(self):
         return 0
@@ -614,6 +602,9 @@ class JosephsonJunctionChain(TLSystemElement):
     #     return []
 
     def is_scdc(self):
+        return True
+
+    def is_sc_island(self):
         return True
 
     def hob_phi_op(self, submode, num_levels):
@@ -1372,7 +1363,6 @@ class TLSystem:
         omega, kappa, modes = self.get_modes()
 
         modes_ = [modes[m] for m in list_of_modes_numbers]
-
         modes_energies = []  # list of energies for different modes
 
         for mode_ in modes_:
@@ -1535,23 +1525,27 @@ class TLSystem:
                             subspace_dict['Ej'].append(0)
                     else:
                         for jj_id, jj in enumerate(self.JJs):
-                            subspace_dict['Ej'].append(jj.E_J*jj.n_junctions)
+                            subspace_dict['Ej'].append(jj.E_J * jj.n_junctions)
                             jj_submode_i, jj_submode_j = self.get_element_submode(jj, modes[mode])[:2]
-                            subspace_dict['alpha'][jj_id][mode_id] = np.real(jj_submode_i - jj_submode_j)/jj.n_junctions
+                            subspace_dict['alpha'][jj_id][mode_id] = np.real(
+                                jj_submode_i - jj_submode_j) / jj.n_junctions
                             jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
-                            subspace_dict['dc_phase'][jj_id][mode_id] = np.real(jj_dc_phase_i - jj_dc_phase_j)/jj.n_junctions
+                            subspace_dict['dc_phase'][jj_id][mode_id] = np.real(
+                                jj_dc_phase_i - jj_dc_phase_j) / jj.n_junctions
                 else:
                     for jj_id, jj in enumerate(self.JJs):
-                        subspace_dict['Ej'].append(jj.E_J*jj.n_junctions)
+                        subspace_dict['Ej'].append(jj.E_J * jj.n_junctions)
                         jj_submode_i, jj_submode_j = self.get_element_submode(jj, modes[mode])[:2]
-                        subspace_dict['alpha'][jj_id][mode_id] = np.real(jj_submode_i - jj_submode_j)/jj.n_junctions
+                        subspace_dict['alpha'][jj_id][mode_id] = np.real(jj_submode_i - jj_submode_j) / jj.n_junctions
                         jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
-                        subspace_dict['dc_phase'][jj_id][mode_id] = np.real(jj_dc_phase_i - jj_dc_phase_j)/jj.n_junctions
+                        subspace_dict['dc_phase'][jj_id][mode_id] = np.real(
+                            jj_dc_phase_i - jj_dc_phase_j) / jj.n_junctions
             hamiltonian_parameters[str(subspace_id)] = subspace_dict
 
         return hamiltonian_parameters
 
-    def define_modes_parameters_dc(self, omegas, modes, kerr_matrix, i_dc_list, epsilon_cross=0.001, epsilon_self=0.0001):
+    def define_modes_parameters_dc(self, omegas, modes, kerr_matrix, i_dc_list, epsilon_cross=0.001,
+                                   epsilon_self=0.0001):
         independent_subspaces = self.check_cross_non_linearity(omegas, kerr_matrix, epsilon_cross)
         dict_self = self.check_self_non_linearity(omegas, kerr_matrix, epsilon_self)
         hamiltonian_parameters = dict.fromkeys([str(i) for i in range(len(independent_subspaces))])
@@ -1570,13 +1564,15 @@ class TLSystem:
                             dc_phase = self.get_phi_dc(modes, i_dc)
                             for jj_id, jj in enumerate(self.JJs):
                                 jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
-                                subspace_dict_dc['dc_phase'][i_dc_id][jj_id][mode_id] = np.real(jj_dc_phase_i - jj_dc_phase_j)
+                                subspace_dict_dc['dc_phase'][i_dc_id][jj_id][mode_id] = np.real(
+                                    jj_dc_phase_i - jj_dc_phase_j)
                 else:
                     for i_dc_id, i_dc in enumerate(i_dc_list):
                         dc_phase = self.get_phi_dc(modes, i_dc)
                         for jj_id, jj in enumerate(self.JJs):
                             jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
-                            subspace_dict_dc['dc_phase'][i_dc_id][jj_id][mode_id] = np.real(jj_dc_phase_i - jj_dc_phase_j)
+                            subspace_dict_dc['dc_phase'][i_dc_id][jj_id][mode_id] = np.real(
+                                jj_dc_phase_i - jj_dc_phase_j)
             hamiltonian_parameters[str(subspace_id)] = subspace_dict_dc
 
         return hamiltonian_parameters
@@ -1584,62 +1580,106 @@ class TLSystem:
     ###################################################################################
     # Superconducting islands
     ###################################################################################
-    def node_connected_elements(self, nodes):
-        connections = dict.fromkeys([str(i) for i in nodes])
-        for node in nodes:
-            node_connected_elements = []
-            node_connections = []
+    def get_sc_islands_graph(self):
+        from copy import deepcopy
+        node_graph = {'ref': []}
+        connections_graph = {'ref': []}
+
+        # find all connections to reference point
+
+        for elem_id, elem in enumerate(self.elements):
+            if (type(elem) is Short) or (type(elem) is Port):
+                terminal = self.terminal_node_mapping[elem_id][0]
+                node_graph['ref'].append(terminal)
+                connections_graph['ref'].append(elem)
+
+        # find many connections to nodes
+
+        for node_id, node in enumerate(self.nodes):
+            node_graph.setdefault(node, [])
+            connections_graph.setdefault(node, [])
             for elem_id, elem in enumerate(self.elements):
                 terminals = self.terminal_node_mapping[elem_id]
-                connections_of_elem = []
                 if node in terminals:
-                    for terminal in terminals:
-                        if terminal != node:
-                            connections_of_elem.append(terminal)
-                    node_connected_elements.append(elem)
-                    node_connections.append(connections_of_elem)
-            connections[str(node)] = (node_connected_elements, node_connections)
-        return connections
+                    if type(elem) is TLCoupler:
+                        left_terminals = self.terminal_node_mapping[elem_id][:elem.n]
+                        right_terminals = self.terminal_node_mapping[elem_id][elem.n:]
+                        if node in left_terminals:
+                            node_graph[node].append(right_terminals[left_terminals.index(node)])
+                            connections_graph[node].append(elem)
+                        else:
+                            node_graph[node].append(left_terminals[right_terminals.index(node)])
+                            connections_graph[node].append(elem)
+                    else:
+                        terminals_ = deepcopy(terminals)
+                        terminals_.remove(node)
+                        if len(terminals_):
+                            node_graph[node].append(terminals_[0])
+                            connections_graph[node].append(elem)
+                        else:
+                            node_graph[node].append('ref')
+                            connections_graph[node].append(elem)
+        return node_graph, connections_graph
 
-    # def get_superconducting_islands(self):
+    def get_superconducting_islands(self):
+        node_graph, connections_graph = self.get_sc_islands_graph()
+        matrix_graph = np.zeros((len(self.nodes) + 1, len(self.nodes) + 1))
+        nodes_ = ['ref'] + self.nodes
 
-    #
-    # def get_superconducting_islands(self):
-    #     # find short nodes
-    #     short_nodes = []
-    #     for elem_id, elem in enumerate(self.elements):
-    #         if elem.type_ == 'Short':
-    #             short_nodes.append(self.terminal_node_mapping[elem_id])
-    #
-    #     islands = []
-    #     for node_id, node in enumerate(self.nodes):
-    #         if node in short_nodes:
-    #             continue
-    #         else:
-    #             node_connected_elements = self.node_connected_elements(node)
-    #             types_node_connected_elements = [elem.type_ for elem in node_connected_elements]
+        for node_id, node in enumerate(nodes_):
+            stack = []
+            for i_id, i in enumerate(node_graph[node]):
+                ind = nodes_.index(i)
+                if i not in stack:
+                    if connections_graph[node][i_id].is_sc_island():
+                        matrix_graph[node_id][ind] = -1
+                    else:
+                        matrix_graph[node_id][ind] = 1
+                else:
+                    if connections_graph[node][i_id].is_sc_island():
+                        matrix_graph_elem = -1
+                    else:
+                        matrix_graph_elem = 1
+                    matrix_graph[node_id][ind] = logical_connection(a=matrix_graph[node_id][ind],
+                                                                    b=matrix_graph_elem)
+                stack.append(i)
 
+        from collections import deque
+        islands = []
+        for start in range(1, len(self.nodes)+1):
+            island_nodes = set()
+            island_nodes.add(self.nodes[start-1])
 
+            island_nodes_queue = deque()
 
+            visited, queue = set(), deque()
+            queue.append(start)
 
+            while queue:
+                point = queue.popleft()
+                visited.add(point)
+                if point:
+                    island_nodes.add(self.nodes[point-1])
+                connections = [i for i in range(len(nodes_))
+                               if matrix_graph[point][i]]
 
-        # bound_elements = []
-        # unbound_elements = []
-        # bound_nodes = []
-        # unbound_nodes = []
-        # shorts = []
-        # short_nodes = []
-        # for elem_id, elem in enumerate(self.elements):
-        #     if elem.type_ == 'C' or elem.type_ == 'JJ':
-        #         bound_elements.append(elem)
-        #         bound_nodes.append(self.terminal_node_mapping[elem_id])
-        #     elif elem.type_ == 'Short':
-        #         shorts.append(elem)
-        #         short_nodes.append(self.terminal_node_mapping[elem_id])
-        #     elif elem.type_ == 'L':
-        #         unbound_elements.append(elem)
-        #         unbound_nodes.append(self.terminal_node_mapping[elem_id])
+                if 0 in connections:
+                    # island_nodes.remove(self.nodes[point-1])
+                    island_nodes.clear()
+                    break
+                connections_values = matrix_graph[point, :]
+                for neighbour in connections:
+                    if neighbour not in visited:
+                        if connections_values[neighbour] == 1:
+                            queue.append(neighbour)
 
+            if island_nodes not in islands and island_nodes:
+                islands.append(island_nodes)
+
+        return matrix_graph, islands
+
+    def periodic_coordinates(self):
+        pass
     ###################################################################################
     # Plot
     ###################################################################################
@@ -2340,3 +2380,15 @@ def potential_2d(phi_1, phi_2, e_l, e_j, alpha):
     for jj_id, e_j in enumerate(e_j):
         potential += e_j * (1 - np.cos(alpha[jj_id][0] * xx + alpha[jj_id][1] * yy))
     return xx, yy, potential
+
+
+def logical_connection(a, b):
+    if a == -1:
+        a = 0
+    if b == -1:
+        b = 0
+    result = bool(a) and bool(b)
+    if result:
+        return 1
+    else:
+        return -1
