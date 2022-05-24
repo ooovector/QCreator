@@ -2365,17 +2365,20 @@ class TLSystem:
         energies_list.reverse()
         return energies_list
 
-
-    def get_graph(self):
+    def get_graph(self, ground_node=0):
         import networkx as nx
         g = nx.Graph()
+        edge_labels = {}
         for element, mapping in zip(self.elements, self.terminal_node_mapping):
             for left_node_id in range(len(mapping)//2):
+                if mapping[left_node_id] == ground_node or mapping[left_node_id + len(mapping)//2] == ground_node:
+                    continue
                 g.add_edge(mapping[left_node_id], mapping[left_node_id + len(mapping)//2], color='black', weight=2)
+                edge_labels[(mapping[left_node_id], mapping[left_node_id + len(mapping)//2])] = element.name
                 for right_node_id in range(left_node_id+1+len(mapping)//2, len(mapping)):
                     #g.add_edge(mapping[left_node_id], mapping[right_node_id], color='blue', weight=1)
                     pass
-        return g
+        return g, edge_labels
 
 
 def potential_1d(phi, e_l, e_j, alpha, phi_dc):
