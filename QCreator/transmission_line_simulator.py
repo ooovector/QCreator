@@ -2366,6 +2366,18 @@ class TLSystem:
         return energies_list
 
 
+    def get_graph(self):
+        import networkx as nx
+        g = nx.Graph()
+        for element, mapping in zip(self.elements, self.terminal_node_mapping):
+            for left_node_id in range(len(mapping)//2):
+                g.add_edge(mapping[left_node_id], mapping[left_node_id + len(mapping)//2], color='black', weight=2)
+                for right_node_id in range(left_node_id+1+len(mapping)//2, len(mapping)):
+                    #g.add_edge(mapping[left_node_id], mapping[right_node_id], color='blue', weight=1)
+                    pass
+        return g
+
+
 def potential_1d(phi, e_l, e_j, alpha, phi_dc):
     potential = 1 / 2 * e_l[0][0] * phi ** 2
     for jj_id, e_j in enumerate(e_j):

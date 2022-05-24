@@ -151,18 +151,6 @@ class Sample:
                         T.translate(ter.position[0],ter.position[1])
                         self.total_cell.add(T)
 
-    def get_graph(self):
-        import networkx as nx
-        g = nx.Graph()
-        for element, mapping in zip(self.elements, self.terminal_node_mapping):
-            for left_node_id in range(len(mapping)//2):
-                g.add_edge(mapping[left_node_id], mapping[left_node_id + len(mapping)//2], color='black', weight=2)
-                for right_node_id in range(left_node_id+1+len(mapping)//2, len(mapping)):
-                    #g.add_edge(mapping[left_node_id], mapping[right_node_id], color='blue', weight=1)
-                    pass
-        return g
-
-
 
     def draw_cap(self):  # TODO: maybe we need to come up with a better way, but for this moment it's fine
         """
