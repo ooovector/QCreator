@@ -36,7 +36,7 @@ class AirBridgeGeometry:
 
 class AirbridgeOverCPW(DesignElement):
     def __init__(self, name: str, position: Tuple[float, float], orientation: float,
-                 w: float, s: float, g: float, geometry: AirBridgeGeometry):
+                 w: float, s: float, g: float, geometry: AirBridgeGeometry, with_ground =True):
         """
         Airbridge crossover element over CPW. Some parameters of this element depend on CPW structure.
         Here y axe is parallel to CPW.
@@ -50,9 +50,11 @@ class AirbridgeOverCPW(DesignElement):
         :param pads_geometry: rectangle parameters of airbridge's pads width (first parameter) and length (second parameter)
         :bridge_geometry: rectangle parameters of airbridge
         :layer_configuration
-
+        :with_ground if you want cpw with ground under bridge use with_ground = True
         """
         super().__init__('airbridge', name)
+
+        self.with_ground = with_ground
 
         self.position = np.asarray(position)
         self.orientation = orientation
@@ -85,13 +87,22 @@ class AirbridgeOverCPW(DesignElement):
         precision = 0.001
         result = {}
 
-        # create CPW line under airbridge
-        cpw_line = gdspy.FlexPath(points=[self.position - self.p, self.position + self.p],
-                                  width=[self.g, self.w, self.g],
-                                  offset=[- self.w / 2 - self.s - self.g / 2, 0, self.w / 2 + self.s + self.g / 2],
-                                  ends='flush',
-                                  corners='natural', bend_radius=bend_radius, precision=precision,
-                                  layer=self.geometry.layer_configuration.total_layer)
+        if self.with_ground:
+            # create CPW line under airbridge
+            cpw_line = gdspy.FlexPath(points=[self.position - self.p, self.position + self.p],
+                                      width=[self.g, self.w, self.g],
+                                      offset=[- self.w / 2 - self.s - self.g / 2, 0, self.w / 2 + self.s + self.g / 2],
+                                      ends='flush',
+                                      corners='natural', bend_radius=bend_radius, precision=precision,
+                                      layer=self.geometry.layer_configuration.total_layer)
+        else:
+            cpw_line = gdspy.FlexPath(points=[self.position - self.p, self.position + self.p],
+                                      width=[self.w],
+                                      offset=[0],
+                                      ends='flush',
+                                      corners='natural', bend_radius=bend_radius, precision=precision,
+                                      layer=self.geometry.layer_configuration.total_layer)
+
         # create pads of bridge
         pad1 = gdspy.Rectangle(
             (self.position[0] + self.geometry.pad_width / 2, self.position[1] + self.geometry.pad_distance / 2),
@@ -175,7 +186,11 @@ class AirbridgeOverCPW(DesignElement):
         return self.terminals
 
     def cm(self, epsilon):
-        cross_section = [self.s, self.w, self.s]
+        if self.with_ground:
+            s = self.s
+        else:
+            s = self.geometry.pad_distance / 2 - self.w / 2
+        cross_section = [s, self.w, s]
 
         cl, ll = cm.ConformalMapping(cross_section, epsilon).cl_and_Ll()
 

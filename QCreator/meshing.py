@@ -15,7 +15,8 @@ fastcap_paths = [r'C:\Program Files (x86)\layout\fastcap.exe',
                  r'C:\Program Files (x86)\LayoutEditor\bin\fastcap.exe',
                  r'C:\layout\bin\fastcap.exe',
                  r'fastcap.exe',
-                 r'/opt/layout/bin/fastcap']
+                 r'/opt/layout/bin/fastcap',
+                 r'C:\Users\mazho\layout\bin\fastcap.exe']
 
 class Meshing:
     def __init__(self, path, cell_name, layers):

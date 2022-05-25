@@ -25,7 +25,7 @@ pad_element_offset = 400
 pad_geometry = {'pad_w': 250, 'pad_s': 146, 'pad_g': 8, 'pad_length': 250, 'narrowing_length': 100, 'stub_length': 100,
                 'z0': 50}
                 
-jc = 1e-6  # 1e-6 # uA/um^2
+jc = 0.5e-6  # 1e-6 # uA/um^2
 layers_configuration = {
     'total': 0,
     'restricted area': 10,
@@ -68,8 +68,9 @@ for side_id, side_list in enumerate([pads_left, pads_top, pads_right, pads_botto
         pad = elements.Pad('pad-{}-side-{}'.format(pad_side_id, side_id),
                            position,
                            np.angle(((-1j)**side_id)),
-                           tl_core,
-                           tl_gap, tl_ground,
+#                            tl_core,
+#                            tl_gap, tl_ground,
+                           14,7,30,
                            layer_configuration=sample.layer_configuration, chip_geometry=sample.chip_geometry,
                            **pad_geometry)
         side_list.append(pad)
@@ -78,9 +79,9 @@ for side_id, side_list in enumerate([pads_left, pads_top, pads_right, pads_botto
 # qubit params
 
 coupler_s = 26
-flux_w = 10
-flux_s = 6
-flux_g = 20
+flux_w = 14
+flux_s = 7
+flux_g = 30
 
 squid_coupler_horizontal =  {'jjs_height': 0.1,
                              'jjs_width': 0.1,

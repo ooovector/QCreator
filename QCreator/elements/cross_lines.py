@@ -13,7 +13,9 @@ from scipy.constants import epsilon_0
 
 class CrossLinesViaAirbridges(DesignElement):
     def __init__(self, name: str, position: Tuple[float, float], orientation: float,
-                 top_w: float, top_s: float, top_g: float, bot_w: float, bot_s: float, bot_g: float, narrowing_length: float, geometry: AirBridgeGeometry):
+                 top_w: float, top_s: float, top_g: float, bot_w: float, bot_s: float, bot_g: float,
+                 narrowing_length: float, geometry: AirBridgeGeometry,
+                 line_w=None, line_s=None, line_g=None, with_ground=False):
         """
         Cross two CPW lines via three Airbridges.
         :param name: element identifier
@@ -27,7 +29,13 @@ class CrossLinesViaAirbridges(DesignElement):
         :param bot_g: bottom line ground width
         :param narrowing_length: length of the narrowing elements
         :param geometry: configuration and type of bridges used to cross lines
+        Далее для той линии, которая входит/выходит из под моста(нужна, если вдруг происходит сужение перед мостом)
+        :param line_w: line core width
+        :param line_s: line gap width
+        :param line_g: line ground width
+        :param with_ground: if you want to overcome transmission line with ground True
         """
+        self.with_ground = with_ground
         super().__init__('line crossing via airbridges', name)
         self.position = np.asarray(position)
         self.orientation = orientation
@@ -37,6 +45,9 @@ class CrossLinesViaAirbridges(DesignElement):
         self.bot_w = bot_w
         self.bot_s = bot_s
         self.bot_g = bot_g
+        self.line_w = line_w
+        self.line_s = line_s
+        self.line_g = line_g
         self.nar_len = narrowing_length
 
         self.geometry = geometry
@@ -99,7 +110,7 @@ class CrossLinesViaAirbridges(DesignElement):
                                          w=self.bot_w,
                                          s=self.bot_s,
                                          g=self.bot_g,
-                                         geometry=self.geometry)
+                                         geometry=self.geometry, with_ground=self.with_ground)
 
         positive = gdspy.boolean(positive, bridge_center.render()['positive'], 'or', layer=self.geometry.layer_configuration.total_layer)
         restrict = gdspy.boolean(restrict, bridge_center.render()['restrict'], 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
@@ -113,7 +124,7 @@ class CrossLinesViaAirbridges(DesignElement):
                                      w=self.bot_w,
                                      s=self.bot_s,
                                      g=self.bot_g,
-                                     geometry=self.geometry)
+                                     geometry=self.geometry, with_ground=self.with_ground)
 
         positive = gdspy.boolean(positive, bridge_up.render()['positive'], 'or', layer=self.geometry.layer_configuration.total_layer)
         restrict = gdspy.boolean(restrict, bridge_up.render()['restrict'], 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
@@ -127,7 +138,7 @@ class CrossLinesViaAirbridges(DesignElement):
                                        w=self.bot_w,
                                        s=self.bot_s,
                                        g=self.bot_g,
-                                       geometry=self.geometry)
+                                       geometry=self.geometry, with_ground=self.with_ground)
 
         positive = gdspy.boolean(positive, bridge_down.render()['positive'], 'or', layer=self.geometry.layer_configuration.total_layer)
         restrict = gdspy.boolean(restrict, bridge_down.render()['restrict'], 'or', layer=self.geometry.layer_configuration.restricted_area_layer)
@@ -135,8 +146,62 @@ class CrossLinesViaAirbridges(DesignElement):
         contacts_sm = gdspy.boolean(contacts_sm, bridge_down.render()['airbridges_sm_pads'], 'or', layer=self.geometry.layer_configuration.airbridges_sm_pad_layer)
         bridges = gdspy.boolean(bridges, bridge_down.render()['airbridges'], 'or', layer=self.geometry.layer_configuration.airbridges_layer)
 
+        # Мои изменения начались
+        if self.line_w is not None and self.with_ground:
+            nar_pos_3 = (self.position[0], bridge_down.get_terminals()['port1'].position[1] - self.nar_len / 2)
+            narrowing_3 = Narrowing('narrowing_3', nar_pos_3,
+                                    orientation=np.pi / 2,
+                                    w1=self.line_w,
+                                    s1=self.line_s,
+                                    g1=self.line_g,
+                                    w2=self.bot_w,
+                                    s2=self.bot_s,
+                                    g2=self.bot_g,
+                                    layer_configuration=self.geometry.layer_configuration,
+                                    length=self.nar_len)
+
+            positive = gdspy.boolean(positive, narrowing_3.render()['positive'], 'or',
+                                     layer=self.geometry.layer_configuration.total_layer)
+            restrict = gdspy.boolean(restrict, narrowing_3.render()['restrict'], 'or',
+                                     layer=self.geometry.layer_configuration.restricted_area_layer)
+            bot_2_connection = narrowing_3.get_terminals()['port1'].position
+
+            nar_pos_4 = (self.position[0], bridge_up.get_terminals()['port2'].position[1] + self.nar_len / 2)
+            narrowing_4 = Narrowing('narrowing_4', nar_pos_4,
+                                    orientation=-np.pi / 2,
+                                    w1=self.line_w,
+                                    s1=self.line_s,
+                                    g1=self.line_g,
+                                    w2=self.bot_w,
+                                    s2=self.bot_s,
+                                    g2=self.bot_g,
+                                    layer_configuration=self.geometry.layer_configuration,
+                                    length=self.nar_len)
+
+            positive = gdspy.boolean(positive, narrowing_4.render()['positive'], 'or',
+                                     layer=self.geometry.layer_configuration.total_layer)
+            restrict = gdspy.boolean(restrict, narrowing_4.render()['restrict'], 'or',
+                                     layer=self.geometry.layer_configuration.restricted_area_layer)
+            bot_1_connection = narrowing_4.get_terminals()['port1'].position
+        # Мои изменения кончились
+
         aux_w = gdspy.Rectangle((self.position[0]-self.bot_w/2, self.position[1]-3*p_wid/2-self.top_s),
                                 (self.position[0]+self.bot_w/2, self.position[1]+3*p_wid/2+self.top_s))
+
+        # Мои изменения начались
+        if self.with_ground:
+            aux_g_left = gdspy.Rectangle((self.position[0] - self.bot_w / 2 - self.bot_s - self.bot_g,
+                                          self.position[1] - 3 * p_wid / 2 - self.top_s),
+                                         (self.position[0] - self.bot_w / 2 - self.bot_s,
+                                          self.position[1] + 3 * p_wid / 2 + self.top_s))
+            aux_g_right = gdspy.Rectangle((self.position[0] + self.bot_w / 2 + self.bot_s,
+                                           self.position[1] - 3 * p_wid / 2 - self.top_s),
+                                          (self.position[0] + self.bot_w / 2 + self.bot_s + self.bot_g,
+                                           self.position[1] + 3 * p_wid / 2 + self.top_s))
+            positive = gdspy.boolean(positive, aux_g_left, 'or', layer=self.geometry.layer_configuration.total_layer)
+            positive = gdspy.boolean(positive, aux_g_right, 'or', layer=self.geometry.layer_configuration.total_layer)
+        # Мои изменения кончились
+
         positive = gdspy.boolean(positive, aux_w, 'or', layer=self.geometry.layer_configuration.total_layer)
 
         aux_restrict_1 = gdspy.Rectangle((self.position[0] + self.geometry.bridge_length/2, self.position[1] + p_wid/2 + self.top_s + p_wid),
@@ -248,6 +313,8 @@ class CrossLinesViaAirbridges(DesignElement):
             self.tls_cache.append(elements)
 
         return elements
+    def __repr__(self):
+        return "CrossLinesViaAirbridges {}".format(self.name)
 
 
 
