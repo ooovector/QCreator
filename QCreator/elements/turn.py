@@ -47,12 +47,12 @@ class Turn(DesignElement):
                         'port2': DesignTerminal(position=tuple(position2), orientation=orientation2, type='cpw', w=w  ,s=s,
                                         g=g, disconnected='short')
                         }
-        if len(w)==1 and s[0]==s[1]:
-            self.terminals['wide1']=DesignTerminal(position=tuple(position1), orientation=orientation1, type='cpw', w=w[0], s=s[0],
-                                        g=g, disconnected='short', order = False)
-            self.terminals['wide2'] = DesignTerminal(position=tuple(position2), orientation=orientation2, type='cpw',
-                                                     w=w[0], s=s[0],
-                                                     g=g, disconnected='short')
+        # if len(w)==1 and s[0]==s[1]:
+        #     self.terminals['wide1']=DesignTerminal(position=tuple(position1), orientation=orientation1, type='cpw', w=w[0], s=s[0],
+        #                                 g=g, disconnected='short', order = False)
+        #     self.terminals['wide2'] = DesignTerminal(position=tuple(position2), orientation=orientation2, type='cpw',
+        #                                              w=w[0], s=s[0],
+        #                                              g=g, disconnected='short')
         self.r = r
         self.w = w
         self.s = s
@@ -371,7 +371,7 @@ class MultiOpenEnd(DesignElement):
         self.s1 = []
         self.w2 = []
         self.s2 = []
-        w2_wire = g[0]
+        w2_wire = self.g[0]
         s1 = 0
         for i in range(0,len(w)):
             if i in continue_lines:
@@ -396,11 +396,11 @@ class MultiOpenEnd(DesignElement):
         if last_line_existence:
             self.s1.append(s[-1])
             self.s2.append(s[-1])
-            self.w2.append(g[1])
+            self.w2.append(self.g[1])
         else:
             s1+=s[-1]
             self.s1.append(s1)
-            w2_wire+=s[-1]+g[1]
+            w2_wire+=s[-1]+self.g[1]
             self.w2.append(w2_wire)
 
         r = (self.h2 + self.h1) / 2
@@ -485,3 +485,48 @@ def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str
 
     if track_changes:
         self.tls_cache.append(cache)
+
+class Short(DesignElement):
+    """
+    делает закоротку на один провод, ничего не рисуя
+    """
+
+    def __init__(self, name: str, position: Tuple, orientation: float, g: float, layer_configuration: LayerConfiguration):
+        """
+        Create straight coplanar with different grounds
+        :param name: Design element name
+        :param position: position
+        :param angle: start and finish angle start line has no more wires than finish
+        :param r: radius
+        :param w: widths of wires
+        :param s: distance between wires
+        :param g: widths of ground
+         """
+        super().__init__('Short', name)
+        self.layer_configuration = layer_configuration
+        self.tls_cache = []
+        self.terminals={'port': DesignTerminal(position=position, orientation=orientation, type='cpw', w=0, s=0,
+                                        g=g, disconnected='short', order = False),
+                        }
+        self.g = g
+        self.position = position
+        self.orientation = orientation
+
+    def render(self):
+        return {}
+
+
+    def get_terminals(self):
+        return self.terminals
+
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
+                   cutoff: float = np.inf, epsilon=11.45) -> list:
+        cache = []
+        zero_resistor = tlsim.Resistor(r=0, name=self.name)
+        tls_instance.add_element(zero_resistor, [0, terminal_mapping[('port')]])
+        cache.append(zero_resistor)
+        if track_changes:
+            self.tls_cache.append(cache)
+        return cache
+    def __repr__(self):
+        return "Short {}".format(self.name)
