@@ -408,13 +408,16 @@ class MultiOpenEnd(DesignElement):
         end = np.asarray(self.position) + r * np.asarray([np.cos(self.orientation), np.sin(self.orientation)])
         offsets = self.offsets()
         self.terminals = {'port1': DesignTerminal(position=tuple(start), orientation=self.orientation, type='cpw', w=self.w, s=self.s,
-                                                  g=self.g, disconnected='short', order=False)
+                                                  g=self.g, disconnected='short', order=False),
+                          'port2': DesignTerminal(position=tuple(end), orientation=(self.orientation+np.pi)%(2*np.pi), type='cpw',
+                                                  w=self.w2[1:-1], s=self.s2,
+                                                  g=[self.w2[0],self.w2[-1]], disconnected='short', order=True)
                           }
-        for i in range(0,len(self.w1)):
-            terminal_position=tuple(end+offsets[i]*np.asarray([np.cos(self.orientation+np.pi/2),np.sin(self.orientation+np.pi/2)]))
-            self.terminals['port2_'+str(i)]=DesignTerminal(position=terminal_position, orientation=(self.orientation + np.pi) % (2 * np.pi),
-                                                          type='cpw', w=[self.w1[i]], s=[self.s1[i],self.s1[i+1]],
-                                                          g=[self.w2[i],self.w2[i+1]], disconnected='short',)
+        # for i in range(0,len(self.w1)):
+        #     terminal_position=tuple(end+offsets[i]*np.asarray([np.cos(self.orientation+np.pi/2),np.sin(self.orientation+np.pi/2)]))
+        #     self.terminals['port2_'+str(i)]=DesignTerminal(position=terminal_position, orientation=(self.orientation + np.pi) % (2 * np.pi),
+        #                                                   type='cpw', w=[self.w1[i]], s=[self.s2[i],self.s2[i+1]],
+        #                                                   g=[self.w2[i],self.w2[i+1]], disconnected='short',)
 
 
     def offsets(self):
