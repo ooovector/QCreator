@@ -363,6 +363,7 @@ class MultiOpenEnd(DesignElement):
         self.position = position
         self.orientation = orientation
         self.continue_lines = continue_lines
+        self.continue_lines.sort()
         self.h1 = h1
         self.h2 = h2
         # я буду рисовать две прямые копланарные линии с h1 и h2. С h1 - это продолжение линий, с h2 -  "закрывание" открытого конца.
@@ -370,7 +371,7 @@ class MultiOpenEnd(DesignElement):
         self.w1 = list(np.asarray(w)[continue_lines])
         self.s1 = []
         self.w2 = []
-        self.s2 = []
+        # self.s2 = []
         w2_wire = self.g[0]
         s1 = 0
         for i in range(0,len(w)):
@@ -383,36 +384,56 @@ class MultiOpenEnd(DesignElement):
                 w2_wire = w[i]
                 self.w2.append(w2_wire)
                 w2_wire = 0
-                self.s2.append(s[i])
+                # self.s2.append(s[i])
                 last_line_existence=True
             else:
                 s1 += w[i] + s[i]
                 if i-1 in continue_lines:
                     w2_wire += w[i]
-                    self.s2.append(s[i])
+                    # self.s2.append(s[i])
                 else:
                     w2_wire += s[i] + w[i]
                 last_line_existence=False
         if last_line_existence:
             self.s1.append(s[-1])
-            self.s2.append(s[-1])
+            # self.s2.append(s[-1])
             self.w2.append(self.g[1])
         else:
             s1+=s[-1]
             self.s1.append(s1)
             w2_wire+=s[-1]+self.g[1]
             self.w2.append(w2_wire)
+        if len(continue_lines) == 0:
+            self.s2 = []
+        else:
+            self.s2 = [self.s[self.continue_lines[0]]] + self.s1[1:-1] + [self.s[self.continue_lines[-1]+1]]
 
         r = (self.h2 + self.h1) / 2
         start = np.asarray(self.position) - r * np.asarray([np.cos(self.orientation), np.sin(self.orientation)])
         end = np.asarray(self.position) + r * np.asarray([np.cos(self.orientation), np.sin(self.orientation)])
-        offsets = self.offsets()
-        self.terminals = {'port1': DesignTerminal(position=tuple(start), orientation=self.orientation, type='cpw', w=self.w, s=self.s,
-                                                  g=self.g, disconnected='short', order=False),
-                          'port2': DesignTerminal(position=tuple(end), orientation=(self.orientation+np.pi)%(2*np.pi), type='cpw',
-                                                  w=self.w2[1:-1], s=self.s2,
-                                                  g=[self.w2[0],self.w2[-1]], disconnected='short', order=True)
-                          }
+        if len(self.continue_lines)==0:
+            self.terminals = {
+                'wide': DesignTerminal(position=tuple(start), orientation=self.orientation, type='cpw', w=self.w, s=self.s,
+                                                      g=self.g, disconnected='short', order=False),
+                                                        }
+        else:
+            self.terminals = {
+                'port1': DesignTerminal(position=tuple(start), orientation=self.orientation, type='cpw', w=self.w1,
+                                       s=self.s1,
+                                       g=self.g, disconnected='short', order=False),
+                'port2': DesignTerminal(position=tuple(end), orientation=(self.orientation + np.pi) % (2 * np.pi),
+                                                             type='cpw',w=self.w1, s=self.s2,
+                                                      g=[self.w2[0], self.w2[-1]], disconnected='short', order=True)
+            }
+
+        # offsets = self.offsets()
+        # self.terminals = {'port1': DesignTerminal(position=tuple(start), orientation=self.orientation, type='cpw', w=self.w, s=self.s,
+        #                                           g=self.g, disconnected='short', order=False),
+        #                                             }
+        # if len(self.w2) > 2:
+        #     self.terminals['port2'] = DesignTerminal(position=tuple(end), orientation=(self.orientation + np.pi) % (2 * np.pi),
+        #                                                      type='cpw',w=self.w2[1:-1], s=self.s2,
+        #                                               g=[self.w2[0], self.w2[-1]], disconnected='short', order=True)
         # for i in range(0,len(self.w1)):
         #     terminal_position=tuple(end+offsets[i]*np.asarray([np.cos(self.orientation+np.pi/2),np.sin(self.orientation+np.pi/2)]))
         #     self.terminals['port2_'+str(i)]=DesignTerminal(position=terminal_position, orientation=(self.orientation + np.pi) % (2 * np.pi),
@@ -420,15 +441,15 @@ class MultiOpenEnd(DesignElement):
         #                                                   g=[self.w2[i],self.w2[i+1]], disconnected='short',)
 
 
-    def offsets(self):
-        g=self.g
-        w=self.w1
-        s=self.s1
-        width_total = sum(g) + sum(s) + sum(w)
-        offsets = [-(width_total - w[0]) / 2]
-        for c in range(len(w) - 1):
-            offsets.append(offsets[-1] + w[c] / 2 + s[c] + w[c + 1] / 2)
-        return offsets
+    # def offsets(self):
+    #     g=self.g
+    #     w=self.w1
+    #     s=self.s1
+    #     width_total = sum(g) + sum(s) + sum(w)
+    #     offsets = [-(width_total - w[0]) / 2]
+    #     for c in range(len(w) - 1):
+    #         offsets.append(offsets[-1] + w[c] / 2 + s[c] + w[c + 1] / 2)
+    #     return offsets
 
     def render(self):
         r=(self.h2+self.h1)/2
@@ -444,12 +465,15 @@ class MultiOpenEnd(DesignElement):
                                       layer_configuration=self.layer_configuration)
         line_2 = straight_CPW_with_different_g(name='line_2',
                                                points=[tuple(middle), tuple(end)],
-                                               w=self.w2[1:-1],
+                                               # w=self.w2[1:-1],
+                                               w = self.w1,
                                                s=self.s2,
                                                g=[self.w2[0],self.w2[-1]],
                                                layer_configuration=self.layer_configuration)
         area_1 = line_1.render()
         area_2 = line_2.render()
+        self.offsets1 = line_1.offsets
+        self.offsets2 = line_2.offsets
         positive = gdspy.boolean(area_1['positive'], area_2['positive'], 'or', layer=self.layer_configuration.total_layer)
         restrict = gdspy.boolean(area_1['restrict'], area_2['restrict'], 'or',layer=self.layer_configuration.restricted_area_layer)
         inverted = gdspy.boolean(area_1['inverted'], area_2['inverted'], 'or',layer=self.layer_configuration.inverted)
@@ -461,33 +485,79 @@ class MultiOpenEnd(DesignElement):
     def get_terminals(self):
         return self.terminals
 
+    def cm(self, epsilon):
+        cross_section = [self.s1[0]]
+        for c in range(len(self.w1)):
+            cross_section.append(self.w1[c])
+            cross_section.append(self.s1[c + 1])
 
-def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
-               cutoff: float = np.inf, epsilon=11.45) -> list:
-    if len(self.w) == 1:
-        cache = []
-        capacitance_value = 1e-15 * 20 * 0
-        capacitor = tlsim.Capacitor(capacitance_value, 'open_end')
-        cache.append(capacitor)
-        tls_instance.add_element(capacitor,
-                                 [terminal_mapping['port1'], 0],[terminal_mapping['port2_0'], 0])  # tlsim.TLSystem.add_element(name, nodes)
+        cl1, ll1 = cm.ConformalMapping(cross_section, epsilon=epsilon).cl_and_Ll()
 
-        return cache
+        cross_section = [self.s2[0]]
+        for c in range(len(self.w1)):
+            cross_section.append(self.w1[c])
+            cross_section.append(self.s2[c + 1])
 
-    elif len(self.w1) > 1:
-        cache = []
-        for conductor_id in range(self.w1):  # loop over all conductors
-            capacitance_value = 20e-15*0
+        cl2, ll2 = cm.ConformalMapping(cross_section, epsilon=epsilon).cl_and_Ll()
+        cl, ll = (self.h1*cl1+self.h2*cl2)/(self.h1+self.h2), (self.h1*ll1+self.h2*ll2)/(self.h1+self.h2)
+        if not self.terminals['port1'].order:
+            ll, cl = ll[::-1, ::-1], cl[::-1, ::-1]
+        return cl, ll
+
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
+                   cutoff: float = np.inf, epsilon=11.45) -> list:
+
+        cl, ll = self.cm(epsilon)
+
+        if len(self.w1) == 0:
+            if 'wide' in terminal_mapping:
+                p = terminal_mapping['wide']
+            elif ('wide', 0) in terminal_mapping:
+                p = terminal_mapping[('wide', 0)]
+            else:
+                raise ValueError('Neither (wide, 0) or wide found in terminal_mapping')
+            cache = []
+            capacitance_value = 1e-15 * 20 * 0
             capacitor = tlsim.Capacitor(capacitance_value, 'open_end')
-            p = [terminal_mapping[('port1', conductor_id)]]
-            for i in range(0, len(self.w1)):
-                p.append(terminal_mapping[('port2_'+str(i), 0)])
-            tls_instance.add_element(capacitor, p)  # tlsim.TLSystem.add_element(name, nodes)
             cache.append(capacitor)
-        return cache
+            tls_instance.add_element(capacitor,[p,0])  # tlsim.TLSystem.add_element(name, nodes)
+            if track_changes:
+                self.tls_cache.append(cache)
+            return cache
+        else:
+            cache = []
+            line = tlsim.TLCoupler(n=len(self.w1),
+                                   l=self.h1 + self.h2,  # TODO: get length
+                                   cl=cl,
+                                   ll=ll,
+                                   rl=np.zeros((len(self.w1), len(self.w1))),
+                                   gl=np.zeros((len(self.w1), len(self.w1))),
+                                   name=self.name,
+                                   cutoff=cutoff)
+            cache.append(line)
+            if len(self.w1) == 1:
+                if 'port1' in terminal_mapping:
+                    p1 = terminal_mapping['port1']
+                elif ('port1', 0) in terminal_mapping:
+                    p1 = terminal_mapping[('port1', 0)]
+                else:
+                    raise ValueError('Neither (port1, 0) or port1 found in terminal_mapping')
+                if 'port2' in terminal_mapping:
+                    p2 = terminal_mapping['port2']
+                elif ('port2', 0) in terminal_mapping:
+                    p2 = terminal_mapping[('port2', 0)]
+                else:
+                    raise ValueError('Neither (port2, 0) or port2 found in terminal_mapping')
+                mapping = [p1,p2]
+            else:
+                mapping = [terminal_mapping[('port1', i)] for i in range(len(self.w1))] + \
+                          [terminal_mapping[('port2', i)] for i in range(len(self.w1))]
+            tls_instance.add_element(line,mapping)  # tlsim.TLSystem.add_element(name, nodes)
+            if track_changes:
+                self.tls_cache.append(cache)
+            return cache
 
-    if track_changes:
-        self.tls_cache.append(cache)
+
 
 class Short(DesignElement):
     """
