@@ -226,13 +226,13 @@ class Coaxmon(DesignElement):
         bug=5
         connection = (self.center[0]+(self.R2-bug)*np.cos(orientation),self.center[1]+(self.R2-bug)*np.sin(orientation))
         # add cpw from
-        flux_line_output=(connection[0]+(self.outer_ground-self.R2+bug)*np.cos(orientation),
-                              connection[1]+(self.outer_ground-self.R2+bug)*np.sin(orientation))
+        flux_line_output = (connection[0]+(self.outer_ground-self.R2+bug)*np.cos(orientation),
+                          connection[1]+(self.outer_ground-self.R2+bug)*np.sin(orientation))
         # to fix rounding bug
         bug = 1
         flux_line_output_connection = (flux_line_output[0]+bug*np.cos(np.pi+orientation),
                                        flux_line_output[1]+bug*np.sin(np.pi+orientation))
-        remove = gdspy.FlexPath(deepcopy([connection,flux_line_output]), [self.gap, self.gap], offset=[-self.core/2-self.gap/2,self.core/2+self.gap/2])
+        remove = gdspy.FlexPath(deepcopy([connection, flux_line_output]), [self.gap, self.gap], offset=[-self.core/2-self.gap/2,self.core/2+self.gap/2])
         if 'mirror' in self.transformations:
             flux_line_output_connection = mirror_point(flux_line_output_connection, self.transformations['mirror'][0],
                                                   self.transformations['mirror'][1])
@@ -245,7 +245,7 @@ class Coaxmon(DesignElement):
             qubit_center = rotate_point(deepcopy(self.center), self.transformations['rotate'][0],
                                         self.transformations['rotate'][1])
 
-            orientation = np.arctan2(flux_line_output_connection[1] - qubit_center[1],flux_line_output_connection[0] - qubit_center[0])+np.pi
+            orientation = np.arctan2(flux_line_output_connection[1] - qubit_center[1], flux_line_output_connection[0] - qubit_center[0])+np.pi
         if self.transformations == {}:
             orientation=orientation+np.pi
         self.terminals['flux'] = DesignTerminal(flux_line_output_connection, orientation, g=self.grounded.g, s=self.grounded.s,
@@ -375,7 +375,7 @@ class CoaxmonCoupler:
         }
 
 
-def mirror_point(point,ref1,ref2):
+def mirror_point(point, ref1, ref2):
     """
        Mirror a point by a given line specified by 2 points ref1 and ref2.
     """
@@ -386,8 +386,10 @@ def mirror_point(point,ref1,ref2):
     dy = y2-y1
     a = (dx * dx - dy * dy) / (dx * dx + dy * dy)
     b = 2 * dx * dy / (dx * dx + dy * dy)
-    x2 = round(a * (point[0] - x1) + b * (point[1] - y1) + x1)
-    y2 = round(b * (point[0] - x1) - a * (point[1] - y1) + y1)
+    # x2 = round(a * (point[0] - x1) + b * (point[1] - y1) + x1)
+    # y2 = round(b * (point[0] - x1) - a * (point[1] - y1) + y1)
+    x2 = a * (point[0] - x1) + b * (point[1] - y1) + x1
+    y2 = b * (point[0] - x1) - a * (point[1] - y1) + y1
     return x2, y2
 
 
