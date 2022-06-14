@@ -227,7 +227,7 @@ class Sample:
         widths = np.asarray(line_o.widths[1:-1])
         return (offsets, widths)
 
-    def connect_all(self, eps = 1e-12):
+    def connect_all(self, eps=1e-9):
         """
         Соединяет провода (кроме земли элементов) друг с другом для всех объектов и портов
         eps - точность соприкосновения проводов (если они лежат на одной прямой и расстояние между их центрами меньше этого,
@@ -239,21 +239,20 @@ class Sample:
                 for port_i in terminal_i.keys():
                     for port_j in terminal_j.keys():
                         self.connect(self.objects[i], port_i, self.objects[j], port_j,
-                                              raise_errors=False, eps = 1e-12)
+                                              raise_errors=False, eps=1e-9)
 
-    def connect(self, o1, p1, o2, p2, raise_errors = True, eps = 1e-12):
+    def connect(self, o1, p1, o2, p2, raise_errors=True, eps=1e-9):
         """
-        Соединяет провода двух объектов с заданными портами основываясь на том, что эти порты должны быть в одном месте
-        eps - точность соприкосновения проводов (если они лежат на одной прямой и расстояние между их центрами меньше этого,
-        то считается, что они соприкасаются и фукнция их соединит)
+        Connects the wires of two objects with given ports. The ports must be at the same location
+        :param eps: threshold for the distance between ports
         """
         if (abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation + np.pi) % (
                 (2 * np.pi))) > eps and
             abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation) % (
                     (2 * np.pi))) > eps):
             if raise_errors:
-                print(o1.name,o1.get_terminals()[p1])
-                print(o2.name,o2.get_terminals()[p2])
+                print(o1.name, o1.get_terminals()[p1])
+                print(o2.name, o2.get_terminals()[p2])
                 raise ValueError("Connecting parts do not fill one line, check orientations")
             return None
         (offsets1, widths1) = self.find_wires_coordinates(o1, p1)
@@ -262,7 +261,7 @@ class Sample:
         if o1.get_terminals()[p1].order is False:
             offsets1 = - offsets1
         if o2.get_terminals()[p2].order:
-            offsets2 =  - offsets2
+            offsets2 = - offsets2
         # Поворачиваем объекты так, чтобы линия соединения была горизонтальной и при этом соединение было слева направо
         angle = o1.get_terminals()[p1].orientation + np.pi
         # то есть на угол -angle
@@ -286,7 +285,6 @@ class Sample:
         if raise_errors:
             if error == 0:
                 raise ValueError('There is no ports to connect')
-
 
     def fanout(self, o: elements.DesignElement, port: str, name: str, grouping: Tuple[int, int],
                down_s_right: float = None, center_s_left: float = None,
