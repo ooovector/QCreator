@@ -681,12 +681,30 @@ class Sample:
         return cpws
 
     def connect_meander(self, name: str, o1: elements.DesignElement, port1: str, meander_length: float,
-                        length_left: float, length_right: float, first_step_orientation: float,
+                        length_left: float, length_right: float, first_step_orientation: str,
                         meander_orientation: float,
                         end_point=None, end_orientation=None, meander_type='round',
                         airbridge: elements.AirBridgeGeometry = None, min_spacing: float = None,
-                        r = None, bridge_part_decimation=1
-                        ):
+                        r: float = None, bridge_part_decimation: int = 1) -> List[elements.CPW]:
+        """
+        Creates meander-shaped single-conductor CPW beginning from a given start point with given length
+        and constrained by given bounding box.
+        :param name: name of elements
+        :param o1: element to connect meander to
+        :param port1: name of port in o1 to connect to
+        :param meander_length: length of the meander
+        :param length_left: distance from beginning of meander to the meander bounding box to the left
+        :param length_right: distance from beginning of meander to the meander bounding box to the right
+        :param first_step_orientation: direction of first turn: 'left' or 'right'
+        :param meander_orientation: orientation of meander #TODO: why does this even exist? it should be constrained by port
+        :param end_point: additional final point which probably breaks the length of the meander #TODO: why do we need this?
+        :param end_orientation: orientation of final point position #TODO: end_point is broken
+        :param meander_type: type of meander: 'round' or 'flush'
+        :param airbridge: airbridge geometry to place over meander
+        :param min_spacing: minimum spacing between airbridges
+        :param r: radius of meander turns
+        :param bridge_part_decimation: place each n-th airbridge (used for alternating airbridges when radius is small)
+        """
 
         t1 = o1.get_terminals()[port1]
         (w_, s_, g_) = (t1.w, t1.s, t1.g)

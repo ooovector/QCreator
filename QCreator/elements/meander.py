@@ -10,7 +10,7 @@ from scipy import optimize as opt
 def meander_creation(name: str, initial_position: Tuple[(float, float)], w: float, s: float, g: float,
                      orientation: float,
                      meander_length: float,
-                     length_left: float, length_right: float, first_step_orientation: float,
+                     length_left: float, length_right: float, first_step_orientation: str,
                      meander_orientation: float, end_point: Tuple[(float, float)], end_orientation: float,
                      layer_configuration: LayerConfiguration, meander_type: str = 'round', r: float = None):
     # make small indent from the starting point
