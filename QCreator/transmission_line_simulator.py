@@ -1693,7 +1693,7 @@ class TLSystem:
         plt.plot(phi_grid, u_1d / h / 1e9)
         plt.ylabel('Energy, GHz')
         plt.xlabel('$\\phi$')
-        plt.show()
+        #plt.show()
 
     # TODO: solve eigenvalue problem for 2d system
     def plot_potential_2d(self, num_system: int, phi_start: list = None, phi_stop: list = None,
@@ -1711,7 +1711,7 @@ class TLSystem:
                                     alpha=parameters['alpha'])
         pot_plot = plt.contourf(xx, yy, u_2d / h / 1e9)
         plt.colorbar(pot_plot)
-        plt.show()
+        #plt.show()
         pass
 
     def solve_hamiltonian_eig_1d(self, subsystem, phi_grid, dc_phase, cutoff=4):
@@ -1759,7 +1759,7 @@ class TLSystem:
                              alpha=0.25)
 
         plt.plot(phi_grid, u_1d / h / 1e9)
-        plt.show()
+        #plt.show()
 
     def dc_energy_spectrum_1d(self, num_subsystem, dc_line: TLSystemElement, phi, currents, omegas, modes, kerr_matrix,
                               cutoff=4):
