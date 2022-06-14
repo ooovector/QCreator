@@ -718,7 +718,37 @@ class Sample:
 
             return [meander]
 
+    def graphviz(self):
+        import graphviz
+        dot = graphviz.Graph(self.name + '-connections', comment=self.name)
 
+        clusters = {}
+        cluster_names = {}
+
+        for object_id, o in enumerate(self.objects):
+            name = '#' + str(object_id) + ' ' + o.name
+            # name = 'cluster object #' + str(object_id) + ' ' + o.name
+            # name='cluster'+str(object_id)
+            clusters[(o,)] = graphviz.Graph(name)
+            cluster_names[(o,)] = name
+            dot.subgraph(clusters[(o,)])
+
+        for connection in sqd.sample.connections:
+            o1 = connection[0][0]
+            o2 = connection[1][0]
+            p1 = connection[0][1]
+            p2 = connection[1][1]
+            w1 = connection[0][2]
+            w2 = connection[1][2]
+
+            l1 = cluster_names[(o1,)]  # +' '+p1+' '+str(w1)
+            l2 = cluster_names[(o2,)]  # +' '+p2+' '+str(w2)
+
+            # clusters[(o1,)].node(l1)
+            # clusters[(o2,)].node(l2)
+            dot.edge(l1, l2)
+
+        dot.render(view=True)
 
 
 
