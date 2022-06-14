@@ -718,7 +718,14 @@ class Sample:
 
             return [meander]
 
-    def graphviz(self):
+    def graphviz(self, draw=True):
+        """
+        Draw a graphviz schematic of the connections in the sample.
+        :param draw: if True, calls render and creates a pdf in the current directory.
+        if False, returns a graphviz.Graph object
+
+        :return: graphviz.Graph or None
+        """
         import graphviz
         dot = graphviz.Graph(self.name + '-connections', comment=self.name)
 
@@ -747,6 +754,9 @@ class Sample:
             # clusters[(o1,)].node(l1)
             # clusters[(o2,)].node(l2)
             dot.edge(l1, l2)
+
+        if not draw:
+            return dot
 
         dot.render(view=True)
 
