@@ -10,8 +10,13 @@ from copy import deepcopy
 
 
 class Sample:
-
-    def __init__(self, name, configurations, epsilon=11.45):
+    def __init__(self, name: str, configurations: Mapping[str, float], epsilon=11.45):
+        """
+        Design class in QCreator
+        :param name: name of sample which will be used for saving gds file
+        :param configurations: dictionary of parameters of chip geometry and layers
+        :param epsilon: dielectric permittivity of substrate
+        """
         self.layer_configuration = elements.LayerConfiguration(**configurations)
         self.chip_geometry = elements.ChipGeometry(**configurations)
         self.name = str(name)
@@ -45,17 +50,31 @@ class Sample:
         self.negative_layer_polygons = []
 
     @staticmethod
-    def default_cpw_radius(w, s, g):
+    def default_cpw_radius(w: float, s: float, g: float):
+        """
+        Default CPW radius for given center conductor width, conductor-groud gap and grounding conductors
+        formula: 2(w+2*s+2*g)
+        :param w:
+        :param s:
+        :param g:
+        """
         return 2 * (w + 2 * s + 2 * g)
 
-    def add(self, object_):
+    def add(self, object_: DesignElement):
+        """
+        Add object_ to design.
+        """
         self.objects.append(object_)
 
-    def draw_design(self,PP_qubits=False):
+    def draw_design(self, PP_qubits: bool = False):
+        """
+        Renders the design, calling render() if required.
+        :param PP_qubits: if True, polygons are not removed from the design prior to drawing
+        """
         for object_ in self.objects:
             object_.resource = None
-        if PP_qubits ==True:
-            None
+        if PP_qubits:
+            pass
         else:
             self.total_cell.remove_polygons(lambda pts, layer, datatype: True)
             self.restricted_cell.remove_polygons(lambda pts, layer, datatype: True)
@@ -95,7 +114,16 @@ class Sample:
 
         self.fill_object_arrays()
 
-    def render_negative(self, positive_layers, negative_layer, slices = 20, apply_restrict = True):
+    def render_negative(self, positive_layers: Iterable[int], negative_layer: Iterable[int],
+                        slices: int = 20, apply_restrict = True):
+        """
+        Renders the difference between the positive layers and the negative layers.
+        :param positive_layers: layers to substract from
+        :param negative_layer: layer to substract
+        :param slices: amount of slices that are used to fracture the positive layers. The algorithm works
+        slowly if all polygons are in a single slice; if the function is slow, increase this parameter
+        :param apply_restrict: something that should be True otherwise everything will die
+        """
         box = self.total_cell.get_bounding_box()
 
         slices_x = np.linspace(box[0][0], box[1][0], slices, endpoint=False)[1:].tolist()
@@ -129,28 +157,39 @@ class Sample:
                 if negative_filtered is not None:
                     self.total_cell.add(gdspy.PolygonSet(negative_filtered, layer = negative_layer))
 
-    def layer_expansion(self, shift, old_layer, new_layer, N_shifts = 8):
+    def layer_expansion(self, shift: float, old_layer: int, new_layer: int, n_shifts: int = 8):
+        """
+        Shift the layer in all directions and sum the results up.
+
+        :param shift: the distance to shift everything by
+        :param old_layer: layer id to expand
+        :param new_layer: layer id to save the expanded polygons to
+        :param n_shifts: amount of different directions to shift to
+        """
         total = None
         polygonset = gdspy.PolygonSet(self.total_cell.get_polygons((old_layer, 0)), layer=new_layer)
-        for i in np.linspace(-np.pi, np.pi, N_shifts, endpoint=False):
+        for i in np.linspace(-np.pi, np.pi, n_shifts, endpoint=False):
             dx, dy = shift * np.cos(i), shift * np.sin(i)
             new_polygonset = gdspy.copy(polygonset, dx, dy)
             #total = gdspy.boolean(total, new_polygonset, 'or', layer=new_layer)
             self.total_cell.add(new_polygonset)
 
-    def draw_terminals(self):
+    def draw_terminals(self, layer: int = 13):
+        """
+        Draw arrows pointing into the terminals in the design to layer 13. Used for debugging.\
+        :param layer_id: layer to draw the arrows to
+        """
         #draws all terminals as an arrow
         for object_ in self.objects:
-            if hasattr(object_,'terminals'):
+            if hasattr(object_, 'terminals'):
                 for terminal_ in object_.terminals:
-                    if object_.terminals[terminal_] != None:
+                    if object_.terminals[terminal_] is not None:
                         ter = object_.terminals[terminal_]
-                        T = gdspy.Rectangle((-10,0),(10,4))
-                        T = gdspy.boolean(T,gdspy.Rectangle((-1,0),(1,30)),'or',layer=13)
+                        T = gdspy.Rectangle((-10, 0), (10, 4))
+                        T = gdspy.boolean(T, gdspy.Rectangle((-1, 0), (1, 30)), 'or', layer=layer)
                         T = T.rotate(ter.orientation+np.pi/2)
-                        T.translate(ter.position[0],ter.position[1])
+                        T.translate(ter.position[0], ter.position[1])
                         self.total_cell.add(T)
-
 
     def draw_cap(self):  # TODO: maybe we need to come up with a better way, but for this moment it's fine
         """
@@ -183,6 +222,9 @@ class Sample:
                     qubits_cell_counter = qubits_cell_counter + 1
 
     def fill_object_arrays(self):
+        """
+        TODO: what is this and dow it exist
+        """
         self.qubits = [i for i in self.objects if i.type == 'qubit']
         self.couplers = [i for i in self.objects if i.type == 'qubit coupler']
 
@@ -190,9 +232,12 @@ class Sample:
     #     self.connections.append(((element, port), ('gnd', 'gnd')))
 
     @staticmethod
-    def find_wires_coordinates(o, p):
+    def find_wires_coordinates(o: DesignElement, p: str):
         """
         Выдает отстройки и ширины проводов для определенного порта объекта
+        :param o: object
+        :param p: port
+        :return: offsets and widths of wires of port p of object o
         """
         layers_configuration = {
             'total': 0,
@@ -288,7 +333,22 @@ class Sample:
 
     def fanout(self, o: elements.DesignElement, port: str, name: str, grouping: Tuple[int, int],
                down_s_right: float = None, center_s_left: float = None,
-               center_s_right: float = None, up_s_left: float = None, kinetic_inductance=None):
+               center_s_right: float = None, up_s_left: float = None, kinetic_inductance: float = None):
+        """
+        Append Fanout DesignElement to port `port` of object `o`. The port will be connected to the `wide` port
+        of the fanout
+        :param o: object to append to
+        :param port: port of `o` to append to
+        :param name: name of the resulting Fanout element
+        :param grouping: Two numbers that dissect the wires of the multiconductor CPW in port. Conductors with id
+        less than grouping[0] will be routed to the `down` port, conductors with id larger or equal to grouping[1] will
+        be routed the `up` port; those inbetween will be routed into the `center` port
+        :param down_s_right: gap with between newly-created ground electrode and the last conductor in the down group
+        :param center_s_left: gap with between newly-created ground electrode and the first conductor in the center group
+        :param center_s_right: gap with between newly-created ground electrode and the last conductor in the center group
+        :param up_s_left: gap with between newly-created ground electrode and the first conductor in the up group
+        :param kinetic_inductance: kinetic inductance per unit length #TODO: how does this work?
+        """
 
         fanout = elements.RectFanout(name, o.get_terminals()[port], grouping, self.layer_configuration,
                                      down_s_right=down_s_right, center_s_left=center_s_left,
@@ -299,7 +359,16 @@ class Sample:
         return fanout
 
     def ground(self, o: elements.DesignElement, port: str, name: str, grounding_width: float,
-               grounding_between: List[Tuple[int, int]]):
+               grounding_between: List[Tuple[int, int]]) -> elements.RectGrounding:
+        """
+        Append RectGrounding element to a port of an element. See documentation of :ref:`RectGrounding` for details
+        :param o: element (object) to append to
+        :param port: port of `o` to append to
+        :param name: name of resulting RectGrounding element
+        :param grounding_width: width of the ground strip
+        :param grounding_between: conductors to add a short between; ids are calculated from the ground electrode
+        :return: RectGrounding element
+        """
         t = o.get_terminals()[port]
 
         if type(t.w) and type(t.s) == list:
@@ -334,7 +403,16 @@ class Sample:
 
         return closed_end
 
-    def open_end(self, o: elements.DesignElement, port: str, name: str, h1=20, h2=20):
+    def open_end(self, o: elements.DesignElement, port: str, name: str, h1=20, h2=20) -> elements.OpenEnd:
+        """
+        Append OpenEnd element to a port of an element. See documentation of :ref:`OpenEnd` for details
+        :param o: element (object) to append to
+        :param port: port of `o` to append to
+        :param name: name of resulting RectGrounding element
+        :param h1: #TODO:
+        :param h2: #TODO:
+        :return: OpenEnd element
+        """
         position_ = o.get_terminals()[port].position
         orientation_ = o.get_terminals()[port].orientation
 
@@ -360,6 +438,14 @@ class Sample:
         return open_end
 
     def airbridge(self, o: elements.DesignElement, port: str, name: str, geometry: elements.AirBridgeGeometry):
+        """
+        Append Airbridge element to a port of an element. See documentation of :ref:`Airbridge` for details
+        :param o: element (object) to append to
+        :param port: port of `o` to append to
+        :param name: name of resulting Airbridge element
+        :param geometry: geometry of the airbridge
+        :return: Airbridge element
+        """
         terminal = o.get_terminals()[port]
         airbridge_position = self.cpw_shift(o, port, geometry.pad_width / 2)[0]
         bridge = elements.airbridge.AirbridgeOverCPW(
@@ -434,7 +520,10 @@ class Sample:
             self.connect(cpw, 'port2', o2, port2)
             return [cpw]
 
-    def watch(self,dark = False):
+    def watch(self, dark=False):
+        """
+        Launch gdspy's default interactive viewer and show the design.
+        """
         #Gerhards color scheme here :D, dark and smooth colours
         bkg = '#2C2A4A'
 
@@ -447,15 +536,24 @@ class Sample:
         else:
             gdspy.LayoutViewer(depth=0, pattern={'default': 8}, background='#FFFFFF')
 
-
-    def cpw_shift(self, element, port_name, length):
-        return [(element.get_terminals()[port_name].position[0] + \
-                 length * np.cos(element.get_terminals()[port_name].orientation + np.pi),
-                 element.get_terminals()[port_name].position[1] + \
-                 length * np.sin(element.get_terminals()[port_name].orientation + np.pi)), ]
+    def cpw_shift(self, o: elements.DesignElement, port: str, length: float) -> Tuple[float, float]:
+        """
+        :param o: object to calculate shift from
+        :param port: port name to calculate the shift from
+        :param length: distance to shift
+        :return: point length away from port `port` of object `o`
+        """
+        t = o.get_terminals()[port]
+        return tuple([(t.position[0] + length * np.cos(t.orientation + np.pi),
+                       t.position[1] + length * np.sin(t.orientation + np.pi))])
 
     # functions to work and calculate capacitance
     def write_to_gds(self, name=None):
+        """
+        Write a GDS file to the current directory
+        :param name: name of the file, default is the design name
+        :return: none
+        """
         if name is not None:
             self.lib.write_gds(name + '.gds', cells=None, timestamp=None,
                                binary_cells=None)
@@ -464,7 +562,9 @@ class Sample:
             self.lib.write_gds(self.name + '.gds', cells=None,
                                timestamp=None,
                                binary_cells=None)
+            #TODO fix this
             self.path = os.getcwd() + '/' + self.name + '.gds'
+
         print("Gds file has been writen here: ", self.path)
 
     def calculate_qubit_capacitance(self, cell, qubit, mesh_volume, name=None):
