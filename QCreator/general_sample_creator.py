@@ -3,7 +3,7 @@ import gdspy
 import os
 from . import elements
 from . import transmission_line_simulator as tlsim
-from typing import NamedTuple, SupportsFloat, Any, Iterable, Tuple, List
+from typing import NamedTuple, SupportsFloat, Any, Iterable, Tuple, List, Mapping
 
 from . import meshing
 from copy import deepcopy
@@ -60,7 +60,7 @@ class Sample:
         """
         return 2 * (w + 2 * s + 2 * g)
 
-    def add(self, object_: DesignElement):
+    def add(self, object_: elements.DesignElement):
         """
         Add object_ to design.
         """
@@ -232,7 +232,7 @@ class Sample:
     #     self.connections.append(((element, port), ('gnd', 'gnd')))
 
     @staticmethod
-    def find_wires_coordinates(o: DesignElement, p: str):
+    def find_wires_coordinates(o: elements.DesignElement, p: str):
         """
         Выдает отстройки и ширины проводов для определенного порта объекта
         :param o: object
