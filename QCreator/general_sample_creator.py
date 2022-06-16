@@ -231,27 +231,13 @@ class Sample:
     # def ground(self, element: elements.DesignElement, port: str):
     #     self.connections.append(((element, port), ('gnd', 'gnd')))
 
-    @staticmethod
-    def find_wires_coordinates(o: elements.DesignElement, p: str):
+    def find_wires_coordinates(self, o: elements.DesignElement, p: str):
         """
         Выдает отстройки и ширины проводов для определенного порта объекта
         :param o: object
         :param p: port
         :return: offsets and widths of wires of port p of object o
         """
-        layers_configuration = {
-            'total': 0,
-            'restricted area': 10,
-            'for removing': 100,
-            'JJs': 1,
-            'air bridges': 2,
-            'air bridge pads': 3,
-            'air bridge sm pads': 4,
-            'vertical gridlines': 0,
-            'horizontal gridlines': 0,
-            'inverted': 101,
-            'bandages': 20
-        }
         terminal = o.get_terminals()[p]
         w = terminal.w
         s = terminal.s
@@ -263,11 +249,11 @@ class Sample:
         if type(terminal.g) is not list:
             g = [terminal.g, terminal.g]
         line_o = elements.straight_CPW_with_different_g(name='object_line',
-                                               points=[(0, 0), (1, 0)],
-                                               w=w,
-                                               s=s,
-                                               g=g,
-                                               layer_configuration=layers_configuration)
+                                                        points=[(0, 0), (1, 0)],
+                                                        w=w,
+                                                        s=s,
+                                                        g=g,
+                                                        layer_configuration=self.layer_configuration)
         offsets = np.asarray(line_o.offsets[1:-1])
         widths = np.asarray(line_o.widths[1:-1])
         return (offsets, widths)
@@ -502,7 +488,6 @@ class Sample:
 
         if r is None:
             r = self.default_cpw_radius(w, s, g)
-
         points = [tuple(t1.position)] + points + [tuple(t2.position)]
         cpw = elements.CPW(name, points, w, s, g, self.layer_configuration, r=r,
                            corner_type='round', orientation1=orientation1, orientation2=orientation2)
@@ -544,8 +529,10 @@ class Sample:
         :return: point length away from port `port` of object `o`
         """
         t = o.get_terminals()[port]
-        return tuple([(t.position[0] + length * np.cos(t.orientation + np.pi),
-                       t.position[1] + length * np.sin(t.orientation + np.pi))])
+
+        shift = [(t.position[0] + length * np.cos(t.orientation + np.pi),
+                  t.position[1] + length * np.sin(t.orientation + np.pi)), ]
+        return shift
 
     # functions to work and calculate capacitance
     def write_to_gds(self, name=None):

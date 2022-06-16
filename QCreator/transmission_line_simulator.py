@@ -3,7 +3,7 @@ from abc import *
 from scipy.constants import e, hbar, h
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
-
+from QCreator.QCircuit import *
 
 class TLSystemElement:
     @abstractmethod
@@ -1576,6 +1576,84 @@ class TLSystem:
             hamiltonian_parameters[str(subspace_id)] = subspace_dict_dc
 
         return hamiltonian_parameters
+
+    ###################################################################################
+    # QCircuit
+    ###################################################################################
+    def subsystem_quantum_model1(self, subsystem: dict, node_no, dc_phase: list, cutoff: int = 5):
+        """
+        This method create QCircuit object for subsystem with one degree od freedom contains a capacitor, an inductor
+        and n_j Josepshon junctions. The method returns phase grid, potential, energies and wavefunctions of the system
+        in the phase representation.
+        :param subsystem: dictionary with all subsystem's parameters
+        :param node_no: number of discrete points on the grid
+        :param dc_phase: list of values of external dc stationary phases
+        :param cutoff: number of levels
+        """
+        # define QCircuit object, all variables are in Hz
+        cap = 2 / float(subsystem['Ec']) / 8 * h
+        ind = 1 / float(subsystem['El']) / 2 * h
+        n_j = len(subsystem['Ej'])  # number of junctions
+
+        subsystem_circuit = QCircuit()
+        subsystem_circuit.add_element(QCapacitance('C', cap), ['GND', 1])
+        subsystem_circuit.add_element(QInductance('L', ind), ['GND', 1])
+
+        for jj_id, e_jj in enumerate(subsystem['Ej']):
+            alpha_j = np.squeeze(subsystem['alpha'])[jj_id]
+            # Here node '2 + jj_id' is a node with external phase
+            subsystem_circuit.add_element(QJosephsonJunction('JJ' + str(jj_id), e_jj / h, alpha_j), [1, 2 + jj_id])
+
+        num_nodes = n_j + 2
+        num_var = n_j + 1
+        nodes = ['GND'] + [i for i in range(1, num_nodes)]
+        variables = ['φ'] + ['φ' + str(i) for i in range(num_nodes - 2)]
+
+        # phi variable
+        period=1
+        phi_var = QVariable('φ')
+        subsystem_circuit.add_variable(phi_var)
+        phi_var.create_grid(nodeNo=node_no, phase_periods=period)
+
+        # phi_DC, j variables
+        phi_vars_dc_j = []
+        for jj_id in range(n_j):
+            phi_dc_j = QVariable('φ' + str(jj_id))
+            phi_vars_dc_j.append(phi_dc_j)
+            subsystem_circuit.add_variable(phi_dc_j)
+            phi_dc_j.set_parameter(phase_value=dc_phase[jj_id], voltage_value=0)
+
+        transformation_mat = np.zeros((num_nodes, num_var))
+        transformation_mat[1:, ] = np.eye(num_var)
+
+        # make transformation from node basis to variables
+        subsystem_circuit.map_nodes_linear(nodes,
+                                           variables,
+                                           transformation_mat
+                                           )
+
+        phase_grid = subsystem_circuit.create_phase_grid()
+        phi_grid = np.squeeze(phase_grid)[0]
+
+        charge_pot, phase_pot = subsystem_circuit.calculate_potentials()
+        energies, wavefunctions = subsystem_circuit.diagonalize_phase(num_states=cutoff, maxiter=10000)
+
+        return phi_grid, np.squeeze(phase_pot), energies, wavefunctions
+
+    def subsystem_quantum_model2(self, subsystem: dict, node_no1, node_no2, dc_phase, cutoff: int = 5):
+        return 0, 0, 0, 0
+
+    def subsystem_quantum_model(self, subsystem: dict, node_no, dc_phase, cutoff: int = 5):
+        if len(subsystem['subsystem_id']) == 1:
+            phi_grid, phase_pot, energies, wavefunctions = self.subsystem_quantum_model1(subsystem, node_no, dc_phase,
+                                                                                         cutoff)
+        elif len(subsystem['subsystem_id']) == 2:
+            phi_grid, phase_pot, energies, wavefunctions = self.subsystem_quantum_model2(subsystem, node_no, dc_phase,
+                                                                                         cutoff)
+        else:
+            raise ValueError('Subsystem size is not conventional!')
+
+        return phi_grid, phase_pot, energies, wavefunctions
 
     ###################################################################################
     # Superconducting islands
