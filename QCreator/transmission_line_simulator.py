@@ -1602,7 +1602,7 @@ class TLSystem:
         for jj_id, e_jj in enumerate(subsystem['Ej']):
             alpha_j = np.squeeze(subsystem['alpha'])[jj_id]
             # Here node '2 + jj_id' is a node with external phase
-            subsystem_circuit.add_element(QJosephsonJunction('JJ' + str(jj_id), e_jj / h, alpha_j), [1, 2 + jj_id])
+            subsystem_circuit.add_element(QJosephsonJunction('JJ' + str(jj_id), e_jj / h, [alpha_j, 1]), [1, 2 + jj_id])
 
         num_nodes = n_j + 2
         num_var = n_j + 1
