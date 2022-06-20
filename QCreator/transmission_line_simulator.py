@@ -3,7 +3,7 @@ from abc import *
 from scipy.constants import e, hbar, h
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
-from QCreator.QCircuit import *
+# from QCreator.QCircuit import *
 
 class TLSystemElement:
     @abstractmethod
@@ -1414,7 +1414,6 @@ class TLSystem:
                         mode_j = self.get_element_submode(JJ_, modes_[j])
                         submode_ij = np.kron(mode_i, mode_j)
                         if j == i:
-
                             perturbation_matrix[i][j] = np.dot(np.conj(submode_ij.T),
                                                                np.dot(JJ_.nonlinear_perturbation(),
                                                                       submode_ij)).real / 2
@@ -1580,7 +1579,7 @@ class TLSystem:
     ###################################################################################
     # QCircuit
     ###################################################################################
-    def subsystem_quantum_model1(self, subsystem: dict, node_no, dc_phase: list, cutoff: int = 5):
+    def subsystem_quantum_model1(self, subsystem: dict, node_no, dc_phase: list, cutoff: int = 5, period: int = 1):
         """
         This method create QCircuit object for subsystem with one degree od freedom contains a capacitor, an inductor
         and n_j Josepshon junctions. The method returns phase grid, potential, energies and wavefunctions of the system
@@ -1589,9 +1588,10 @@ class TLSystem:
         :param node_no: number of discrete points on the grid
         :param dc_phase: list of values of external dc stationary phases
         :param cutoff: number of levels
+        :param period: number of periods in the phase space
         """
         # define QCircuit object, all variables are in Hz
-        cap = 2 / float(subsystem['Ec']) / 8 * h
+        cap = 1 / float(subsystem['Ec']) / 8 * h
         ind = 1 / float(subsystem['El']) / 2 * h
         n_j = len(subsystem['Ej'])  # number of junctions
 
@@ -1610,7 +1610,6 @@ class TLSystem:
         variables = ['φ'] + ['φ' + str(i) for i in range(num_nodes - 2)]
 
         # phi variable
-        period=1
         phi_var = QVariable('φ')
         subsystem_circuit.add_variable(phi_var)
         phi_var.create_grid(nodeNo=node_no, phase_periods=period)
@@ -1643,10 +1642,10 @@ class TLSystem:
     def subsystem_quantum_model2(self, subsystem: dict, node_no1, node_no2, dc_phase, cutoff: int = 5):
         return 0, 0, 0, 0
 
-    def subsystem_quantum_model(self, subsystem: dict, node_no, dc_phase, cutoff: int = 5):
+    def subsystem_quantum_model(self, subsystem: dict, node_no, dc_phase, cutoff: int = 5, period: int = 1):
         if len(subsystem['subsystem_id']) == 1:
             phi_grid, phase_pot, energies, wavefunctions = self.subsystem_quantum_model1(subsystem, node_no, dc_phase,
-                                                                                         cutoff)
+                                                                                         cutoff,period)
         elif len(subsystem['subsystem_id']) == 2:
             phi_grid, phase_pot, energies, wavefunctions = self.subsystem_quantum_model2(subsystem, node_no, dc_phase,
                                                                                          cutoff)
@@ -1659,104 +1658,106 @@ class TLSystem:
     # Superconducting islands
     ###################################################################################
     def get_sc_islands_graph(self):
-        from copy import deepcopy
-        node_graph = {'ref': []}
-        connections_graph = {'ref': []}
+        """
+        Returns a graph of nodes with weights, where True means that a connection is provided by wires (inductors, TL and etc.)
+        and False means that connection is provided by a capacitor or an inductor, and unlimited nodes like Short and Port nodes.
+        """
+        # create a graph [(node1, node2), ...] with a weight graph [connection_type, ...] and find unlimited nodes
+        graph_edges = []
+        graph_edges_weights = []
+        unlimited_nodes = []
+        for elem, terminals in zip(self.elements, self.terminal_node_mapping):
+            if elem.type_ in ['Short', 'Port']:
+                unlimited_nodes.extend(terminals)
+            for left_nodes_id in range(len(terminals) // 2):
+                if elem.type_ in ['C', 'JJ']:
+                    connection_type = False
+                else:
+                    connection_type = True
+                graph_edges.append({terminals[left_nodes_id], terminals[left_nodes_id + len(terminals) // 2]})
+                graph_edges_weights.append(connection_type)
 
-        # find all connections to reference point
+        # remove all duplicates
+        graph_edges_ = []
+        graph_edges_weights_ = []
+        for item_id, item in enumerate(graph_edges):
+            if item not in graph_edges_:
+                graph_edges_.append(item)
+                graph_edges_weights_.append(graph_edges_weights[item_id])
+            else:
+                index = graph_edges_.index(item)
+                connection_type_logical = graph_edges_weights[item_id] or graph_edges_weights_[index]
+                graph_edges_weights_[index] = connection_type_logical
 
-        for elem_id, elem in enumerate(self.elements):
-            if (type(elem) is Short) or (type(elem) is Port):
-                terminal = self.terminal_node_mapping[elem_id][0]
-                node_graph['ref'].append(terminal)
-                connections_graph['ref'].append(elem)
+        graph_nodes = {key: [] for key in self.nodes}
+        graph_nodes_weights = {key: [] for key in self.nodes}
 
-        # find many connections to nodes
+        # create a graph {node: [node1, node2, ...]} and a weight graph {node: [connection1, connection2, ...]}
+        for s_id, s in enumerate(graph_edges_):
+            graph_nodes[list(s)[0]].append(list(s)[1])
+            graph_nodes_weights[list(s)[0]].append(graph_edges_weights_[s_id])
 
-        for node_id, node in enumerate(self.nodes):
-            node_graph.setdefault(node, [])
-            connections_graph.setdefault(node, [])
-            for elem_id, elem in enumerate(self.elements):
-                terminals = self.terminal_node_mapping[elem_id]
-                if node in terminals:
-                    if type(elem) is TLCoupler:
-                        left_terminals = self.terminal_node_mapping[elem_id][:elem.n]
-                        right_terminals = self.terminal_node_mapping[elem_id][elem.n:]
-                        if node in left_terminals:
-                            node_graph[node].append(right_terminals[left_terminals.index(node)])
-                            connections_graph[node].append(elem)
-                        else:
-                            node_graph[node].append(left_terminals[right_terminals.index(node)])
-                            connections_graph[node].append(elem)
-                    else:
-                        terminals_ = deepcopy(terminals)
-                        terminals_.remove(node)
-                        if len(terminals_):
-                            node_graph[node].append(terminals_[0])
-                            connections_graph[node].append(elem)
-                        else:
-                            node_graph[node].append('ref')
-                            connections_graph[node].append(elem)
-        return node_graph, connections_graph
+            graph_nodes[list(s)[1]].append(list(s)[0])
+            graph_nodes_weights[list(s)[1]].append(graph_edges_weights_[s_id])
+
+        return unlimited_nodes, graph_nodes, graph_nodes_weights
 
     def get_superconducting_islands(self):
-        node_graph, connections_graph = self.get_sc_islands_graph()
-        matrix_graph = np.zeros((len(self.nodes) + 1, len(self.nodes) + 1))
-        nodes_ = ['ref'] + self.nodes
-
-        for node_id, node in enumerate(nodes_):
-            stack = []
-            for i_id, i in enumerate(node_graph[node]):
-                ind = nodes_.index(i)
-                if i not in stack:
-                    if connections_graph[node][i_id].is_sc_island():
-                        matrix_graph[node_id][ind] = -1
-                    else:
-                        matrix_graph[node_id][ind] = 1
-                else:
-                    if connections_graph[node][i_id].is_sc_island():
-                        matrix_graph_elem = -1
-                    else:
-                        matrix_graph_elem = 1
-                    matrix_graph[node_id][ind] = logical_connection(a=matrix_graph[node_id][ind],
-                                                                    b=matrix_graph_elem)
-                stack.append(i)
+        """
+        This method uses the breadth search method for graphs to find all superconducting islands in a circuit.
+        """
+        unlimited_nodes, graph_nodes, graph_nodes_weights = self.get_sc_islands_graph()
 
         from collections import deque
+
         islands = []
-        for start in range(1, len(self.nodes)+1):
+
+        visited_nodes_circuit = set()
+        for node_id, node in enumerate(self.nodes):
             island_nodes = set()
-            island_nodes.add(self.nodes[start-1])
 
-            island_nodes_queue = deque()
+            if node not in visited_nodes_circuit:
+                # here queue_connection1 for True type connection and queue_connection2 for False type connections
+                visited, queue_connection1, queue_connection2, = set(), deque(), deque()
 
-            visited, queue = set(), deque()
-            queue.append(start)
+                root_node = node
+                visited.add(root_node)
+                queue_connection1.append(root_node)
+                visited_nodes_circuit.add(root_node)
 
-            while queue:
-                point = queue.popleft()
-                visited.add(point)
-                if point:
-                    island_nodes.add(self.nodes[point-1])
-                connections = [i for i in range(len(nodes_))
-                               if matrix_graph[point][i]]
+                island_nodes.add(root_node)
 
-                if 0 in connections:
-                    # island_nodes.remove(self.nodes[point-1])
-                    island_nodes.clear()
-                    break
-                connections_values = matrix_graph[point, :]
-                for neighbour in connections:
-                    if neighbour not in visited:
-                        if connections_values[neighbour] == 1:
-                            queue.append(neighbour)
-
-            if island_nodes not in islands and island_nodes:
-                islands.append(island_nodes)
-
-        return matrix_graph, islands
+                while queue_connection1:
+                    point = queue_connection1.popleft()
+                    for neighbour_point_id, neighbour_point in enumerate(graph_nodes[point]):
+                        if neighbour_point not in visited:
+                            if graph_nodes_weights[point][neighbour_point_id]:
+                                queue_connection1.append(neighbour_point)
+                                visited.add(neighbour_point)
+                                island_nodes.add(neighbour_point)
+                                visited_nodes_circuit.add(neighbour_point)
+                            else:
+                                queue_connection2.append(neighbour_point)
+                # check if Short or Port node in the island
+                for n in unlimited_nodes:
+                    if n in island_nodes:
+                        island_nodes = set()
+                # remove empty set of nodes
+                if island_nodes:
+                    islands.append(island_nodes)
+        return islands
 
     def periodic_coordinates(self):
+        """
+        This method defines periodic and extended coordinates
+        """
+        pass
+
+    def get_transformation_mat_sc_islands(self):
+        """
+        This method provides transformation from nodes variables to periodic and extended variables such that
+        phi_i = sum_ij T_ij theta_j_(k), where k={p, e} where 'p' means periodic and 'e' means extended.
+        """
         pass
     ###################################################################################
     # Plot
