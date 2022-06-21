@@ -687,15 +687,15 @@ class TLSystem:
         self.terminal_node_mapping.append(nodes)
         return
 
-    def grounded_node_ind(self):
-        gnd_ind = []
-        for elem_id, elem in enumerate(self.elements):
-            if elem.type_ in ['Port', 'Short']:
-                voltages = self.get_element_dofs(elem)[0]
-                for v in voltages:
-                    if v not in gnd_ind:
-                        gnd_ind.append(v)
-        return gnd_ind
+    # def grounded_node_ind(self):
+    #     gnd_ind = []
+    #     for elem_id, elem in enumerate(self.elements):
+    #         if elem.type_ in ['Port', 'Short']:
+    #             voltages = self.get_element_dofs(elem)[0]
+    #             for v in voltages:
+    #                 if v not in gnd_ind:
+    #                     gnd_ind.append(v)
+    #     return gnd_ind
 
     def capacitance_matrix(self):
         """
@@ -708,7 +708,7 @@ class TLSystem:
         # number of nodes
         node_no = len(self.nodes)
         # number of internal dofs from TL
-        internal_dof_no = np.sum(e.num_degrees_of_freedom_dynamic() for e in self.elements if e.type_ == 'TL')
+        internal_dof_no = sum(e.num_degrees_of_freedom_dynamic() for e in self.elements if e.type_ == 'TL')
         # kinetic dofs = voltages + coefficients in taylor expansion for voltage
         kinetic_dofs = node_no + int(internal_dof_no / 2)
         capacitance_matrix = np.zeros((kinetic_dofs, kinetic_dofs), dtype=complex)
@@ -798,12 +798,14 @@ class TLSystem:
         """
         Returns vector voltages corresponded to nodes degrees of freedom and coefficients in Taylor series
         :param mode:
-        :param dc_dofs: if dc_dofs=True dc degrees of freedom represented as dofs with constant value of Phi (withot vibrations)
         """
         indexes = list(self.mode_vector_indices())
         return mode[indexes].reshape(len(indexes), 1)
 
     def transition_matrix(self, modes):
+        """
+        Create transition matrix to normal variables
+        """
         node_no = len(self.nodes)
         # number of internal dofs from TL
         internal_dof_no = np.sum(e.num_degrees_of_freedom_dynamic() for e in self.elements if e.type_ == 'TL')
@@ -818,33 +820,35 @@ class TLSystem:
         currents_vector = 1j * omega * self.capacitance_matrix() @ voltage_vector
         return currents_vector
 
-    def harmonic_mode_constants(self, mode, i_dc, jj=False):
+    # def harmonic_mode_constants(self, mode, i_dc, jj=False):
+    def harmonic_mode_constants(self, mode, jj=False):
         p_ = self.phases_mode_vector(mode)
         # transition for quadratic form
         capacitance = np.real(np.conj(p_).T @ self.capacitance_matrix() @ p_)
         inv_inductance = np.real(np.conj(p_).T @ self.inv_inductance_matrix(jj_lin=jj) @ p_)
 
         # transition for liner form
-        i = np.real(i_dc.T @ p_)
+        # i = np.real(i_dc.T @ p_)
         # o = 1 / np.sqrt(capacitance / inv_inductance) / (2 * np.pi)
         # print('Omega', o / 1e9, 'GHz')
         phi_0 = hbar / (2 * e)
         e_c = e ** 2 / (2 * capacitance)
         e_l = phi_0 ** 2 * inv_inductance
-        return e_c, e_l, i * phi_0
+        # return e_c, e_l, i * phi_0
+        return e_c, e_l
 
-    def get_psi_dc(self, mode, i_dc):
-        e_c, e_l, i = self.harmonic_mode_constants(mode, i_dc, jj=True)
-        return i / e_l
-
-    def get_phi_dc(self, modes, i_dc):
-        phi_dc = []
-        for mode_id, mode in enumerate(modes):
-            phi_dc_i = self.get_psi_dc(mode, i_dc)
-            phi_dc.append(phi_dc_i)
-        dim = len(phi_dc)
-        u_matrix = self.transition_matrix(modes)
-        return u_matrix @ np.asarray(phi_dc).reshape(dim, 1)
+    # def get_psi_dc(self, mode, i_dc):
+    #     e_c, e_l, i = self.harmonic_mode_constants(mode, i_dc, jj=True)
+    #     return i / e_l
+    #
+    # def get_phi_dc(self, modes, i_dc):
+    #     phi_dc = []
+    #     for mode_id, mode in enumerate(modes):
+    #         phi_dc_i = self.get_psi_dc(mode, i_dc)
+    #         phi_dc.append(phi_dc_i)
+    #     dim = len(phi_dc)
+    #     u_matrix = self.transition_matrix(modes)
+    #     return u_matrix @ np.asarray(phi_dc).reshape(dim, 1)
 
     def map_dofs(self):
         # count nodes
@@ -891,7 +895,7 @@ class TLSystem:
         return np.asarray(frequencies)[order], np.asarray(gammas)[order], np.asarray(modes)[order]
 
     ###################################################################################################################
-    # DC
+    # DC stationary phases
     ###################################################################################################################
     def dc_dofs(self):
         """
@@ -908,6 +912,10 @@ class TLSystem:
         return dc_nodes, dc_indices
 
     def get_scdc_subsystems(self):
+        """
+        Calculate superconducting dc subsystems which are limited by capacitors where dc current cannot exist.
+        Returns a list with tuple (subsystem_nodes, shorted nodes, subsystem_elements).
+        """
         # scdc_nodes = self.get_scdc_nodes()
         unbound_scdc_nodes = self.get_scdc_nodes()
         bound_scdc_nodes = []
@@ -1052,7 +1060,8 @@ class TLSystem:
 
     def scdc_stationary_phases(self):
         """
-        Returns vector of stationary phases phi_stationary
+        Returns vector of stationary phases phi_stationary according to the minimization of the potential with zero initial
+        condition.
         """
         node_no = len(self.nodes)
         # number of internal dofs from TL
@@ -1091,71 +1100,12 @@ class TLSystem:
                     i_dc[self.nodes.index(node)][0] = elem.idc
         return i_dc
 
-    # def scdc_diagonalization(self):
-    #     """
-    #     Returns Phi_DC
-    #     """
-    #     from numpy.linalg import solve
-    #     matrix_a = 1 / 2 * (self.inv_inductance_matrix(jj_lin=False).T + self.inv_inductance_matrix(jj_lin=False))
-    #     b_vector = self.i_dc()
-    #     phi_dc = solve(a=matrix_a, b=b_vector)
-    #     return phi_dc
-
     def get_element_dc_phase(self, elem: TLSystemElement, dc_phase):
         voltages_indices = self.get_element_dofs(elem)[0]
         dc_submode = []
         for ind in voltages_indices:
             dc_submode.append(dc_phase[ind])
         return np.asarray(dc_submode).reshape(len(voltages_indices), 1)
-
-    # def scdc_equilibrium_stationary_phase(self):
-    #     """
-    #     This method defines phi_dc (a vector of equilibrium DC phases)
-    #     """
-    #     dc_nodes, dc_indices = self.dc_dofs()
-    #
-    #     node_no = len(self.nodes)
-    #     # number of internal dofs from TL
-    #     # internal_dof_no = np.sum(e.num_degrees_of_freedom_dynamic() for e in self.elements if e.type_ == 'TL')
-    #     internal_dof_no = 0
-    #     # potential dofs = phases + coefficients in taylor expansion for phases
-    #     potential_dofs_no = node_no + int(internal_dof_no / 2)
-    #
-    #     dc_phases = np.zeros((potential_dofs_no, 1))
-    #
-    #     # calculate subsystems parameters
-    #     subsystems = self.get_scdc_subsystems()
-    #     for subsystem_id, subsystem in enumerate(subsystems):
-    #         scdc_subnodes, scdc_shorts, scdc_subelements = subsystem
-    #         initial = np.zeros(len(scdc_subnodes))
-    #         solution = minimize(lambda x: self.scdc_energy(x, subsystem_id), initial,
-    #                             jac=lambda x: self.scdc_energy_gradient(x, subsystem_id),
-    #                             hess=lambda x: self.scdc_energy_hessian(x, subsystem_id))
-    #         for node_id, node in enumerate(scdc_subnodes):
-    #             if node in dc_nodes:
-    #                 node_ind = self.nodes.index(node)
-    #                 dc_phases[node_ind][0] = solution.x[node_id]
-    #     return dc_phases
-
-    # def get_jj_elem_stationary_subphase(self, jj_elem, stationary_phase):
-    #     voltages = self.get_element_dofs(jj_elem)[0]
-    #     subphase = []
-    #     vector_dim = len(voltages)
-    #     for i in voltages:
-    #         subphase.append(stationary_phase[i])
-    #     return np.reshape(np.asarray(subphase), (vector_dim, 1))
-    #
-    # def get_jj_elem_submode(self, jj_elem, mode):
-    #     dc_nodes, dc_indices = self.dc_dofs()
-    #     voltages = self.get_element_dofs(jj_elem)[0]
-    #     submode = []
-    #     vector_dim = len(voltages)
-    #     for i in voltages:
-    #         if i in dc_indices:
-    #             submode.append(0)
-    #         else:
-    #             submode.append(mode[i])
-    #     return np.reshape(np.asarray(submode), (vector_dim, 1))
 
     ###################################################################################################################
     # Boundary matrix, dynamic matrix and energy
@@ -1496,10 +1446,10 @@ class TLSystem:
         """
         This methods calculate effective hamiltonian for uncoupled or coupled subsystems for all modes presended
         in the circuit
-        :param omegas:
-        :param modes:
-        :param kerr_matrix:
-        :param dc_phase:
+        :param omegas: frequencies in Hz
+        :param modes: eigenvectors of modes
+        :param kerr_matrix: kerr matrix in Hz
+        :param dc_phase: vector of stationary phases from self.scdc_stationary_phases()
         :param epsilon_cross:
         :param epsilon_self:
         """
@@ -1513,7 +1463,8 @@ class TLSystem:
                              'alpha': np.zeros((num_junction, num)), 'dc_phase': np.zeros((num_junction, num))}
             for mode_id, mode in enumerate(subspace):
                 # define harmonic constants of a mode
-                e_c, e_l, i = self.harmonic_mode_constants(modes[mode], self.i_dc())
+                # e_c, e_l, i = self.harmonic_mode_constants(modes[mode], self.i_dc())
+                e_c, e_l = self.harmonic_mode_constants(modes[mode])
                 subspace_dict['Ec'][mode_id][mode_id] = e_c
                 subspace_dict['El'][mode_id][mode_id] = e_l
                 if num == 1:
@@ -1543,38 +1494,38 @@ class TLSystem:
 
         return hamiltonian_parameters
 
-    def define_modes_parameters_dc(self, omegas, modes, kerr_matrix, i_dc_list, epsilon_cross=0.001,
-                                   epsilon_self=0.0001):
-        independent_subspaces = self.check_cross_non_linearity(omegas, kerr_matrix, epsilon_cross)
-        dict_self = self.check_self_non_linearity(omegas, kerr_matrix, epsilon_self)
-        hamiltonian_parameters = dict.fromkeys([str(i) for i in range(len(independent_subspaces))])
-        num_junction = len(self.JJs)
-        for subspace_id, subspace in enumerate(independent_subspaces):
-            num = len(subspace)
-            dc_phase_initial = [np.zeros((num_junction, num)) for i in range(len(i_dc_list))]
-            subspace_dict_dc = {'subsystem_id': subspace, 'dc_phase': dc_phase_initial}
-            for mode_id, mode in enumerate(subspace):
-                if num == 1:
-                    mode = subspace[0]
-                    if (mode in dict_self['Quasi harmonic modes']) or (mode in dict_self['Harmonic modes']):
-                        continue
-                    else:
-                        for i_dc_id, i_dc in enumerate(i_dc_list):
-                            dc_phase = self.get_phi_dc(modes, i_dc)
-                            for jj_id, jj in enumerate(self.JJs):
-                                jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
-                                subspace_dict_dc['dc_phase'][i_dc_id][jj_id][mode_id] = np.real(
-                                    jj_dc_phase_i - jj_dc_phase_j)
-                else:
-                    for i_dc_id, i_dc in enumerate(i_dc_list):
-                        dc_phase = self.get_phi_dc(modes, i_dc)
-                        for jj_id, jj in enumerate(self.JJs):
-                            jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
-                            subspace_dict_dc['dc_phase'][i_dc_id][jj_id][mode_id] = np.real(
-                                jj_dc_phase_i - jj_dc_phase_j)
-            hamiltonian_parameters[str(subspace_id)] = subspace_dict_dc
-
-        return hamiltonian_parameters
+    # def define_modes_parameters_dc(self, omegas, modes, kerr_matrix, i_dc_list, epsilon_cross=0.001,
+    #                                epsilon_self=0.0001):
+    #     independent_subspaces = self.check_cross_non_linearity(omegas, kerr_matrix, epsilon_cross)
+    #     dict_self = self.check_self_non_linearity(omegas, kerr_matrix, epsilon_self)
+    #     hamiltonian_parameters = dict.fromkeys([str(i) for i in range(len(independent_subspaces))])
+    #     num_junction = len(self.JJs)
+    #     for subspace_id, subspace in enumerate(independent_subspaces):
+    #         num = len(subspace)
+    #         dc_phase_initial = [np.zeros((num_junction, num)) for i in range(len(i_dc_list))]
+    #         subspace_dict_dc = {'subsystem_id': subspace, 'dc_phase': dc_phase_initial}
+    #         for mode_id, mode in enumerate(subspace):
+    #             if num == 1:
+    #                 mode = subspace[0]
+    #                 if (mode in dict_self['Quasi harmonic modes']) or (mode in dict_self['Harmonic modes']):
+    #                     continue
+    #                 else:
+    #                     for i_dc_id, i_dc in enumerate(i_dc_list):
+    #                         dc_phase = self.get_phi_dc(modes, i_dc)
+    #                         for jj_id, jj in enumerate(self.JJs):
+    #                             jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
+    #                             subspace_dict_dc['dc_phase'][i_dc_id][jj_id][mode_id] = np.real(
+    #                                 jj_dc_phase_i - jj_dc_phase_j)
+    #             else:
+    #                 for i_dc_id, i_dc in enumerate(i_dc_list):
+    #                     dc_phase = self.get_phi_dc(modes, i_dc)
+    #                     for jj_id, jj in enumerate(self.JJs):
+    #                         jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
+    #                         subspace_dict_dc['dc_phase'][i_dc_id][jj_id][mode_id] = np.real(
+    #                             jj_dc_phase_i - jj_dc_phase_j)
+    #         hamiltonian_parameters[str(subspace_id)] = subspace_dict_dc
+    #
+    #     return hamiltonian_parameters
 
     ###################################################################################
     # QCircuit
@@ -1747,18 +1698,40 @@ class TLSystem:
                     islands.append(island_nodes)
         return islands
 
-    def periodic_coordinates(self):
-        """
-        This method defines periodic and extended coordinates
-        """
-        pass
-
     def get_transformation_mat_sc_islands(self):
         """
         This method provides transformation from nodes variables to periodic and extended variables such that
-        phi_i = sum_ij T_ij theta_j_(k), where k={p, e} where 'p' means periodic and 'e' means extended.
+        theta_i_(k) = sum_ij T_ij phi_j, where k={p, e} where 'p' means periodic with 2*pi and 'e' means extended,
+        and defines periodic and extended variables.
         """
-        pass
+        from numpy.linalg import det
+        # calculate dofs
+        kinetic_dofs = sum(e.num_degrees_of_freedom_dynamic()
+                           for e in self.elements if e.type_ == 'TL') // 2 + len(self.nodes)
+        islands = self.get_superconducting_islands()
+        nu_islands = len(islands)
+        transformation_mat = np.zeros((kinetic_dofs, kinetic_dofs))
+
+        # create periodic variable (p)
+        for island_id, island in enumerate(islands):
+            string = np.zeros((1, kinetic_dofs))
+            for n_id, n in enumerate(list(island)):
+                string[0][self.nodes.index(n)] = 1
+            transformation_mat[island_id, :] = string
+
+        # create extended variables (e)
+        sub_transf_mat_shape = transformation_mat[nu_islands:, :].shape
+        transformation_mat[nu_islands:, :] = np.ones(sub_transf_mat_shape)
+        for i in range(sub_transf_mat_shape[0]):
+            transformation_mat[nu_islands:, :][i][i] = -1
+        if not det(transformation_mat):
+            raise ValueError('The transformation is not invertible, choose another transformation!')
+
+        theta_variables = {'periodic': [i for i in range(nu_islands)],
+                           'extended': [i for i in range(nu_islands, kinetic_dofs)]}
+
+        return theta_variables, transformation_mat
+
     ###################################################################################
     # Plot
     ###################################################################################
