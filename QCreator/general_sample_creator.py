@@ -262,37 +262,66 @@ class Sample:
         """
         Соединяет провода (кроме земли элементов) друг с другом для всех объектов и портов
         eps - точность соприкосновения проводов (если они лежат на одной прямой и расстояние между их центрами меньше этого,
-        то считается, что они соприкасаются и фукнция их соединит)"""
+        то считается, что они соприкасаются и фукнция их соединит)
+        Возвращает сомнительно соединенные элементы и их порты (те элементы и те их порты, что имеют различное количество проводов
+        и соединений)"""
+        number_of_connections = []
+        for i in range(0, len(self.objects)):
+            number_of_connections.append([0] * len(self.objects[i].get_terminals().keys()))
+        possible_not_correctly_connected_objects = []
         for i in range(1, len(self.objects)):
-            for j in range(0, i):
-                terminal_i = self.objects[i].get_terminals()
-                terminal_j = self.objects[j].get_terminals()
-                for port_i in terminal_i.keys():
-                    for port_j in terminal_j.keys():
-                        self.connect(self.objects[i], port_i, self.objects[j], port_j,
-                                              raise_errors=False, eps=1e-9)
+            terminal_i = self.objects[i].get_terminals()
+            for (k_i, port_i) in enumerate(terminal_i.keys()):
+                for j in range(0, i):
+                    terminal_j = self.objects[j].get_terminals()
+                    for (k_j, port_j) in enumerate(terminal_j.keys()):
+                        connects = self.connect(self.objects[i], port_i, self.objects[j], port_j,
+                                                raise_errors=False, eps=eps)
+                        number_of_connections[i][k_i] += connects
+                        number_of_connections[j][k_j] += connects
+        for i in range(0, len(self.objects)):
+            terminal_i = self.objects[i].get_terminals()
+            for (k_i, port_i) in enumerate(terminal_i.keys()):
+                # print(self.objects[i], port_i, number_of_connections[i][k_i])
+                if type(terminal_i[port_i].w) is list:
+                    if number_of_connections[i][k_i] != len(terminal_i[port_i].w):
+                        possible_not_correctly_connected_objects.append(
+                            (self.objects[i], port_i, number_of_connections[i][k_i]))
+                else:
+                    if number_of_connections[i][k_i] != 1:
+                        possible_not_correctly_connected_objects.append(
+                            (self.objects[i], port_i, number_of_connections[i][k_i]))
+        return possible_not_correctly_connected_objects
 
     def connect(self, o1, p1, o2, p2, raise_errors=True, eps=1e-9):
         """
         Connects the wires of two objects with given ports. The ports must be at the same location
         :param eps: threshold for the distance between ports
+
+        (Соединяет провода двух объектов с заданными портами основываясь на том, что эти порты должны быть в одном месте
+        eps - точность соприкосновения проводов (если они лежат на одной прямой и расстояние между их центрами меньше этого,
+        то считается, что они соприкасаются и фукнция их соединит)
+        raise_errors если True, то ошибки возникают, в обратном случае не возникают
+        Возвращает сколько проводов соединено (если ничего не соединилось, но флаг поднятия ошибок не выбран, то возвращает ноль),
+        возвращаемое значение используется для удобства поиска ошибок соединений (как в модели, так и на картинке),
+        особенно удобно, при использовании функции connect_all.)
         """
         if (abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation + np.pi) % (
                 (2 * np.pi))) > eps and
             abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation) % (
                     (2 * np.pi))) > eps):
             if raise_errors:
-                print(o1.name, o1.get_terminals()[p1])
-                print(o2.name, o2.get_terminals()[p2])
+                print(o1.name,o1.get_terminals()[p1])
+                print(o2.name,o2.get_terminals()[p2])
                 raise ValueError("Connecting parts do not fill one line, check orientations")
-            return None
+            return 0
         (offsets1, widths1) = self.find_wires_coordinates(o1, p1)
         (offsets2, widths2) = self.find_wires_coordinates(o2, p2)
         # print(offsets1,offsets2)
         if o1.get_terminals()[p1].order is False:
             offsets1 = - offsets1
         if o2.get_terminals()[p2].order:
-            offsets2 = - offsets2
+            offsets2 =  - offsets2
         # Поворачиваем объекты так, чтобы линия соединения была горизонтальной и при этом соединение было слева направо
         angle = o1.get_terminals()[p1].orientation + np.pi
         # то есть на угол -angle
@@ -303,7 +332,7 @@ class Sample:
         if abs(delta[0]) > eps:
             if raise_errors:
                 raise ValueError("ERROR: The ports have different positions")
-            return None
+            return 0
         positions1 = offsets1
         positions2 = offsets2 + delta[1]
         # print(positions1,positions2)
@@ -316,6 +345,7 @@ class Sample:
         if raise_errors:
             if error == 0:
                 raise ValueError('There is no ports to connect')
+        return error
 
     def fanout(self, o: elements.DesignElement, port: str, name: str, grouping: Tuple[int, int],
                down_s_right: float = None, center_s_left: float = None,
@@ -565,9 +595,9 @@ class Sample:
         mesh.write_into_file(os.getcwd() + '/' + 'mesh_4k_data')
         mesh.run_fastcap(os.getcwd() + '/' + 'mesh_4k_results')
         print("Capacitance results have been writen here: ", os.getcwd() + '/' + 'mesh_4k_results')
-        caps = np.round(mesh.get_capacitances(), 1)
-        self.fill_cap_matrix_grounded(qubit, caps)  # TODO: can we improve this way?
-        self.caps_list.append(caps)
+        caps = np.round(mesh.get_capacitances(self.epsilon), 1)
+        # self.fill_cap_matrix_grounded(qubit, caps)  # TODO: can we improve this way?
+        # self.caps_list.append(caps)
         return caps
 
     def fill_cap_matrix(self, qubit, caps):

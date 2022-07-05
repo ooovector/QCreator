@@ -128,7 +128,8 @@ class Meshing:
         output_file.close()
         print('Time for fastcap job is: ', time.time() - start)
 
-    def get_capacitances(self):
+    def get_capacitances(self, epsilon):
+        epsilon = (epsilon+1)/2
         number_of_conductors = len(self.conductors)
         with open(self.cap_filename) as file:
             text = file.readlines()
@@ -139,10 +140,10 @@ class Meshing:
         table = []
 
         def convert_pico(value):
-            epsilon = (11.9 + 1) / 2
+            # epsilon = (11.9 + 1) / 2
             return round(epsilon * float(value), 2) / 1e3
         def convert_nano(value):
-            epsilon = (11.9 + 1) / 2 # TODO: NO
+            # epsilon = (11.9 + 1) / 2 # TODO: NO
             return epsilon * float(value)
 
         if value[:5] == 'femto':
@@ -168,7 +169,7 @@ def simplify(points):
     list(new_polygon_1, ...), where
     new_polygon_i : list(list(coord_x, coord_y))
     """
-    return pyclipper.SimplifyPolygon(points)
+    return list(np.asarray(pyclipper.SimplifyPolygon(list(np.asarray(points)*1000)))/1000)
 
 
 def round_trip_connect(start, end):
