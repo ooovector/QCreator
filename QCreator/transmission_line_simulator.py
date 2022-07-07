@@ -671,7 +671,7 @@ class JosephsonJunctionChain(TLSystemElement):
         if len(node_phases) != 2:
             raise Exception('ConnectionError',
                             'Josephson junction {0} has {1} nodes connected instead of 2.'.format(self.name, len(node_phases)))
-        return self.E_J*(1-np.cos(node_phases[0] - node_phases[1]))
+        return self.E_J*(1-np.cos(node_phases[0] - node_phases[1])) * self.n_junctions
 
     def potential_gradient(self, submode):
         gradient = self.E_J * np.sin((submode[0] - submode[1]) / self.n_junctions) / (hbar / (2 * e)) ** 2 * 1e-9
@@ -782,17 +782,15 @@ class TLSystem:
         """
         self.variables.append(variable)
 
-    def set_variables(self, variables_names: list, nodeNos: list, periods: list = None, centres: list = None, dc=False):
+    def set_variables(self, variables_names: list, nodeNos: list, periods_type: list = None, centres: list = None, dc=False):
         """
         Set variables to the circuit and create grids for them. For stationary variables set parameters from
         :param variables_names: list with variables names
         :param nodeNos: list
-        :param periods:
+        :param periods_type:
         :param centres:
         :param dc: True if the circuit contains dc sources
         """
-        if not periods:
-            periods = [1 for i in range(len(variables_names))]
         if not centres:
             centres = [0 for i in range(len(variables_names))]
         variables = []  # variables with phase grid
@@ -802,7 +800,13 @@ class TLSystem:
         for v_id, v in enumerate(variables_names):
             var = QVariable(v)
             variables.append(var)
-            var.create_grid(nodeNos[v_id], periods[v_id], centres[v_id])
+            if periods_type[v_id] == 'periodic':
+                period = 1
+            elif periods_type[v_id] == 'extended':
+                period = self.define_extended_period()
+            else:
+                raise ValueError('Variables can be only periodic or extended!')
+            var.create_grid(nodeNos[v_id], period, centres[v_id])
             self.add_variable(var)
 
         # set parameters from stationary phases
@@ -821,6 +825,14 @@ class TLSystem:
             self.add_variable(par)
 
         return variables, parameters
+
+    def define_extended_period(self):
+        """
+        This method returns approximately reliable number of periods for extended variables.
+        """
+        Phi_0 = h / (2 * e)
+        ECmat = self.capacitance_matrix_legendre_transform() / 2 * (4 * e ** 2) / h / 1e9
+        Elmat = self.inv_inductance_matrix_variables() / 2 * (Phi_0 / (2 * np.pi)) ** 2 / h / 1e9
 
     def reset_variables(self):
         self.variables = []
@@ -959,7 +971,7 @@ class TLSystem:
     def inv_inductance_matrix(self, jj_lin=True):
         """
         Create inductance matrix in basis (node fluxes: Phi, fluxes degrees of freedom: phi)
-        :param jj_lin: if jj_lin=True, we don't include linear terms of junctions into inverse inductance matrix
+        :param jj_lin: if jj_lin=False, we don't include linear terms of junctions into inverse inductance matrix
         """
         # number of nodes = number of voltages
         # dofs_nodes, grounded_nodes = self.dofs_of_hamiltonian()
@@ -996,7 +1008,7 @@ class TLSystem:
                     internal_dof_offset += no_potential_internal_dofs
         return inv_inductance_matrix
 
-    def inv_inductance_matrix_variables(self, jj_lin=True):
+    def inv_inductance_matrix_variables(self, jj_lin=False):
         """
         Calculates the inverse inductance matrix for the energy term of the qubit Lagrangian in the variable respresentation.
         """
@@ -1018,7 +1030,8 @@ class TLSystem:
         self.phase_potential = np.zeros(grid_shape, dtype=complex)
 
         # fill potential in phase representation from inverse inductance matrix
-        ELmat = self.inv_inductance_matrix_variables() / 2 * (Phi_0 / (2 * np.pi)) ** 2
+        # here ELmat in Hz
+        ELmat = self.inv_inductance_matrix_variables() / 2 * (Phi_0 / (2 * np.pi)) ** 2 / h / 1e9
         print('ELmat', ELmat)
         linear_phase_pot = np.diag(np.einsum('ji,jk,kl->il', phase_grid, ELmat, phase_grid))
         linear_phase_pot = np.reshape(linear_phase_pot, grid_shape)
@@ -1033,9 +1046,9 @@ class TLSystem:
                     element_node_ids.append(ind)
                 node_phases = np.einsum('ij,jk->ik', self.linear_coordinate_transform, phase_grid)[element_node_ids, :]
                 node_phases = np.reshape(node_phases, (len(element_node_ids),) + grid_shape)
-                print(elem.nonlinear_potential(node_phases=node_phases, node_charges=np.zeros(node_phases.shape)).shape)
+                # in GHz
                 self.phase_potential += elem.nonlinear_potential(node_phases=node_phases,
-                                                                 node_charges=np.zeros(node_phases.shape))
+                                                                 node_charges=np.zeros(node_phases.shape)) / h / 1e9
         return self.phase_potential
 
     def calculate_charge_potential(self):
@@ -1047,7 +1060,8 @@ class TLSystem:
         grid_shape = self.grid_shape()
         grid_size = np.prod(grid_shape)
         charge_grid = np.reshape(np.asarray(self.create_charge_grid()), (len(self.variables), grid_size))
-        ECmat = self.capacitance_matrix_legendre_transform() / 2 * (4 * e ** 2)
+        # here ECmat in GHz
+        ECmat = self.capacitance_matrix_legendre_transform() / 2 * (4 * e ** 2) / h / 1e9
         print('ECmat', ECmat)
         self.charge_potential = np.einsum('ij,ik,kj->j', charge_grid, ECmat, charge_grid)
         self.charge_potential = np.reshape(self.charge_potential, grid_shape)
@@ -2053,13 +2067,18 @@ class TLSystem:
         theta_i_(k) = sum_ij T_ij phi_j, where k={p, e} where 'p' means periodic with 2*pi and 'e' means extended,
         and defines periodic and extended variables.
         """
-        from numpy.linalg import det
         # calculate dofs
         kinetic_dofs = sum(e.num_degrees_of_freedom_dynamic()
                            for e in self.elements if e.type_ == 'TL') // 2 + len(self.nodes)
         islands = self.get_superconducting_islands()
         nu_islands = len(islands)
         transformation_mat = np.zeros((kinetic_dofs, kinetic_dofs))
+
+        if not islands:
+            transformation_mat = np.eye(kinetic_dofs)
+            theta_variables = {'periodic': [i for i in range(nu_islands)],
+                               'extended': [i for i in range(nu_islands, kinetic_dofs)]}
+            return theta_variables, transformation_mat
 
         # create periodic variable (p)
         for island_id, island in enumerate(islands):
@@ -2068,18 +2087,45 @@ class TLSystem:
                 string[0][self.nodes.index(n)] = 1
             transformation_mat[island_id, :] = string
 
+        # create sub basis from periodic variables
+        sub_basis = transformation_mat[:nu_islands, :].reshape(nu_islands, kinetic_dofs)
+        # check that all vectors from sub basis are linear independent
+        from numpy.linalg import matrix_rank
+        r = matrix_rank(sub_basis)
+        if r != nu_islands:
+            raise ValueError('Vectors for the periodic variables are not liner linear!')
+        # find null space or Ker of sub basis matrix
+        from scipy.linalg import null_space
+        ker = null_space(sub_basis).T
+
         # create extended variables (e)
-        sub_transf_mat_shape = transformation_mat[nu_islands:, :].shape
-        transformation_mat[nu_islands:, :] = np.ones(sub_transf_mat_shape)
-        for i in range(sub_transf_mat_shape[0]):
-            transformation_mat[nu_islands:, :][i][i] = -1
+        transformation_mat[nu_islands:, :] = ker
+
+        from numpy.linalg import det
         if not det(transformation_mat):
             raise ValueError('The transformation is not invertible, choose another transformation!')
-
         theta_variables = {'periodic': [i for i in range(nu_islands)],
                            'extended': [i for i in range(nu_islands, kinetic_dofs)]}
 
         return theta_variables, transformation_mat
+
+    def transformation_matrix_normal_var_to_periodic(self):
+        """
+        Create transformation matrix from normal variables to periodic using g-inverse matrix
+        ξ_i = a_i1 θ_1 + a_i2 θ_2 + ... +  a_iN θ_N, where N is a number of periodic and extended variables
+        using T matrix which is a matrix transformation from periodic variables to nodes variables (T matrix is
+        inversible matrix according to constructions), U matrix from nodes variables to normal variables
+        """
+        from numpy.linalg import pinv, inv
+        # T matrix
+        v, T_mat = self.get_transformation_mat_sc_islands()
+        T_mat_inv = inv(T_mat)
+
+        # U matrix
+        pass
+
+
+
 
     ###################################################################################
     # Plot
