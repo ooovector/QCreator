@@ -655,17 +655,32 @@ class QCircuit:
         return kinetic_energy + potential_energy
 
     def get_charge_operator(self, wavefunctions, variable):
+
         axes = np.arange(len(wavefunctions.shape)-1)
-        wavefunctions_charge = np.fft.fftshift(np.fft.fftn(np.fft.fftshift(wavefunctions,
-                                                                          axes=axes),
-                                                          norm='ortho', axes=axes)
-                                               , axes=axes)
-        charge_variable = variable.get_charge_grid()
+        dim = self.variables.index(variable)
+        wavefunctions_charge = np.fft.fftshift(np.fft.fft(np.fft.fftshift(wavefunctions,
+                                                                           axes=dim),
+                                                           norm='ortho', axis=dim)
+                                               , axes=dim)
 
-        wavefunctions_charge = wavefunctions_charge.reshape((-1, wavefunctions_charge.shape[-1]))
-        charge_variable = charge_variable.reshape((-1, charge_variable.shape[-1]))
+        new_shape = [-1 if i == dim else 1 for i in range(len(wavefunctions.shape))]
+        print(new_shape)
+        charge_variable = variable.get_charge_grid().reshape(new_shape)
 
-        n = (np.conj(wavefunctions_charge.T)*charge_variable)@wavefunctions_charge
+        operator_action = (wavefunctions_charge * charge_variable)
+        shape_prod = (-1, wavefunctions_charge.shape[-1])
+        wavefunctions_charge = wavefunctions_charge.reshape(shape_prod)
+        operator_action = operator_action.reshape(shape_prod)
+
+        # wavefunctions_charge = wavefunctions_charge.reshape()
+        # charge_grid = np.ones((1, ), dtype=complex)
+        # for variable_id, variable_ in enumerate(self.variables):
+        #     if variable_ == variable:
+        #         charge_grid = np.kron(charge_grid, charge_variable)
+        #     else:
+        #         charge_grid = np.kron(charge_grid, np.ones(len(variable_.get_charge_grid())))
+
+        n = np.conj(wavefunctions_charge.T)@operator_action
         self.charge_operators[variable.name] = n
         return n
 
@@ -732,7 +747,7 @@ class QCircuit:
             for variable in subcircuit.variables:
                 if variable.variable_type == 'variable':
                     subcircuit.get_charge_operator(wavefunctions, variable)
-                    subcircuit.get_phase_operator(wavefunctions, variable)
+                    # subcircuit.get_phase_operator(wavefunctions, variable)
 
     def interacting_subsystems_hamiltonian(self):
         """
