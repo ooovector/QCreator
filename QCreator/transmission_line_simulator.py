@@ -202,7 +202,6 @@ class Capacitor(TLSystemElement):
         self.C = c
         pass
 
-
 class Inductor(TLSystemElement):
     def num_terminals(self):
         return 2
@@ -388,11 +387,11 @@ class Port(TLSystemElement):
     def energy_matrix(self):
         return 0
 
-    def __init__(self, z0=None, name=''):
+    def __init__(self, z0=None, dc=False, name=''):
         super().__init__('Port', name)
         self.Z0 = z0
         self.idc = 0
-
+        self.dc = dc
 
 class TLCoupler(TLSystemElement):
     '''
@@ -698,7 +697,8 @@ class JosephsonJunctionChain(TLSystemElement):
         :param num_levels: number of levels in harmonic oscillator basis
         :return:
         """
-        prefactor = self.L_lin() / self.phi_0 * submode[2] / np.sqrt(2)
+        # TODO: maybe here is a mistake in submode and coefficients in prefactor??????
+        prefactor = self.L_lin() / self.phi_0 * (submode[2]) / np.sqrt(2)
         sqrt_n = np.diag(np.sqrt(np.arange(num_levels)))
         operator = np.zeros(sqrt_n.shape, complex)
         operator[:-1, :] += prefactor * sqrt_n[1:, :]
@@ -735,6 +735,7 @@ class JosephsonJunctionChain(TLSystemElement):
         self.n_junctions = n_junctions
 
         self.phi_0 = hbar / (2 * e)  # reduced flux quantum
+        self.Phi_0 = h / (2 * e)
         self.stationary_phase = 0
 
     def L_lin(self):
@@ -760,11 +761,18 @@ class TLSystem:
         self.variables = []
         self.linear_coordinate_transform = np.asarray(0)
 
+        self.dc_ports = []  # dc ports for external flux
+        self.dc_nodes = set()  # dc nodes
+
     def add_element(self, element, nodes):
         self.elements.append(element)
 
         if element.type_ == 'JJ':
             self.JJs.append(element)
+
+        if element.type_ == 'Port':
+            if element.dc:
+                self.dc_ports.append(element)
 
         for node in nodes:
             if node not in self.nodes:
@@ -772,6 +780,7 @@ class TLSystem:
                 self.nodes.append(node)
             self.node_multiplicity[node] += 1
         self.terminal_node_mapping.append(nodes)
+
         return
 
     def add_variable(self, variable):
@@ -782,13 +791,14 @@ class TLSystem:
         """
         self.variables.append(variable)
 
-    def set_variables(self, variables_names: list, nodeNos: list, periods_type: list = None, centres: list = None, dc=False):
+    def set_variables(self, variables_names: list, nodeNos: list, periods_type: list = None, centres: list = None,
+                      dc: bool = False):
         """
         Set variables to the circuit and create grids for them. For stationary variables set parameters from
         :param variables_names: list with variables names
-        :param nodeNos: list
+        :param nodeNos: list of points for each variable
         :param periods_type:
-        :param centres:
+        :param centres: list
         :param dc: True if the circuit contains dc sources
         """
         if not centres:
@@ -804,27 +814,33 @@ class TLSystem:
                 period = 1
             elif periods_type[v_id] == 'extended':
                 period = self.define_extended_period()
+            elif type(periods_type[v_id]) == int:
+                period = periods_type[v_id]
             else:
                 raise ValueError('Variables can be only periodic or extended!')
+            # TODO: add extended period
+            # elif periods_type[v_id] == 'extended':
+            #     period = self.define_extended_period()
+            # else:
+            #     raise ValueError('Variables can be only periodic or extended!')
             var.create_grid(nodeNos[v_id], period, centres[v_id])
             self.add_variable(var)
 
         # set parameters from stationary phases
         if not dc:
-            node_no = len(self.nodes)
-            internal_dof_no = sum(e.num_degrees_of_freedom_dynamic() for e in self.elements if e.type_ == 'TL')
-            nodes_dofs_no = node_no + int(internal_dof_no / 2)
-            phi_stationary = np.zeros(nodes_dofs_no)
+            return variables, parameters
         else:
+            stationary_nodes = list(self.get_stationary_phase_nodes())
             phi_stationary = np.squeeze(self.scdc_stationary_phases())
 
-        for p_id, phase_x in enumerate(phi_stationary):
-            par = QVariable('φ_x' + str(p_id))
-            parameters.append(par)
-            par.set_parameter(phase_value=phase_x, voltage_value=0)
-            self.add_variable(par)
-
-        return variables, parameters
+            for node_id, node in enumerate(stationary_nodes):
+                index = self.nodes.index(node)
+                par = QVariable('φ_x' + str(node))
+                parameters.append(par)
+                phase_x = phi_stationary[index]
+                par.set_parameter(phase_value=phase_x, voltage_value=0)
+                self.add_variable(par)
+            return variables, parameters
 
     def define_extended_period(self):
         """
@@ -833,6 +849,8 @@ class TLSystem:
         Phi_0 = h / (2 * e)
         ECmat = self.capacitance_matrix_legendre_transform() / 2 * (4 * e ** 2) / h / 1e9
         Elmat = self.inv_inductance_matrix_variables() / 2 * (Phi_0 / (2 * np.pi)) ** 2 / h / 1e9
+
+
 
     def reset_variables(self):
         self.variables = []
@@ -845,6 +863,9 @@ class TLSystem:
         node_no = len(self.nodes)
         internal_dof_no = sum(e.num_degrees_of_freedom_dynamic() for e in self.elements if e.type_ == 'TL')
         nodes_dofs_no = node_no + int(internal_dof_no / 2)
+
+        # parameters
+        stationary_nodes_nu = len(list(self.get_stationary_phase_nodes()))
 
         if coefficients.shape != tuple([nodes_dofs_no, len(self.variables)]):
             raise Exception('VariableError',
@@ -935,7 +956,8 @@ class TLSystem:
 
     def capacitance_matrix_legendre_transform(self):
         """
-        Calculates the principle pivot transform of the capacitance matrix in variable representation with respect to "variables" as opposed to "parameters" for the Legendre transform
+        Calculates the principle pivot transform of the capacitance matrix in variable representation with respect to
+        "variables" as opposed to "parameters" for the Legendre transform
         """
         inverted_indeces = [variable_id for variable_id, variable in enumerate(self.variables) if
                             variable.variable_type == 'variable']
@@ -1129,6 +1151,53 @@ class TLSystem:
         transformation_matrix = np.hstack((transformation_matrix, stationary_coefficients))
         return transformation_matrix
 
+    def transformation_to_normal_variables2(self, modes_vectors):
+        """
+        Create transformation matrix from nodes variables with stationary phases to normal variables ξ_i in the
+        following way:
+        φ_i = a_i_1 ξ_1 + a_i_1 ξ_2 + ... + a_i_m ξ_m + ξ_i_stationary,
+        where ξ_i_stationary exists only if external stationary phase can be added node φ_i
+        :param modes_vectors: matrix with eigenvectors related to the normal variables with shape (n, d),
+        where n - number of normal variables and d - number of dynamic degrees of freedom (voltages, currents and
+        coefficients from Taylor series)
+        """
+        nodes = self.nodes
+        node_no = len(self.nodes)
+        internal_dof_no = sum(e.num_degrees_of_freedom_dynamic() for e in self.elements if e.type_ == 'TL')
+        nodes_dofs_no = node_no + int(internal_dof_no / 2)
+        normal_variables_no = modes_vectors.shape[0]
+
+        stationary_nodes = list(self.get_stationary_phase_nodes())
+        stationary_parameters_nu = len(stationary_nodes)
+
+        transformation_matrix = np.zeros((nodes_dofs_no, normal_variables_no + stationary_parameters_nu), dtype=complex)
+
+        # fill for variables
+        for var in range(normal_variables_no):
+            phase_mode_vector = self.phases_mode_vector(modes_vectors[var])
+            transformation_matrix[:, var] = np.squeeze(phase_mode_vector)
+
+        # fill for parameters
+        for par in range(stationary_parameters_nu):
+            node = stationary_nodes[par] # node with external stationary phase
+            index = self.nodes.index(node)
+            vector = np.zeros(nodes_dofs_no)
+            vector[index] = 1
+            transformation_matrix[:, par + normal_variables_no] = vector
+
+        return transformation_matrix
+
+    def transformation_to_periodic_extended_variables(self, modes_vectors):
+        """
+        Create transformation matrix from nodes variables with stationary phases to periodic and extended variables
+        theta_i in the following way:
+        φ_i = a_i_1 theta_1 + a_i_1 theta_2 + ... + a_i_m theta_m + φ_i_stationary
+        :param modes_vectors: matrix with eigenvectors related to the normal variables with shape (n, d),
+        where n - number of normal variables and d - number of dynamic degrees of freedom (voltages, currents and
+        coefficients from Taylor series)
+        """
+        pass
+
     def mode_vector_indices(self):
         node_no = len(self.nodes)
         # number of internal dofs from TL
@@ -1161,7 +1230,7 @@ class TLSystem:
 
     def transition_matrix(self, modes):
         """
-        Create transition matrix to normal variables
+        Create transition matrix U to normal variables
         """
         node_no = len(self.nodes)
         # number of internal dofs from TL
@@ -1192,7 +1261,8 @@ class TLSystem:
         e_c = e ** 2 / (2 * capacitance)
         e_l = phi_0 ** 2 * inv_inductance
         # return e_c, e_l, i * phi_0
-        return e_c, e_l
+        return e_c / h / 1e9, e_l / h / 1e9
+        # return capacitance, inv_inductance
 
     # def get_psi_dc(self, mode, i_dc):
     #     e_c, e_l, i = self.harmonic_mode_constants(mode, i_dc, jj=True)
@@ -1310,6 +1380,17 @@ class TLSystem:
             subsystems.append((nodes_no_shorts, nodes_shorts, subsystem_elements))
         return subsystems
 
+    def get_stationary_phase_nodes(self):
+        """
+        This function returns nodes where external stationary phases can be added.
+        """
+        stationary_phase_nodes = set()
+        scdc_subsystems = self.get_scdc_subsystems()
+        for system in scdc_subsystems:
+            nodes = system[0]
+            stationary_phase_nodes.update(tuple(nodes))
+        return stationary_phase_nodes
+
     def get_scdc_nodes(self):
         nodes = []
         for element, connections in zip(self.elements, self.terminal_node_mapping):
@@ -1414,6 +1495,9 @@ class TLSystem:
                                 jac=lambda x: self.scdc_energy_gradient(x, subsystem_id),
                                 hess=lambda x: self.scdc_energy_hessian(x, subsystem_id))
             self.set_phases(solution.x, subsystem_id)
+            print(solution.x)
+
+
 
     def scdc_stationary_phases(self):
         """
@@ -1439,6 +1523,7 @@ class TLSystem:
             for node_id, node in enumerate(scdc_subnodes):
                 node_ind = self.nodes.index(node)
                 stationary_phases[node_ind] = solution.x[node_id]
+
         return stationary_phases
 
     def i_dc(self):
@@ -1809,6 +1894,13 @@ class TLSystem:
         :param dc_phase: vector of stationary phases from self.scdc_stationary_phases()
         :param epsilon_cross:
         :param epsilon_self:
+        Returns a dictionary with the following keys
+        'subsystem_id': modes of this subsystem
+        'Ec': matrix of charge energy in GHZ
+        'El': matrix of inductive energy
+        'Ej': list of Josephson junctions
+        'alpha':
+        'dc_phase': dc phases across junctions
         """
         if not dc_phase:
             node_no = len(self.nodes)
@@ -1838,7 +1930,7 @@ class TLSystem:
                             subspace_dict['Ej'].append(0)
                     else:
                         for jj_id, jj in enumerate(self.JJs):
-                            subspace_dict['Ej'].append(jj.E_J * jj.n_junctions)
+                            subspace_dict['Ej'].append(jj.E_J * jj.n_junctions / h / 1e9)
                             jj_submode_i, jj_submode_j = self.get_element_submode(jj, modes[mode])[:2]
                             subspace_dict['alpha'][jj_id][mode_id] = np.real(
                                 jj_submode_i - jj_submode_j) / jj.n_junctions
@@ -1847,7 +1939,7 @@ class TLSystem:
                                 jj_dc_phase_i - jj_dc_phase_j) / jj.n_junctions
                 else:
                     for jj_id, jj in enumerate(self.JJs):
-                        subspace_dict['Ej'].append(jj.E_J * jj.n_junctions)
+                        subspace_dict['Ej'].append(jj.E_J * jj.n_junctions / h / 1e9)
                         jj_submode_i, jj_submode_j = self.get_element_submode(jj, modes[mode])[:2]
                         subspace_dict['alpha'][jj_id][mode_id] = np.real(jj_submode_i - jj_submode_j) / jj.n_junctions
                         jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
@@ -2109,23 +2201,100 @@ class TLSystem:
 
         return theta_variables, transformation_mat
 
-    def transformation_matrix_normal_var_to_periodic(self):
+    def get_transformation_mat_sc_islands2(self, modes):
+        """
+        This method provides transformation from nodes variables to periodic and extended variables such that
+        theta_i_(k) = sum_ij T_ij phi_j with scalar product, where k={p, e} where 'p' means periodic with 2*pi and 'e' means extended,
+        and defines periodic and extended variables.
+        :param modes: normal modes of the system to create transition matrix U
+        """
+        # create transformation matrix from node variables to normal variables
+        from numpy.linalg import pinv
+        U_mat = self.transition_matrix(modes)
+        U_mat_inv = pinv(U_mat)
+
+        # calculate dofs
+        kinetic_dofs = sum(e.num_degrees_of_freedom_dynamic()
+                           for e in self.elements if e.type_ == 'TL') // 2 + len(self.nodes)
+        islands = self.get_superconducting_islands()
+        nu_islands = len(islands)
+        nu_extended_var_max = kinetic_dofs - nu_islands
+        print('nu_extended_var_max', nu_extended_var_max)
+        if nu_extended_var_max >= U_mat_inv.shape[0]:
+            nu_extended_var = U_mat_inv.shape[0]
+            transformation_mat = np.zeros((nu_extended_var + nu_islands, kinetic_dofs), dtype=complex)
+        else:
+            nu_extended_var = nu_extended_var_max
+            transformation_mat = np.zeros((nu_extended_var + nu_islands, kinetic_dofs), dtype=complex)
+
+        if not islands:
+            transformation_mat = U_mat_inv
+            theta_variables = {'periodic': [i for i in range(nu_islands)],
+                               'extended': [i for i in range(nu_islands, nu_extended_var + nu_islands)]}
+            return theta_variables, transformation_mat
+
+        # create periodic variable (p)
+        for island_id, island in enumerate(islands):
+            t_vector = np.zeros((1, kinetic_dofs))
+            for n_id, n in enumerate(list(island)):
+                t_vector[0][self.nodes.index(n)] = 1
+            transformation_mat[island_id, :] = t_vector
+        # create periodic variable (p) by the following rule v_i - sum_k t_k (v_i, t_k), where t is a vector from
+        # periodic variables, v is a vector form inverse transformation matrix U
+        for i in range(nu_extended_var):
+            v_final = U_mat_inv[i, :]
+            for k in range(nu_islands):
+                t_k = transformation_mat[k, :].reshape(kinetic_dofs, 1)
+                projection = np.conj(v_final) @ t_k
+                t_k = transformation_mat[k, :]
+                v_final -= projection * t_k
+            transformation_mat[nu_islands + i, :] = v_final
+        theta_variables = {'periodic': [i for i in range(nu_islands)],
+                           'extended': [i for i in range(nu_islands, nu_extended_var + nu_islands)]}
+        return theta_variables, transformation_mat
+
+    # def get_transformation_mat_sc_islands3(self, modes):
+    #     """
+    #     This method provides transformation from nodes variables to periodic and extended variables such that
+    #     theta_i_(k) = sum_ij T_ij phi_j with scalar product, where k={p, e} where 'p' means periodic with 2*pi and 'e' means extended,
+    #     and defines periodic and extended variables, where T matrix is quadratic matrix.
+    #     """
+    #     # calculate nodes dofs
+    #     kinetic_dofs = sum(e.num_degrees_of_freedom_dynamic()
+    #                        for e in self.elements if e.type_ == 'TL') // 2 + len(self.nodes)
+    #     islands = self.get_superconducting_islands()
+    #     nu_islands = len(islands)
+    #     transformation_mat = np.zeros((kinetic_dofs, kinetic_dofs))
+    #
+    #     # create periodic variable (p) by the following rule theta_p  = sum_i phi_i, if phi_i is in the same island
+    #     for island_id, island in enumerate(islands):
+    #         t_vector = np.zeros((1, kinetic_dofs))
+    #         for n_id, n in enumerate(list(island)):
+    #             t_vector[0][self.nodes.index(n)] = 1
+    #         transformation_mat[island_id, :] = t_vector
+    #
+    #     U_mat = self.transition_matrix(modes)  # transformation matrix from nodes to normal variables
+
+
+
+
+    def transformation_matrix_normal_var_to_periodic(self, modes):
         """
         Create transformation matrix from normal variables to periodic using g-inverse matrix
         ξ_i = a_i1 θ_1 + a_i2 θ_2 + ... +  a_iN θ_N, where N is a number of periodic and extended variables
-        using T matrix which is a matrix transformation from periodic variables to nodes variables (T matrix is
-        inversible matrix according to constructions), U matrix from nodes variables to normal variables
+        using T matrix which is a matrix transformation from periodic variables to nodes variables and
+        U matrix from nodes variables to normal variables
         """
-        from numpy.linalg import pinv, inv
+        from numpy.linalg import pinv
         # T matrix
-        v, T_mat = self.get_transformation_mat_sc_islands()
-        T_mat_inv = inv(T_mat)
-
+        # v, T_mat = self.get_transformation_mat_sc_islands()
+        v, T_mat = self.get_transformation_mat_sc_islands2(modes)
+        T_mat_inv = pinv(T_mat)
         # U matrix
-        pass
-
-
-
+        U_mat = self.transition_matrix(modes)
+        U_mat_inv = pinv(U_mat)
+        A_mat = U_mat_inv @ T_mat_inv
+        return A_mat
 
     ###################################################################################
     # Plot

@@ -293,59 +293,71 @@ class Sample:
                             (self.objects[i], port_i, number_of_connections[i][k_i]))
         return possible_not_correctly_connected_objects
 
-    def connect(self, o1, p1, o2, p2, raise_errors=True, eps=1e-9):
-        """
-        Connects the wires of two objects with given ports. The ports must be at the same location
-        :param eps: threshold for the distance between ports
+    def connect(self, o1, p1, o2, p2):
+        reverse = o1.get_terminals()[p1].order == o2.get_terminals()[p2].order
+        try:
+            for conductor_id in range(len(o1.get_terminals()[p1].w)):
+                if reverse:
+                    conductor_second = len(o1.get_terminals()[p1].w) - 1 - conductor_id
+                else:
+                    conductor_second = conductor_id
+                self.connections.append(((o1, p1, conductor_id), (o2, p2, conductor_second)))
+        except TypeError:
+            self.connections.append(((o1, p1, 0), (o2, p2, 0)))
 
-        (Соединяет провода двух объектов с заданными портами основываясь на том, что эти порты должны быть в одном месте
-        eps - точность соприкосновения проводов (если они лежат на одной прямой и расстояние между их центрами меньше этого,
-        то считается, что они соприкасаются и фукнция их соединит)
-        raise_errors если True, то ошибки возникают, в обратном случае не возникают
-        Возвращает сколько проводов соединено (если ничего не соединилось, но флаг поднятия ошибок не выбран, то возвращает ноль),
-        возвращаемое значение используется для удобства поиска ошибок соединений (как в модели, так и на картинке),
-        особенно удобно, при использовании функции connect_all.)
-        """
-        if (abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation + np.pi) % (
-                (2 * np.pi))) > eps and
-            abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation) % (
-                    (2 * np.pi))) > eps):
-            if raise_errors:
-                print(o1.name,o1.get_terminals()[p1])
-                print(o2.name,o2.get_terminals()[p2])
-                raise ValueError("Connecting parts do not fill one line, check orientations")
-            return 0
-        (offsets1, widths1) = self.find_wires_coordinates(o1, p1)
-        (offsets2, widths2) = self.find_wires_coordinates(o2, p2)
-        # print(offsets1,offsets2)
-        if o1.get_terminals()[p1].order is False:
-            offsets1 = - offsets1
-        if o2.get_terminals()[p2].order:
-            offsets2 =  - offsets2
-        # Поворачиваем объекты так, чтобы линия соединения была горизонтальной и при этом соединение было слева направо
-        angle = o1.get_terminals()[p1].orientation + np.pi
-        # то есть на угол -angle
-        #     print(angle/np.pi)
-        delta = (np.asarray([[np.cos(angle), np.sin(angle)], [-np.sin(angle), np.cos(angle)]]) @
-                 (np.asarray(o2.get_terminals()[p2].position) - np.asarray(o1.get_terminals()[p1].position)))
-        # print(delta)
-        if abs(delta[0]) > eps:
-            if raise_errors:
-                raise ValueError("ERROR: The ports have different positions")
-            return 0
-        positions1 = offsets1
-        positions2 = offsets2 + delta[1]
-        # print(positions1,positions2)
-        error = 0
-        for conductor_id_1 in range(0, len(offsets1)):
-            for conductor_id_2 in range(0, len(offsets2)):
-                if abs(positions1[conductor_id_1] - positions2[conductor_id_2]) < eps:
-                    self.connections.append(((o1, p1, conductor_id_1), (o2, p2, conductor_id_2)))
-                    error += 1
-        if raise_errors:
-            if error == 0:
-                raise ValueError('There is no ports to connect')
-        return error
+    # def connect(self, o1, p1, o2, p2, raise_errors=True, eps=1e-9):
+    #     """
+    #     Connects the wires of two objects with given ports. The ports must be at the same location
+    #     :param eps: threshold for the distance between ports
+    #
+    #     (Соединяет провода двух объектов с заданными портами основываясь на том, что эти порты должны быть в одном месте
+    #     eps - точность соприкосновения проводов (если они лежат на одной прямой и расстояние между их центрами меньше этого,
+    #     то считается, что они соприкасаются и фукнция их соединит)
+    #     raise_errors если True, то ошибки возникают, в обратном случае не возникают
+    #     Возвращает сколько проводов соединено (если ничего не соединилось, но флаг поднятия ошибок не выбран, то возвращает ноль),
+    #     возвращаемое значение используется для удобства поиска ошибок соединений (как в модели, так и на картинке),
+    #     особенно удобно, при использовании функции connect_all.)
+    #     """
+    #     if (abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation + np.pi) % (
+    #             (2 * np.pi))) > eps and
+    #         abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation) % (
+    #                 (2 * np.pi))) > eps):
+    #         if raise_errors:
+    #             print(o1.name,o1.get_terminals()[p1])
+    #             print(o2.name,o2.get_terminals()[p2])
+    #             raise ValueError("Connecting parts do not fill one line, check orientations")
+    #         return 0
+    #     (offsets1, widths1) = self.find_wires_coordinates(o1, p1)
+    #     (offsets2, widths2) = self.find_wires_coordinates(o2, p2)
+    #     # print(offsets1,offsets2)
+    #     if o1.get_terminals()[p1].order is False:
+    #         offsets1 = - offsets1
+    #     if o2.get_terminals()[p2].order:
+    #         offsets2 =  - offsets2
+    #     # Поворачиваем объекты так, чтобы линия соединения была горизонтальной и при этом соединение было слева направо
+    #     angle = o1.get_terminals()[p1].orientation + np.pi
+    #     # то есть на угол -angle
+    #     #     print(angle/np.pi)
+    #     delta = (np.asarray([[np.cos(angle), np.sin(angle)], [-np.sin(angle), np.cos(angle)]]) @
+    #              (np.asarray(o2.get_terminals()[p2].position) - np.asarray(o1.get_terminals()[p1].position)))
+    #     # print(delta)
+    #     if abs(delta[0]) > eps:
+    #         if raise_errors:
+    #             raise ValueError("ERROR: The ports have different positions")
+    #         return 0
+    #     positions1 = offsets1
+    #     positions2 = offsets2 + delta[1]
+    #     # print(positions1,positions2)
+    #     error = 0
+    #     for conductor_id_1 in range(0, len(offsets1)):
+    #         for conductor_id_2 in range(0, len(offsets2)):
+    #             if abs(positions1[conductor_id_1] - positions2[conductor_id_2]) < eps:
+    #                 self.connections.append(((o1, p1, conductor_id_1), (o2, p2, conductor_id_2)))
+    #                 error += 1
+    #     if raise_errors:
+    #         if error == 0:
+    #             raise ValueError('There is no ports to connect')
+    #     return error
 
     def fanout(self, o: elements.DesignElement, port: str, name: str, grouping: Tuple[int, int],
                down_s_right: float = None, center_s_left: float = None,
@@ -596,8 +608,8 @@ class Sample:
         mesh.run_fastcap(os.getcwd() + '/' + 'mesh_4k_results')
         print("Capacitance results have been writen here: ", os.getcwd() + '/' + 'mesh_4k_results')
         caps = np.round(mesh.get_capacitances(self.epsilon), 1)
-        # self.fill_cap_matrix_grounded(qubit, caps)  # TODO: can we improve this way?
-        # self.caps_list.append(caps)
+        self.fill_cap_matrix_grounded(qubit, caps)  # TODO: can we improve this way?
+        self.caps_list.append(caps)
         return caps
 
     def fill_cap_matrix(self, qubit, caps):
