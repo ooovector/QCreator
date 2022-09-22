@@ -89,7 +89,7 @@ class SquidInLine(DesignElement):
                                          self.squid_params['y'],
                                          self.squid_params['a1'], self.squid_params['a2'],
                                          self.squid_params['b1'], self.squid_params['b2'],
-                                         self.squid_params['c1'], self.squid_params['c2'])
+                                         self.squid_params['c1'], self.squid_params['c2'], 0, 0)
         squid = self.squid.generate_jj()
         rect = gdspy.Rectangle((self.squid_params['x'] - self.squid.contact_pad_a_outer / 2,
                                 self.squid_params['y']),
