@@ -710,7 +710,7 @@ class Fluxonium(DesignElement):
                     flux_port_position_raw = [flux_line_outer_extension, -self.g + current_position - flux_line_return_wire_distance
                                               - flux_line_extent - 2 * bandage_offset]
                 port1_position_raw = [outer_chain_position*3 - jj_lead_width / 2,
-                                      jj_lead_width / 2 - outer_chain_position + squid_contact_extension
+                                      jj_lead_width / 2 - outer_chain_position + vertical_orientation_extent
                                       + bottom_layer_overlap / 2 + 3 * bandage_offset]
                 port2_position_raw = [extent_horizontal, 0]
             else:
@@ -840,8 +840,18 @@ class Fluxonium(DesignElement):
             restrict_cross = draw_cross['restrict']
             positive_cross = draw_cross['positive']
             bridges.append(draw_cross['airbridges'])
+            (top_w, top_s, position, orientation) = (self.cross_lines[i].top_w,self.cross_lines[i].top_s,
+                                        self.cross_lines[i].position,self.cross_lines[i].orientation)
+            restrict_line_1 = gdspy.Rectangle((position[0]-500, position[1]-top_w/2-top_s),
+                                            (position[0]+500, position[1]-top_w/2))
+            restrict_line_1.rotate(orientation, position)
+            restrict_line_2 = gdspy.Rectangle((position[0] - 500, position[1] + top_w / 2 + top_s),
+                                              (position[0] + 500, position[1] + top_w / 2))
+            restrict_line_2.rotate(orientation, position)
             positive_cross = gdspy.boolean(positive_cross, jj, 'not')
             positive = gdspy.boolean(positive, restrict_cross, 'not')
+            positive = gdspy.boolean(positive, restrict_line_1, 'not')
+            positive = gdspy.boolean(positive, restrict_line_2, 'not')
             positive = gdspy.boolean(positive, positive_cross, 'or')
             restrict = gdspy.boolean(restrict, restrict_cross, 'or')
 

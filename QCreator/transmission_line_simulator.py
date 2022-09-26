@@ -618,7 +618,7 @@ class TLCoupler(TLSystemElement):
         if cutoff is not None and np.isfinite(cutoff):
             cl_min = 1 / np.sqrt(np.linalg.norm(ll @ cl, ord=2))  # minimum speed of light in TL
             df = cl_min / (2 * l)
-            num_modes = int(cutoff // df)
+            num_modes = max(int(cutoff // df),num_modes)
             if num_modes < 2:
                 num_modes = 2
             self.num_modes = num_modes

@@ -233,7 +233,7 @@ class CPWCoupler(DesignElement):
         return cl, ll
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
-                   cutoff: float = np.inf, epsilon=11.45) -> list:
+                   cutoff: float = np.inf, epsilon=11.45, num_modes = 2) -> list:
         cl, ll = self.cm(epsilon)
         lk = np.asarray(self.kinetic_inductance) / np.asarray(self.w)
         ll = ll + np.diag(lk)
@@ -244,7 +244,8 @@ class CPWCoupler(DesignElement):
                                rl=np.zeros((len(self.w), len(self.w))),
                                gl=np.zeros((len(self.w), len(self.w))),
                                name=self.name,
-                               cutoff=cutoff)
+                               cutoff=cutoff,
+                               num_modes = num_modes)
 
         if track_changes:
             self.tls_cache.append([line])
@@ -683,7 +684,7 @@ class RectGrounding(DesignElement):
         return cm.ConformalMapping(cross_section_narrow, epsilon=epsilon).cl_and_Ll()
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
-                   cutoff: float = np.inf, epsilon=11.45) -> list:
+                   cutoff: float = np.inf, epsilon=11.45, num_modes = 2) -> list:
 
         cache = []
 
@@ -750,7 +751,8 @@ class RectGrounding(DesignElement):
                                              rl=np.zeros((len(self.narrow_port_w), len(self.narrow_port_w))),
                                              gl=np.zeros((len(self.narrow_port_w), len(self.narrow_port_w))),
                                              name=self.name,
-                                             cutoff=cutoff)
+                                             cutoff=cutoff,
+                                             num_modes = num_modes)
             tls_instance.add_element(continued_line, mapping_)
             cache.append(continued_line)
 
@@ -1098,7 +1100,7 @@ class RectFanout(DesignElement):
         return structure_for_tls
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
-                   cutoff: float = np.inf, epsilon=11.45) -> list:
+                   cutoff: float = np.inf, epsilon=11.45, num_modes = 10) -> list:
         structure_for_tls = self.cm(epsilon)
 
         cache = []
@@ -1117,7 +1119,8 @@ class RectFanout(DesignElement):
                                                rl=np.zeros_like(structure_for_tls[elem]['Cl']),
                                                gl=np.zeros_like(structure_for_tls[elem]['Cl']),
                                                name=self.name + '_coupled_line_' + str(len(cache)),
-                                               cutoff=cutoff)
+                                               cutoff=cutoff,
+                                               num_modes = num_modes)
 
                 for conductor_id in range(number_of_conductors):
                     mapping_ += [terminal_mapping[('wide', conductor_id)]]
@@ -1138,7 +1141,8 @@ class RectFanout(DesignElement):
                                        rl=np.zeros_like(structure_for_tls[elem]['Cl']),
                                        gl=np.zeros_like(structure_for_tls[elem]['Cl']),
                                        name=self.name + '_line_' + str(len(cache)),
-                                       cutoff=cutoff)
+                                       cutoff=cutoff,
+                                       num_modes = num_modes)
 
                 conductor_bounds = [0, self.grouping[0], self.grouping[1], len(self.w)]
                 if elem == 'down':

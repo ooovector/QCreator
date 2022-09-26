@@ -66,7 +66,7 @@ class Sample:
         """
         self.objects.append(object_)
 
-    def draw_design(self, PP_qubits: bool = False):
+    def draw_design(self, PP_qubits: bool = False, debug = False):
         """
         Renders the design, calling render() if required.
         :param PP_qubits: if True, polygons are not removed from the design prior to drawing
@@ -79,6 +79,8 @@ class Sample:
             self.total_cell.remove_polygons(lambda pts, layer, datatype: True)
             self.restricted_cell.remove_polygons(lambda pts, layer, datatype: True)
         for object_ in self.objects:
+            if debug:
+                print(object_.name)
             result = object_.get()
             if 'test' in result:
                 self.total_cell.add(result['test'])
@@ -258,14 +260,14 @@ class Sample:
         widths = np.asarray(line_o.widths[1:-1])
         return (offsets, widths)
 
-    def connect_all(self, eps=1e-9):
+    def connect_all(self, eps=1e-10):
         """
         Соединяет провода (кроме земли элементов) друг с другом для всех объектов и портов
         eps - точность соприкосновения проводов (если они лежат на одной прямой и расстояние между их центрами меньше этого,
         то считается, что они соприкасаются и фукнция их соединит)
         Возвращает сомнительно соединенные элементы и их порты (те элементы и те их порты, что имеют различное количество проводов
-        и соединений)"""
-        number_of_connections = []
+        и соединений) и само количество соединений порта этого элемента"""
+        number_of_connections = [] # список количества соединений для всех портов всех объектов
         for i in range(0, len(self.objects)):
             number_of_connections.append([0] * len(self.objects[i].get_terminals().keys()))
         possible_not_correctly_connected_objects = []
@@ -275,8 +277,11 @@ class Sample:
                 for j in range(0, i):
                     terminal_j = self.objects[j].get_terminals()
                     for (k_j, port_j) in enumerate(terminal_j.keys()):
+                        # print(self.objects[i], self.objects[i].get_terminals()[port_i], self.objects[j],
+                        #       self.objects[j].get_terminals()[port_j])
                         connects = self.connect(self.objects[i], port_i, self.objects[j], port_j,
                                                 raise_errors=False, eps=eps)
+                        # print(connects)
                         number_of_connections[i][k_i] += connects
                         number_of_connections[j][k_j] += connects
         for i in range(0, len(self.objects)):
@@ -293,71 +298,67 @@ class Sample:
                             (self.objects[i], port_i, number_of_connections[i][k_i]))
         return possible_not_correctly_connected_objects
 
-    def connect(self, o1, p1, o2, p2):
-        reverse = o1.get_terminals()[p1].order == o2.get_terminals()[p2].order
-        try:
-            for conductor_id in range(len(o1.get_terminals()[p1].w)):
-                if reverse:
-                    conductor_second = len(o1.get_terminals()[p1].w) - 1 - conductor_id
-                else:
-                    conductor_second = conductor_id
-                self.connections.append(((o1, p1, conductor_id), (o2, p2, conductor_second)))
-        except TypeError:
-            self.connections.append(((o1, p1, 0), (o2, p2, 0)))
+    def connect(self, o1, p1, o2, p2, raise_errors=True, eps=1e-10):
+        """
+        Connects the wires of two objects with given ports. The ports must be at the same location
+        :param eps: threshold for the distance between ports
 
-    # def connect(self, o1, p1, o2, p2, raise_errors=True, eps=1e-9):
-    #     """
-    #     Connects the wires of two objects with given ports. The ports must be at the same location
-    #     :param eps: threshold for the distance between ports
-    #
-    #     (Соединяет провода двух объектов с заданными портами основываясь на том, что эти порты должны быть в одном месте
-    #     eps - точность соприкосновения проводов (если они лежат на одной прямой и расстояние между их центрами меньше этого,
-    #     то считается, что они соприкасаются и фукнция их соединит)
-    #     raise_errors если True, то ошибки возникают, в обратном случае не возникают
-    #     Возвращает сколько проводов соединено (если ничего не соединилось, но флаг поднятия ошибок не выбран, то возвращает ноль),
-    #     возвращаемое значение используется для удобства поиска ошибок соединений (как в модели, так и на картинке),
-    #     особенно удобно, при использовании функции connect_all.)
-    #     """
-    #     if (abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation + np.pi) % (
-    #             (2 * np.pi))) > eps and
-    #         abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation) % (
-    #                 (2 * np.pi))) > eps):
-    #         if raise_errors:
-    #             print(o1.name,o1.get_terminals()[p1])
-    #             print(o2.name,o2.get_terminals()[p2])
-    #             raise ValueError("Connecting parts do not fill one line, check orientations")
-    #         return 0
-    #     (offsets1, widths1) = self.find_wires_coordinates(o1, p1)
-    #     (offsets2, widths2) = self.find_wires_coordinates(o2, p2)
-    #     # print(offsets1,offsets2)
-    #     if o1.get_terminals()[p1].order is False:
-    #         offsets1 = - offsets1
-    #     if o2.get_terminals()[p2].order:
-    #         offsets2 =  - offsets2
-    #     # Поворачиваем объекты так, чтобы линия соединения была горизонтальной и при этом соединение было слева направо
-    #     angle = o1.get_terminals()[p1].orientation + np.pi
-    #     # то есть на угол -angle
-    #     #     print(angle/np.pi)
-    #     delta = (np.asarray([[np.cos(angle), np.sin(angle)], [-np.sin(angle), np.cos(angle)]]) @
-    #              (np.asarray(o2.get_terminals()[p2].position) - np.asarray(o1.get_terminals()[p1].position)))
-    #     # print(delta)
-    #     if abs(delta[0]) > eps:
-    #         if raise_errors:
-    #             raise ValueError("ERROR: The ports have different positions")
-    #         return 0
-    #     positions1 = offsets1
-    #     positions2 = offsets2 + delta[1]
-    #     # print(positions1,positions2)
-    #     error = 0
-    #     for conductor_id_1 in range(0, len(offsets1)):
-    #         for conductor_id_2 in range(0, len(offsets2)):
-    #             if abs(positions1[conductor_id_1] - positions2[conductor_id_2]) < eps:
-    #                 self.connections.append(((o1, p1, conductor_id_1), (o2, p2, conductor_id_2)))
-    #                 error += 1
-    #     if raise_errors:
-    #         if error == 0:
-    #             raise ValueError('There is no ports to connect')
-    #     return error
+        (Соединяет провода двух объектов с заданными портами основываясь на том, что эти порты должны быть в одном месте
+        eps - точность соприкосновения проводов (если они лежат на одной прямой и расстояние между их центрами меньше этого,
+        то считается, что они соприкасаются и фукнция их соединит)
+        raise_errors если True, то ошибки возникают, в обратном случае не возникают
+        Возвращает сколько проводов соединено (если ничего не соединилось, но флаг поднятия ошибок не выбран, то возвращает ноль),
+        возвращаемое значение используется для удобства поиска ошибок соединений (как в модели, так и на картинке),
+        особенно удобно, при использовании функции connect_all.)
+        """
+        if (abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation + np.pi) % (
+                (2 * np.pi)))%(2*np.pi) > eps and
+            abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation) % (
+                    (2 * np.pi)))%(2*np.pi) > eps):
+            if raise_errors:
+                print(o1.name,o1.get_terminals()[p1])
+                print(o2.name,o2.get_terminals()[p2])
+                raise ValueError("Connecting parts do not fill one line, check orientations")
+            # print('ORIENTATION', o1, p1, o2, p2, 0)
+            # print(o1.get_terminals()[p1].orientation,o2.get_terminals()[p2].orientation)
+            # print((abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation + np.pi) % (
+            #     (2 * np.pi))),
+            # abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation) % (
+            #         (2 * np.pi)))))
+            return 0
+        (offsets1, widths1) = self.find_wires_coordinates(o1, p1)
+        (offsets2, widths2) = self.find_wires_coordinates(o2, p2)
+        # print(offsets1,offsets2)
+        if o1.get_terminals()[p1].order is False:
+            offsets1 = - offsets1
+        if o2.get_terminals()[p2].order:
+            offsets2 =  - offsets2
+        # Поворачиваем объекты так, чтобы линия соединения была горизонтальной и при этом соединение было слева направо
+        angle = o1.get_terminals()[p1].orientation + np.pi
+        # то есть на угол -angle
+        #     print(angle/np.pi)
+        delta = (np.asarray([[np.cos(angle), np.sin(angle)], [-np.sin(angle), np.cos(angle)]]) @
+                 (np.asarray(o2.get_terminals()[p2].position) - np.asarray(o1.get_terminals()[p1].position)))
+        # print(delta)
+        if abs(delta[0]) > eps:
+            if raise_errors:
+                raise ValueError("ERROR: The ports have different positions")
+            # print('DELTA', o1, p1, o2, p2, 0)
+            return 0
+        positions1 = offsets1
+        positions2 = offsets2 + delta[1]
+        # print(positions1,positions2)
+        error = 0
+        for conductor_id_1 in range(0, len(offsets1)):
+            for conductor_id_2 in range(0, len(offsets2)):
+                if abs(positions1[conductor_id_1] - positions2[conductor_id_2]) < eps:
+                    self.connections.append(((o1, p1, conductor_id_1), (o2, p2, conductor_id_2)))
+                    error += 1
+        if raise_errors:
+            if error == 0:
+                raise ValueError('There is no ports to connect')
+        # print('FINAL',o1,p1,o2,p2,error)
+        return error
 
     def fanout(self, o: elements.DesignElement, port: str, name: str, grouping: Tuple[int, int],
                down_s_right: float = None, center_s_left: float = None,
@@ -637,7 +638,7 @@ class Sample:
                 i = i + 1
         return True
 
-    def get_tls(self, cutoff=np.inf):
+    def get_tls(self, cutoff=np.inf, num_modes = 2):
         """
         Create a transmission line system of the design
         :return: tls, connections_flat, element_assignments
@@ -676,8 +677,12 @@ class Sample:
                         max_connection_id += 1
                         connections_flat[(object_, terminal_name, conductor_id)] = max_connection_id
                         terminal_node_assignments[terminal_identifier] = max_connection_id
-            element_assignments[object_.name] = object_.add_to_tls(tls, terminal_node_assignments,
-                                                                   cutoff=cutoff, epsilon=self.epsilon)
+            try:
+                element_assignments[object_.name] = object_.add_to_tls(tls, terminal_node_assignments,
+                                                                   cutoff=cutoff, epsilon=self.epsilon, num_modes = num_modes)
+            except:
+                element_assignments[object_.name] = object_.add_to_tls(tls, terminal_node_assignments,
+                                                                       cutoff=cutoff, epsilon=self.epsilon)
         return tls, connections_flat, element_assignments
 
     def get_s21(self, p1: str, p2: str, frequencies: Iterable[float]):

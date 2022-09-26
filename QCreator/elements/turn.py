@@ -5,6 +5,7 @@ import gdspy
 from .. import conformal_mapping as cm
 from .. import transmission_line_simulator as tlsim
 from typing import List, Tuple, Mapping, Union, Iterable, Dict
+from QCreator import general_sample_creator as creator
 from QCreator.elements.cpw import CPWCoupler
 
 class Turn(DesignElement):
@@ -161,7 +162,7 @@ class Turn(DesignElement):
         return self.terminals
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
-                   cutoff: float = np.inf, epsilon=11.45) -> list:
+                   cutoff: float = np.inf, epsilon=11.45,num_modes = 2) -> list:
         cl, ll = self.cm(epsilon)
         #lk = np.asarray(self.kinetic_inductance) / np.asarray(self.w)
         #ll = ll + np.diag(lk)
@@ -172,7 +173,8 @@ class Turn(DesignElement):
                                rl=np.zeros((len(self.w), len(self.w))),
                                gl=np.zeros((len(self.w), len(self.w))),
                                name=self.name,
-                               cutoff=cutoff)
+                               cutoff=cutoff,
+                               num_modes = num_modes)
 
         if track_changes:
             self.tls_cache.append([line])
@@ -291,7 +293,7 @@ class straight_CPW_with_different_g(DesignElement):
         return self.terminals
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
-                   cutoff: float = np.inf, epsilon=11.45) -> list:
+                   cutoff: float = np.inf, epsilon=11.45, num_modes = 2) -> list:
         cl, ll = self.cm(epsilon)
         #lk = np.asarray(self.kinetic_inductance) / np.asarray(self.w)
         #ll = ll + np.diag(lk)
@@ -302,7 +304,8 @@ class straight_CPW_with_different_g(DesignElement):
                                rl=np.zeros((len(self.w), len(self.w))),
                                gl=np.zeros((len(self.w), len(self.w))),
                                name=self.name,
-                               cutoff=cutoff)
+                               cutoff=cutoff,
+                               num_modes = num_modes)
 
         if track_changes:
             self.tls_cache.append([line])
@@ -505,7 +508,7 @@ class MultiOpenEnd(DesignElement):
         return cl, ll
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
-                   cutoff: float = np.inf, epsilon=11.45) -> list:
+                   cutoff: float = np.inf, epsilon=11.45, num_modes = 2) -> list:
 
         cl, ll = self.cm(epsilon)
 
@@ -533,7 +536,8 @@ class MultiOpenEnd(DesignElement):
                                    rl=np.zeros((len(self.w1), len(self.w1))),
                                    gl=np.zeros((len(self.w1), len(self.w1))),
                                    name=self.name,
-                                   cutoff=cutoff)
+                                   cutoff=cutoff,
+                                   num_modes = num_modes)
             cache.append(line)
             if len(self.w1) == 1:
                 if 'port1' in terminal_mapping:
@@ -603,3 +607,90 @@ class Short(DesignElement):
         return cache
     def __repr__(self):
         return "Short {}".format(self.name)
+
+class UniteLine(DesignElement):
+    """
+    Make from connected lines one whole element
+    """
+
+    def __init__(self, name: str, elements: List, layers_configuration):
+        """
+        :param name: Design element name
+        :param elements: connected elements that should be united in one line
+        """
+        super().__init__('Resonator', name)
+        sample = creator.Sample(name,layers_configuration)
+        self.layer_configuration = elements[0].layer_configuration
+        self.tls_cache = []
+        self.length = 0
+        self.elements = elements
+        for i in elements:
+            sample.add(i)
+            self.length += i.length
+        objects = sample.connect_all()
+        if len(objects) != 2:
+            print(objects)
+            raise ValueError("Too many unconnected ports")
+        self.terminals = {'port1': objects[0][0].get_terminals()[objects[0][1]],
+                          'port2': objects[1][0].get_terminals()[objects[1][1]]}
+
+    def render(self):
+        builder = self.elements[0].render()
+        positive_total = builder['positive']
+        restrict_total = builder['restrict']
+        inverted_total = builder['inverted']
+        for i in self.elements[1:]:
+            builder = i.render()
+            positive_total = gdspy.boolean(positive_total, builder['positive'], 'or',
+                                     layer=self.layer_configuration.total_layer)
+            restrict_total = gdspy.boolean(restrict_total, builder['restrict'], 'or',
+                                     layer=self.layer_configuration.restricted_area_layer)
+            inverted_total = gdspy.boolean(inverted_total, builder['inverted'], 'or',
+                                     layer=self.layer_configuration.inverted)
+        return {'positive': positive_total, 'restrict': restrict_total, 'inverted': inverted_total}
+
+
+    def get_terminals(self):
+        return self.terminals
+
+    def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: Mapping[str, int], track_changes: bool = True,
+                   cutoff: float = np.inf, epsilon=11.45, num_modes = 2) -> list:
+        cl, ll = self.elements[0].cm(epsilon)
+        # lk = np.asarray(self.kinetic_inductance) / np.asarray(self.w)
+        # ll = ll + np.diag(lk)
+        line = tlsim.TLCoupler(n=len(self.elements[0].w),
+                               l=self.length,  # TODO: get length
+                               cl=cl,
+                               ll=ll,
+                               rl=np.zeros((len(self.elements[0].w), len(self.elements[0].w))),
+                               gl=np.zeros((len(self.elements[0].w), len(self.elements[0].w))),
+                               name=self.name,
+                               cutoff=cutoff,
+                               num_modes = num_modes)
+
+        if track_changes:
+            self.tls_cache.append([line])
+
+        if len(self.elements[0].w) == 1:
+            if 'port1' in terminal_mapping:
+                p1 = terminal_mapping['port1']
+            elif ('port1', 0) in terminal_mapping:
+                p1 = terminal_mapping[('port1', 0)]
+            else:
+                raise ValueError('Neither (port1, 0) or port1 found in terminal_mapping')
+
+            if 'port2' in terminal_mapping:
+                p2 = terminal_mapping['port2']
+            elif ('port2', 0) in terminal_mapping:
+                p2 = terminal_mapping[('port2', 0)]
+            else:
+                raise ValueError('Neither (port2, 0) or port2 found in terminal_mapping')
+
+            tls_instance.add_element(line, [p1, p2])
+        else:
+            mapping = [terminal_mapping[('port1', i)] for i in range(len(self.elements[0].w))] + \
+                      [terminal_mapping[('port2', i)] for i in range(len(self.elements[0].w))]
+            tls_instance.add_element(line, mapping)
+        return [line]
+    def __repr__(self):
+        return "Turn {}".format(self.name)
