@@ -6,10 +6,11 @@ from typing import List, Tuple, Mapping, Dict, AnyStr
 from copy import deepcopy
 from .. import conformal_mapping as cm
 from .. import transmission_line_simulator as tlsim
+from .functions import find_normal_point
 
 class SquidInLine(DesignElement):
     def __init__(self, name: str,  center : tuple, core: float, gap: float, ground: float,
-                 layer_configuration: LayerConfiguration, squid_params: Dict, fluxline: Dict):
+                 layer_configuration: LayerConfiguration, squid_params: Dict, fluxline: Dict, coil: str = 'old'):
         super().__init__(type='squid in line', name=name)
         self.core = core
         self.gap = gap
@@ -28,6 +29,8 @@ class SquidInLine(DesignElement):
                           'port2': None,
                           'flux': None}
         self.tls_cache = []
+
+        self.coil = coil
 
     def render(self):
         if 'side' in self.squid_params:
@@ -61,12 +64,20 @@ class SquidInLine(DesignElement):
                                         layer=self.layer_configuration.restricted_area_layer)
         positive = gdspy.boolean(line, [ground2, ground1], 'or', layer=self.layer_configuration.total_layer)
 
-
-        positive = gdspy.boolean(positive, to_remove, 'not', layer=self.layer_configuration.total_layer)
-        positive = gdspy.boolean(positive, rect, 'or', layer=self.layer_configuration.total_layer)
-        fluxline = self.connection_to_ground()
-        positive = gdspy.boolean(positive, fluxline['positive'], 'or', layer=self.layer_configuration.total_layer)
-        positive = gdspy.boolean(positive, fluxline['remove'], 'not', layer=self.layer_configuration.total_layer)
+        if self.coil == 'old':
+            # positive = gdspy.boolean(positive, to_remove, 'not', layer=self.layer_configuration.total_layer)
+            positive = gdspy.boolean(positive, rect, 'or', layer=self.layer_configuration.total_layer)
+            fluxline = self.connection_to_ground()
+            positive = gdspy.boolean(positive, fluxline['positive'], 'or', layer=self.layer_configuration.total_layer)
+            positive = gdspy.boolean(positive, fluxline['remove'], 'not', layer=self.layer_configuration.total_layer)
+        elif self.coil == 'new':
+            positive = gdspy.boolean(positive, to_remove, 'not', layer=self.layer_configuration.total_layer)
+            positive = gdspy.boolean(positive, rect, 'or', layer=self.layer_configuration.total_layer)
+            fluxline = self.connection_to_ground()
+            positive = gdspy.boolean(positive, fluxline['positive'], 'or', layer=self.layer_configuration.total_layer)
+            positive = gdspy.boolean(positive, fluxline['remove'], 'not', layer=self.layer_configuration.total_layer)
+        else:
+            raise ValueError('Coil type of flux line is not defined!')
 
         self.terminals['port1'] = DesignTerminal(position=self.port1_position, orientation=self.orientation+np.pi,
                                                   type='cpw', w=self.core, s=self.gap, g=self.ground,
@@ -129,35 +140,10 @@ class SquidInLine(DesignElement):
         to use another type of JJ or a flux line
         """
         result = None
+        remove = None
         width = self.fluxline['width']
-        if 'side' in self.squid_params:
-            length_x = self.fluxline['length_x']
-            length_y = self.fluxline['length_y']
-            (coeff, squid_pad1, squid_pad2) = (1, self.squid.rect2, self.squid.rect1) if self.squid_params[
-                                                                                             'side'] == 'right' \
-                else (-1, self.squid.rect1, self.squid.rect2)
-            connection_length = self.squid_params['removing']['right'] if self.squid_params['side'] == 'right' \
-                else self.squid_params['removing']['left']
-            indent = 1
-            rect1 = gdspy.Rectangle((squid_pad1[0] + length_x * coeff, squid_pad1[1] + indent / 2),
-                                    (squid_pad1[0] - coeff * self.squid.rect_size_a / 2,
-                                     squid_pad1[1] - width + indent / 2))
-            result = gdspy.boolean(rect1, result, 'or', layer=self.layer_configuration.total_layer)
-            connection = (self.squid_params['x'] + connection_length * coeff, squid_pad1[1] + (indent - width) / 2)
-            # add cpw from
-            flux_line_output = (self.center[0] + (self.core / 2 + self.gap + self.ground) * coeff, connection[1])
-            remove = gdspy.FlexPath(deepcopy([connection, flux_line_output]), [self.w, self.w],
-                                    offset=[-self.s, self.s], layer=self.layer_configuration.total_layer)
-            self.terminals['flux'] = DesignTerminal(flux_line_output, np.pi if coeff == 1 else 0,
-                                                         g=self.g, s=self.s,
-                                                         w=self.w, type='cpw')
-            # add connection to the ground
-            first_turn = (squid_pad2[0], squid_pad2[1] - length_y)
-            ground_connection = (first_turn[0] + coeff * self.gap + self.fluxline['width'], first_turn[1])
-            rect2 = gdspy.FlexPath(deepcopy([squid_pad2, first_turn, ground_connection]), [width],
-                                   offset=0, layer=self.layer_configuration.total_layer)
-            result = gdspy.boolean(rect2, result, 'or', layer=self.layer_configuration.total_layer)
-        else:  # for horizontal base couplers
+        if self.coil == 'old':
+            coil_shift = 12
             length = self.fluxline['length']
             for squid_pad in [self.squid.rect1, self.squid.rect2]:
                 rect1 = gdspy.Rectangle(
@@ -165,18 +151,82 @@ class SquidInLine(DesignElement):
                     (squid_pad[0] - width / 2, squid_pad[1]))
                 result = gdspy.boolean(rect1, result, 'or', layer=self.layer_configuration.total_layer)
 
-            connection = (self.squid.rect2[0], self.squid_params['y'] - self.squid_params['removing']['down'] * np.cos(
-                self.squid_params['angle']))
-            # add cpw from
-            flux_line_output = (
-            connection[0], self.squid_params['y'] - (self.gap + self.ground) * np.cos(self.squid_params['angle']))
-            remove = gdspy.FlexPath(deepcopy([connection, flux_line_output]), [self.w, self.w],
-                                    offset=[-self.s, self.s], layer=self.layer_configuration.total_layer)
-            self.terminals['flux'] = DesignTerminal(flux_line_output, self.squid_params['angle'] + np.pi / 2,
-                                                         g=self.g, s=self.s,
-                                                         w=self.w, type='cpw')
+                connection = (
+                self.squid.rect2[0], self.squid_params['y'] - self.squid_params['removing']['down'] * np.cos(
+                    self.squid_params['angle']))
+                # add cpw from
+                flux_line_output = (
+                    connection[0],
+                    self.squid_params['y'] - (self.gap + self.ground) * np.cos(self.squid_params['angle']))
+
+                connection_0 = find_normal_point(connection, flux_line_output, 20, reverse=True)
+                path1 = gdspy.FlexPath(deepcopy([connection_0, connection, flux_line_output]), [self.w, self.w],
+                                        offset=[-self.s / 2 - self.w / 2, self.s / 2 + self.w / 2], layer=self.layer_configuration.total_layer)
+
+                remove = gdspy.boolean(path1, remove, 'or', layer=self.layer_configuration.total_layer)
+
+                remove_extra = gdspy.FlexPath(deepcopy([find_normal_point(connection, flux_line_output, 25),
+                                                        find_normal_point(connection, flux_line_output, 25,
+                                                                          reverse=True)]), [self.w], offset=[-self.s / 2 - self.w / 2])
+
+                remove = gdspy.boolean(remove_extra, remove, 'or', layer=self.layer_configuration.total_layer)
+
+                self.terminals['flux'] = DesignTerminal(flux_line_output, self.squid_params['angle'] + np.pi / 2,
+                                                        g=self.g, s=self.s,
+                                                        w=self.w, type='cpw')
+        elif self.coil == 'new':
+            if 'side' in self.squid_params:
+                length_x = self.fluxline['length_x']
+                length_y = self.fluxline['length_y']
+                (coeff, squid_pad1, squid_pad2) = (1, self.squid.rect2, self.squid.rect1) if self.squid_params[
+                                                                                                 'side'] == 'right' \
+                    else (-1, self.squid.rect1, self.squid.rect2)
+                connection_length = self.squid_params['removing']['right'] if self.squid_params['side'] == 'right' \
+                    else self.squid_params['removing']['left']
+                indent = 1
+                rect1 = gdspy.Rectangle((squid_pad1[0] + length_x * coeff, squid_pad1[1] + indent / 2),
+                                        (squid_pad1[0] - coeff * self.squid.rect_size_a / 2,
+                                         squid_pad1[1] - width + indent / 2))
+                result = gdspy.boolean(rect1, result, 'or', layer=self.layer_configuration.total_layer)
+                connection = (self.squid_params['x'] + connection_length * coeff, squid_pad1[1] + (indent - width) / 2)
+                # add cpw from
+                flux_line_output = (self.center[0] + (self.core / 2 + self.gap + self.ground) * coeff, connection[1])
+                remove = gdspy.FlexPath(deepcopy([connection, flux_line_output]), [self.w, self.w],
+                                        offset=[-self.s, self.s], layer=self.layer_configuration.total_layer)
+                self.terminals['flux'] = DesignTerminal(flux_line_output, np.pi if coeff == 1 else 0,
+                                                             g=self.g, s=self.s,
+                                                             w=self.w, type='cpw')
+                # add connection to the ground
+                first_turn = (squid_pad2[0], squid_pad2[1] - length_y)
+                ground_connection = (first_turn[0] + coeff * self.gap + self.fluxline['width'], first_turn[1])
+                rect2 = gdspy.FlexPath(deepcopy([squid_pad2, first_turn, ground_connection]), [width],
+                                       offset=0, layer=self.layer_configuration.total_layer)
+                result = gdspy.boolean(rect2, result, 'or', layer=self.layer_configuration.total_layer)
+            else:  # for horizontal base couplers
+                length = self.fluxline['length']
+                for squid_pad in [self.squid.rect1, self.squid.rect2]:
+                    rect1 = gdspy.Rectangle(
+                        (squid_pad[0] + width / 2, squid_pad[1] - length * np.cos(self.squid_params['angle'])),
+                        (squid_pad[0] - width / 2, squid_pad[1]))
+                    result = gdspy.boolean(rect1, result, 'or', layer=self.layer_configuration.total_layer)
+
+                connection = (self.squid.rect2[0], self.squid_params['y'] - self.squid_params['removing']['down'] * np.cos(
+                    self.squid_params['angle']))
+                # add cpw from
+                flux_line_output = (
+                connection[0], self.squid_params['y'] - (self.gap + self.ground) * np.cos(self.squid_params['angle']))
+                remove = gdspy.FlexPath(deepcopy([connection, flux_line_output]), [self.w, self.w],
+                                        offset=[-self.s, self.s], layer=self.layer_configuration.total_layer)
+                self.terminals['flux'] = DesignTerminal(flux_line_output, self.squid_params['angle'] + np.pi / 2,
+                                                             g=self.g, s=self.s,
+                                                             w=self.w, type='cpw')
+        else:
+            raise ValueError('Coil type of flux line is not defined!')
+        # return {'positive': result,
+        #         'remove': remove,
+        #         }
         return {'positive': result,
-                'remove': remove,
+                'remove': remove
                 }
 
     def get_terminals(self):

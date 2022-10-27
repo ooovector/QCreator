@@ -107,7 +107,11 @@ class JJInLine(DesignElement):
         line = gdspy.boolean(pad_up, [pad_down, poly1, poly2, ground1, ground2], 'or',
                              layer=self.layer_configuration.total_layer)
         line.rotate(angle, (self.jj_params['x'], self.jj_params['y']))
-        return {'positive': line, 'JJ':jj}
+
+        restricted = gdspy.boolean(pad_up, [pad_down, poly1, poly2, ground1, ground2], 'or',
+                             layer=self.layer_configuration.restricted_area_layer)
+        restricted.rotate(angle, (self.jj_params['x'], self.jj_params['y']))
+        return {'positive': line, 'JJ': jj, 'restrict': restricted}
 
     def get_terminals(self):
         return self.terminals

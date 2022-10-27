@@ -26,3 +26,4 @@ from .gflux_squid import GFluxControllableSquid
 from .cross_lines import CrossLinesViaAirbridges
 from .turn import Turn, straight_CPW_with_different_g, MultiOpenEnd, Short
 from .fluxonium import Fluxonium
+from .functions import find_normal_point
