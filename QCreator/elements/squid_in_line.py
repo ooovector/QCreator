@@ -44,7 +44,7 @@ class SquidInLine(DesignElement):
 
         if 'side' in self.squid_params:
             self.line_length = 2*(self.center[1]-self.squid.rect2[1]-self.squid.rect_size_b/2 +
-                                  self.fluxline['length_y'] + 2*self.fluxline['width'])
+                                  self.fluxline['length_y'] + 2*self.fluxline['width']+self.s + self.w)
             self.port1_position = (self.center[0], self.center[1] + self.line_length/2)
             self.port2_position = (self.center[0], self.center[1] - self.line_length/2)
         else:
@@ -143,37 +143,96 @@ class SquidInLine(DesignElement):
         remove = None
         width = self.fluxline['width']
         if self.coil == 'old':
-            coil_shift = 12
-            length = self.fluxline['length']
-            for squid_pad in [self.squid.rect1, self.squid.rect2]:
+            if 'side' in self.squid_params:
+                length_x = self.fluxline['length_x']
+                length_y = self.fluxline['length_y']
+                coeff = 1 if self.squid_params['side'] == 'right' else -1
+                if self.squid_params['side'] == 'right':
+                    squid_pad1 = self.squid.rect2
+                    squid_pad2 = self.squid.rect1
+                else:
+                    squid_pad1 = self.squid.rect1
+                    squid_pad2 = self.squid.rect2
+
                 rect1 = gdspy.Rectangle(
-                    (squid_pad[0] + width / 2, squid_pad[1] - length * np.cos(self.squid_params['angle'])),
-                    (squid_pad[0] - width / 2, squid_pad[1]))
+                    (squid_pad1[0] - width / 2 +coeff*length_x*np.cos(self.squid_params['angle']), squid_pad1[1]),
+                    (squid_pad1[0] + width / 2, squid_pad1[1]-width))
                 result = gdspy.boolean(rect1, result, 'or', layer=self.layer_configuration.total_layer)
 
+                rect1 = gdspy.Rectangle(
+                    (squid_pad2[0] - width / 2, squid_pad2[1]-length_y*np.cos(self.squid_params['angle'])),
+                    (squid_pad2[0] + width / 2, squid_pad2[1]))
+                result = gdspy.boolean(rect1, result, 'or', layer=self.layer_configuration.total_layer)
+
+                rect1 = gdspy.Rectangle(
+                    (squid_pad2[0] - coeff*width / 2, squid_pad2[1]-length_y*np.cos(self.squid_params['angle'])),
+                    (squid_pad2[0] + width / 2+coeff*length_x*np.cos(self.squid_params['angle']),
+                     squid_pad2[1]-length_y*np.cos(self.squid_params['angle'])-width))
+                result = gdspy.boolean(rect1, result, 'or', layer=self.layer_configuration.total_layer)
+
+                connection_length = self.squid_params['removing']['right'] if self.squid_params['side'] == 'right' \
+                    else self.squid_params['removing']['left']
+
                 connection = (
-                self.squid.rect2[0], self.squid_params['y'] - self.squid_params['removing']['down'] * np.cos(
-                    self.squid_params['angle']))
+                    squid_pad2[0] + coeff * connection_length,
+                     self.squid.rect2[1] - np.abs((coeff-1)/2)*length_y * np.cos(self.squid_params['angle']) - width)
+
                 # add cpw from
                 flux_line_output = (
-                    connection[0],
-                    self.squid_params['y'] - (self.gap + self.ground) * np.cos(self.squid_params['angle']))
+                    connection[0] + (self.core / 2 + self.gap + self.ground) * coeff,
+                    connection[1])
 
-                connection_0 = find_normal_point(connection, flux_line_output, 20, reverse=True)
+                connection_0 = find_normal_point(connection, flux_line_output, 20,
+                                                 reverse=True)
                 path1 = gdspy.FlexPath(deepcopy([connection_0, connection, flux_line_output]), [self.w, self.w],
-                                        offset=[-self.s / 2 - self.w / 2, self.s / 2 + self.w / 2], layer=self.layer_configuration.total_layer)
+                                       offset=[-self.s / 2 - self.w / 2, self.s / 2 + self.w / 2],
+                                       layer=self.layer_configuration.total_layer)
 
                 remove = gdspy.boolean(path1, remove, 'or', layer=self.layer_configuration.total_layer)
 
                 remove_extra = gdspy.FlexPath(deepcopy([find_normal_point(connection, flux_line_output, 25),
                                                         find_normal_point(connection, flux_line_output, 25,
-                                                                          reverse=True)]), [self.w], offset=[-self.s / 2 - self.w / 2])
+                                                                          reverse=True)]), [self.w],
+                                              offset=[-self.s / 2 - self.w / 2])
 
                 remove = gdspy.boolean(remove_extra, remove, 'or', layer=self.layer_configuration.total_layer)
 
                 self.terminals['flux'] = DesignTerminal(flux_line_output, self.squid_params['angle'] + np.pi / 2,
                                                         g=self.g, s=self.s,
                                                         w=self.w, type='cpw')
+
+
+            else:
+                length = self.fluxline['length']
+                for squid_pad in [self.squid.rect1, self.squid.rect2]:
+                    rect1 = gdspy.Rectangle(
+                        (squid_pad[0] + width / 2, squid_pad[1] - length * np.cos(self.squid_params['angle'])),
+                        (squid_pad[0] - width / 2, squid_pad[1]))
+                    result = gdspy.boolean(rect1, result, 'or', layer=self.layer_configuration.total_layer)
+
+                    connection = (
+                    self.squid.rect2[0], self.squid_params['y'] - self.squid_params['removing']['down'] * np.cos(
+                        self.squid_params['angle']))
+                    # add cpw from
+                    flux_line_output = (
+                        connection[0],
+                        self.squid_params['y'] - (self.gap + self.ground) * np.cos(self.squid_params['angle']))
+
+                    connection_0 = find_normal_point(connection, flux_line_output, 20, reverse=True)
+                    path1 = gdspy.FlexPath(deepcopy([connection_0, connection, flux_line_output]), [self.w, self.w],
+                                            offset=[-self.s / 2 - self.w / 2, self.s / 2 + self.w / 2], layer=self.layer_configuration.total_layer)
+
+                    remove = gdspy.boolean(path1, remove, 'or', layer=self.layer_configuration.total_layer)
+
+                    remove_extra = gdspy.FlexPath(deepcopy([find_normal_point(connection, flux_line_output, 25),
+                                                            find_normal_point(connection, flux_line_output, 25,
+                                                                              reverse=True)]), [self.w], offset=[-self.s / 2 - self.w / 2])
+
+                    remove = gdspy.boolean(remove_extra, remove, 'or', layer=self.layer_configuration.total_layer)
+
+                    self.terminals['flux'] = DesignTerminal(flux_line_output, self.squid_params['angle'] + np.pi / 2,
+                                                            g=self.g, s=self.s,
+                                                            w=self.w, type='cpw')
         elif self.coil == 'new':
             if 'side' in self.squid_params:
                 length_x = self.fluxline['length_x']
