@@ -179,7 +179,7 @@ class SquidInLine(DesignElement):
 
                 # add cpw from
                 flux_line_output = (
-                    connection[0] + (self.core / 2 + self.gap + self.ground) * coeff,
+                    self.center[0] + coeff*(self.core / 2 + self.gap + self.ground),
                     connection[1])
 
                 connection_0 = find_normal_point(connection, flux_line_output, 20,
@@ -197,7 +197,7 @@ class SquidInLine(DesignElement):
 
                 remove = gdspy.boolean(remove_extra, remove, 'or', layer=self.layer_configuration.total_layer)
 
-                self.terminals['flux'] = DesignTerminal(flux_line_output, self.squid_params['angle'] + np.pi / 2,
+                self.terminals['flux'] = DesignTerminal(flux_line_output, np.pi if coeff == 1 else 0,
                                                         g=self.g, s=self.s,
                                                         w=self.w, type='cpw')
 
