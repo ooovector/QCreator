@@ -78,6 +78,11 @@ class Coaxmon(DesignElement):
         self.file_jj = file_jj
         self.cell_jj = cell_jj
 
+        self.imported_bandages = None
+
+        if self.coil_type == 'tzar-coil':
+            self.tzar_coil_bridge_position = None
+
     def render(self):
         """
         This function draw everything: core circle, couplers, JJs
@@ -124,7 +129,10 @@ class Coaxmon(DesignElement):
             result = gdspy.boolean(result, flux_line['remove'], 'not')
             result = gdspy.boolean(result, flux_line['positive'], 'or', layer=self.layer_configuration.total_layer)
         if self.draw_bandages:
-            bandages = self.add_bandages()
+            if self.import_jj:
+                bandages = self.import_bandages(file_name=self.file_jj, cell_name=self.cell_jj)
+            else:
+                bandages = self.add_bandages()
         else:
             bandages = None
         # set terminals for couplers
@@ -238,15 +246,12 @@ class Coaxmon(DesignElement):
             self.layer_configuration.jj_layer])
         # convert to polygonset
         squid_polygons = []
-        squid_layers = []
         for p_id, p in enumerate(squid.polygons):
             points = p.polygons[0]
             l = p.layers[0]
             squid_polygons.append(points)
-            squid_layers.append(l)
         squid_polygonset = gdspy.PolygonSet(squid_polygons, layer=self.layer_configuration.jj_layer)
 
-        # TODO: how to shift this squid?
         squid_polygonset.translate(self.JJ_coordinates[0], self.JJ_coordinates[1])
 
         angle = self.JJ_params['angle_JJ']
@@ -272,11 +277,12 @@ class Coaxmon(DesignElement):
         for point in [self.JJ.rect1, self.JJ.rect2]:
             orientation = np.arctan2(-(self.center[1] - (point[1] - length)), -(self.center[0] - point[0]))
             if JJ_pad_connection_shift:
-                connection_shift = self.JJ.rect_size_b / 2
+                connection_shift = self.JJ.rect_size_b
             else:
                 connection_shift = 0
             points = [(point[0], point[1] - connection_shift), (point[0], point[1] - length),
                       (self.center[0] + self.R2 * np.cos(orientation), self.center[1] + self.R2 * np.sin(orientation))]
+            print(points)
             path = gdspy.FlexPath(deepcopy(points), width, offset=0, layer=self.layer_configuration.total_layer)
             result = gdspy.boolean(path, result, 'or', layer=self.layer_configuration.total_layer)
         orientation = np.arctan2(-(self.center[1] - (self.JJ.rect1[1] - length)), -(self.center[0] - self.JJ.rect1[0]))
@@ -313,23 +319,26 @@ class Coaxmon(DesignElement):
                                            flux_line_output[1] + bug * np.sin(np.pi + orientation))
 
             path1 = gdspy.FlexPath(deepcopy([connection, flux_line_output]), [self.gap],
-                                    offset=[-self.core / 2 - self.gap / 2])
+                                   offset=[-self.core / 2 - self.gap / 2])
             remove = gdspy.boolean(path1, remove, 'or', layer=self.layer_configuration.total_layer)
 
             middle_point = (connection[0] + middle_shift * np.cos(orientation),
-                      connection[1] + middle_shift * np.sin(orientation))
+                            connection[1] + middle_shift * np.sin(orientation))
+
+            self.tzar_coil_bridge_position = middle_point
 
             cut = gdspy.FlexPath(deepcopy([connection, middle_point]), [connection_shift + length],
-                                     offset=[self.core / 2 + (connection_shift + length) / 2])
+                                 offset=[self.core / 2 + (connection_shift + length) / 2])
             remove = gdspy.boolean(cut, remove, 'or', layer=self.layer_configuration.total_layer)
 
             middle_point_ = (connection[0] + (middle_shift + self.gap / 2) * np.cos(orientation),
-                            connection[1] + (middle_shift + self.gap / 2) * np.sin(orientation))
+                             connection[1] + (middle_shift + self.gap / 2) * np.sin(orientation))
 
-            middle_point__ = find_normal_point(middle_point_, flux_line_output, connection_shift + length + self.core / 2)
+            middle_point__ = find_normal_point(middle_point_, flux_line_output,
+                                               connection_shift + length + self.core / 2)
 
             path2 = gdspy.FlexPath(deepcopy([middle_point__, middle_point_, flux_line_output]), [self.gap],
-                                    offset=[self.core / 2 + self.gap / 2])
+                                   offset=[self.core / 2 + self.gap / 2])
 
             remove = gdspy.boolean(path2, remove, 'or', layer=self.layer_configuration.total_layer)
 
@@ -357,6 +366,10 @@ class Coaxmon(DesignElement):
                                         self.transformations['mirror'][1])
             orientation = np.arctan2(flux_line_output_connection[1] - qubit_center[1],
                                      flux_line_output_connection[0] - qubit_center[0]) + np.pi
+            if coil == 'tzar-coil':
+                self.tzar_coil_bridge_position = mirror_point(self.tzar_coil_bridge_position,
+                                                              self.transformations['mirror'][0],
+                                                              self.transformations['mirror'][1])
         if 'rotate' in self.transformations:
             flux_line_output_connection = rotate_point(flux_line_output_connection, self.transformations['rotate'][0],
                                                        self.transformations['rotate'][1])
@@ -365,6 +378,11 @@ class Coaxmon(DesignElement):
 
             orientation = np.arctan2(flux_line_output_connection[1] - qubit_center[1],
                                      flux_line_output_connection[0] - qubit_center[0]) + np.pi
+            if coil == 'tzar-coil':
+                self.tzar_coil_bridge_position = rotate_point(
+                    rotate_point(flux_line_output_connection, self.transformations['rotate'][0],
+                                 self.transformations['rotate'][1]), self.transformations['rotate'][0],
+                    self.transformations['rotate'][1])
         if self.transformations == {}:
             orientation = orientation + np.pi
         self.terminals['flux'] = DesignTerminal(flux_line_output_connection, orientation, g=self.grounded.g,
@@ -395,6 +413,29 @@ class Coaxmon(DesignElement):
         bandages = gdspy.boolean(bandage_to_island, [bandage_to_fluxline, bandage_to_ground], 'or',
                                  layer=self.layer_configuration.bandages_layer)
         return bandages
+
+    def import_bandages(self, file_name, cell_name):
+        """
+        Import bandages topology from a gds file
+        """
+        import os
+        path = os.getcwd()
+        path_for_file = path[:path.rindex('QCreator')] + 'QCreator\QCreator\elements\junctions' + file_name
+        # import cell
+        bandages = gdspy.GdsLibrary().read_gds(infile=path_for_file).cells[cell_name].remove_polygons(lambda pts, layer,
+                                                                                                             datatype: layer not in [
+            self.layer_configuration.bandages_layer])
+        # convert to polygonset
+        bandages_polygons = []
+        for p_id, p in enumerate(bandages.polygons):
+            points = p.polygons[0]
+            l = p.layers[0]
+            bandages_polygons.append(points)
+        bandages_polygonset = gdspy.PolygonSet(bandages_polygons, layer=self.layer_configuration.bandages_layer)
+        bandages_polygonset.translate(self.JJ_coordinates[0], self.JJ_coordinates[1])
+        angle = self.JJ_params['angle_JJ']
+        bandages_polygonset.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
+        return bandages_polygonset
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True,
                    cutoff: float = np.inf, epsilon: float = 11.45) -> list:
@@ -436,6 +477,20 @@ class Coaxmon(DesignElement):
         if track_changes:
             self.tls_cache.append(cache + mut_cap + cap_g)
         return cache + mut_cap + cap_g
+
+    def get_center(self):
+        if self.transformations == {}:
+            center = self.center
+        if 'rotate' in self.transformations:
+            center = rotate_point(point=self.center, angle=self.transformations['rotate'][0], origin=self.transformations['rotate'][1])
+        if 'mirror' in self.transformations:
+            center = mirror_point(point=self.center, ref1=self.transformations['rotate'][0], ref2=self.transformations['rotate'][1])
+        return center
+
+
+
+
+
 
 class CoaxmonCoupler:
     """
