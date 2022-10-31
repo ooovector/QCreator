@@ -210,7 +210,7 @@ class Coaxmon(DesignElement):
         result = gdspy.boolean(result, result, 'or', layer=self.layer_configuration.jj_layer)
         angle = self.JJ_params['angle_JJ']
         if self.JJ_pad_connection_shift:
-            connection_shift = self.JJ.contact_pad_b_outer/2
+            connection_shift = self.JJ.contact_pad_b_outer / 2
         else:
             connection_shift = 0
         result.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
@@ -327,15 +327,17 @@ class Coaxmon(DesignElement):
 
             self.tzar_coil_bridge_position = middle_point
 
-            cut = gdspy.FlexPath(deepcopy([connection, middle_point]), [connection_shift + length],
-                                 offset=[self.core / 2 + (connection_shift + length) / 2])
+            connection_shift_ = 0
+
+            cut = gdspy.FlexPath(deepcopy([connection, middle_point]), [connection_shift_ + length],
+                                 offset=[self.core / 2 + (connection_shift_ + length) / 2])
             remove = gdspy.boolean(cut, remove, 'or', layer=self.layer_configuration.total_layer)
 
             middle_point_ = (connection[0] + (middle_shift + self.gap / 2) * np.cos(orientation),
                              connection[1] + (middle_shift + self.gap / 2) * np.sin(orientation))
 
             middle_point__ = find_normal_point(middle_point_, flux_line_output,
-                                               connection_shift + length + self.core / 2)
+                                               connection_shift_ + length + self.core / 2)
 
             path2 = gdspy.FlexPath(deepcopy([middle_point__, middle_point_, flux_line_output]), [self.gap],
                                    offset=[self.core / 2 + self.gap / 2])
