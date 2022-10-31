@@ -249,9 +249,18 @@ class SquidInLine(DesignElement):
                     squid_pad1 = self.squid.rect1
                     squid_pad2 = self.squid.rect2
 
+                # rect1 = gdspy.Rectangle(
+                #     (squid_pad1[0] - width / 2 + coeff * length_x * np.cos(self.squid_params['angle']), squid_pad1[1]),
+                #     (squid_pad1[0] + width / 2, squid_pad1[1] - width))
+
                 rect1 = gdspy.Rectangle(
-                    (squid_pad1[0] - width / 2 + coeff * length_x * np.cos(self.squid_params['angle']), squid_pad1[1]),
-                    (squid_pad1[0] + width / 2, squid_pad1[1] - width))
+                    (squid_pad1[0] - width / 2 - np.abs((coeff - 1) / 2) * length_x * np.cos(
+                        self.squid_params['angle']),
+                     squid_pad1[1]),
+                    (squid_pad1[0] + width / 2 + np.abs((coeff + 1) / 2) * length_x * np.cos(
+                        self.squid_params['angle']),
+                     squid_pad1[1] - width))
+
                 result = gdspy.boolean(rect1, result, 'or', layer=self.layer_configuration.total_layer)
 
                 rect1 = gdspy.Rectangle(
@@ -296,8 +305,6 @@ class SquidInLine(DesignElement):
                 self.terminals['flux'] = DesignTerminal(flux_line_output, np.pi if coeff == 1 else 0,
                                                         g=self.g, s=self.s,
                                                         w=self.w, type='cpw')
-
-
             else:
                 length = self.fluxline['length']
                 for squid_pad in [self.squid.rect1, self.squid.rect2]:
