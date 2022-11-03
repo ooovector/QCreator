@@ -25,24 +25,27 @@ class Bolgar_marks(DesignElement):
             filename = "\cut_cross.gds"
             cell_name = 'Cut_cross'
 
-        cross_positive = gdspy.GdsLibrary().read_gds(infile=self.path_mask +
-                                                            filename).cells[cell_name].remove_polygons(lambda pts,layer,
-                                                           datatype: layer != self.layers_configuration['total'])
+        # cross_positive = gdspy.GdsLibrary().read_gds(infile=self.path_mask +
+        #                                                     filename).cells[cell_name].remove_polygons(lambda pts,layer,
+        #                                                    datatype: layer != self.layers_configuration['total'])
 
         cross_negative = gdspy.GdsLibrary().read_gds(infile=self.path_mask +
                                                             filename).cells[cell_name].remove_polygons(lambda pts,layer,
                                                            datatype: layer != self.layers_configuration['inverted'])
 
-
-        for elements_layer in [cross_negative.polygons,cross_positive.polygons]:
+        # for elements_layer in [cross_negative.polygons,cross_positive.polygons]:
+        for elements_layer in [cross_negative.polygons]:
             for element in elements_layer:
-                element.translate(self.cross_position[0],self.cross_position[1])
+                element.translate(self.cross_position[0], self.cross_position[1])
 
-        restricted_object=gdspy.boolean(cross_negative.get_polygons(),cross_positive.get_polygons(),'or')
+        # restricted_object=gdspy.boolean(cross_negative.get_polygons(),cross_positive.get_polygons(),'or')
 
-        return {'positive': cross_positive,
-                'inverted': cross_negative,
-                'restrict': restricted_object}
+        # return {'positive': cross_positive,
+        #         'inverted': cross_negative,
+        #         'restrict': restricted_object}
+
+        return {'inverted': cross_negative}
+
 
 
     def get_terminals(self) -> dict:
