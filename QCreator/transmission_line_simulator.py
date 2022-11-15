@@ -4,59 +4,6 @@ from scipy.constants import e, hbar, h
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 
-
-class QVariable:
-    """
-    Represents a variable of the circuit wavefunction or an constant external bias flux or charge.
-    """
-
-    def __init__(self, name):
-        self.name = name
-
-    def create_grid(self, nodeNo, phase_periods, centre=0):
-        """
-        Creates a discrete grid for wavefunction variables.
-        :param nodeNo: number of discrete points on the grid
-        :param phase_periods: number of 2pi intervals in the grid
-        """
-        self.variable_type = 'variable'
-        minNode = np.round(-nodeNo / 2)
-        maxNode = np.round(nodeNo / 2)
-        self.phase_grid = np.linspace(-np.pi * phase_periods + centre, np.pi * phase_periods + centre, nodeNo,
-                                      endpoint=False)
-        self.charge_grid = np.linspace(minNode / phase_periods, maxNode / phase_periods, nodeNo, endpoint=False)
-        self.phase_step = 2 * np.pi * phase_periods / nodeNo
-        self.charge_step = 1.0 / phase_periods
-        self.nodeNo = nodeNo
-
-    def set_parameter(self, phase_value, voltage_value):
-        """
-        Sets an external flux and/or charge bias.
-        :param phase_value: external flux bias in flux quanta/(2pi)
-        :param charge_value: external charge bias in cooper pairs
-        """
-        self.variable_type = 'parameter'
-        self.phase_grid = np.asarray([phase_value])
-        self.charge_grid = np.asarray([voltage_value])
-        self.phase_step = np.inf
-        self.charge_step = np.inf
-        self.nodeNo = 1
-
-    def get_phase_grid(self):
-        return self.phase_grid
-
-    def get_charge_grid(self):
-        return self.charge_grid
-
-    def get_phase_step(self):
-        return self.phase_step
-
-    def get_charge_step(self):
-        return self.charge_step
-
-    def get_nodeNo(self):
-        return self.nodeNo
-
 class TLSystemElement:
     @abstractmethod
     def num_terminals(self):
@@ -202,6 +149,7 @@ class Capacitor(TLSystemElement):
         self.C = c
         pass
 
+
 class Inductor(TLSystemElement):
     def num_terminals(self):
         return 2
@@ -278,7 +226,7 @@ class Inductor(TLSystemElement):
         if len(node_phases) != 2:
             raise Exception('ConnectionError',
                             'Inductance {0} has {1} nodes connected instead of 2.'.format(self.name, len(node_phases)))
-        return (node_phases[0]-node_phases[1])**2/(2*self.L)
+        return (node_phases[0] - node_phases[1]) ** 2 / (2 * self.L)
 
     def __init__(self, l=None, name=''):
         super().__init__('L', name)
@@ -392,6 +340,7 @@ class Port(TLSystemElement):
         self.Z0 = z0
         self.idc = 0
         self.dc = dc
+
 
 class TLCoupler(TLSystemElement):
     '''
@@ -618,7 +567,7 @@ class TLCoupler(TLSystemElement):
         if cutoff is not None and np.isfinite(cutoff):
             cl_min = 1 / np.sqrt(np.linalg.norm(ll @ cl, ord=2))  # minimum speed of light in TL
             df = cl_min / (2 * l)
-            num_modes = max(int(cutoff // df),num_modes)
+            num_modes = max(int(cutoff // df), num_modes)
             if num_modes < 2:
                 num_modes = 2
             self.num_modes = num_modes
@@ -669,8 +618,9 @@ class JosephsonJunctionChain(TLSystemElement):
     def nonlinear_potential(self, node_phases, node_charges):
         if len(node_phases) != 2:
             raise Exception('ConnectionError',
-                            'Josephson junction {0} has {1} nodes connected instead of 2.'.format(self.name, len(node_phases)))
-        return self.E_J*(1-np.cos(node_phases[0] - node_phases[1])) * self.n_junctions
+                            'Josephson junction {0} has {1} nodes connected instead of 2.'.format(self.name,
+                                                                                                  len(node_phases)))
+        return self.E_J * (1 - np.cos(node_phases[0] - node_phases[1])) * self.n_junctions
 
     def potential_gradient(self, submode):
         gradient = self.E_J * np.sin((submode[0] - submode[1]) / self.n_junctions) / (hbar / (2 * e)) ** 2 * 1e-9
@@ -731,12 +681,12 @@ class JosephsonJunctionChain(TLSystemElement):
 
     def __init__(self, e_j=None, n_junctions=1, name=''):
         super().__init__('JJ', name)
+        self.stationary_phase = 0
         self.E_J = e_j
         self.n_junctions = n_junctions
 
         self.phi_0 = hbar / (2 * e)  # reduced flux quantum
         self.Phi_0 = h / (2 * e)
-        self.stationary_phase = 0
 
     def L_lin(self):
         return self.phi_0 ** 2 / (self.E_J * np.cos(self.stationary_phase)) * self.n_junctions  # linear part of JJ
@@ -757,22 +707,13 @@ class TLSystem:
         self.dof_mapping = []  # ???
 
         self.JJs = []  # all nonlinear elements
-
-        self.variables = []
-        self.linear_coordinate_transform = np.asarray(0)
-
-        self.dc_ports = []  # dc ports for external flux
-        self.dc_nodes = set()  # dc nodes
+        self.stationary_nodes_var = None
 
     def add_element(self, element, nodes):
         self.elements.append(element)
 
         if element.type_ == 'JJ':
             self.JJs.append(element)
-
-        if element.type_ == 'Port':
-            if element.dc:
-                self.dc_ports.append(element)
 
         for node in nodes:
             if node not in self.nodes:
@@ -783,130 +724,6 @@ class TLSystem:
 
         return
 
-    def add_variable(self, variable):
-        """
-        Add variable to the circuit as an object from QVariable class.
-        For example, normal variable ξ_i or periodic (extended) variable θ_i.
-        :param variable:
-        """
-        self.variables.append(variable)
-
-    def set_variables(self, variables_names: list, nodeNos: list, periods_type: list = None, centres: list = None,
-                      dc: bool = False):
-        """
-        Set variables to the circuit and create grids for them. For stationary variables set parameters from
-        :param variables_names: list with variables names
-        :param nodeNos: list of points for each variable
-        :param periods_type:
-        :param centres: list
-        :param dc: True if the circuit contains dc sources
-        """
-        if not centres:
-            centres = [0 for i in range(len(variables_names))]
-        variables = []  # variables with phase grid
-        parameters = []  # parameters
-
-        # set variables with phase grid
-        for v_id, v in enumerate(variables_names):
-            var = QVariable(v)
-            variables.append(var)
-            if periods_type[v_id] == 'periodic':
-                period = 1
-            elif periods_type[v_id] == 'extended':
-                period = self.define_extended_period()
-            elif type(periods_type[v_id]) == int:
-                period = periods_type[v_id]
-            else:
-                raise ValueError('Variables can be only periodic or extended!')
-            # TODO: add extended period
-            # elif periods_type[v_id] == 'extended':
-            #     period = self.define_extended_period()
-            # else:
-            #     raise ValueError('Variables can be only periodic or extended!')
-            var.create_grid(nodeNos[v_id], period, centres[v_id])
-            self.add_variable(var)
-
-        # set parameters from stationary phases
-        if not dc:
-            return variables, parameters
-        else:
-            stationary_nodes = list(self.get_stationary_phase_nodes())
-            phi_stationary = np.squeeze(self.scdc_stationary_phases())
-
-            for node_id, node in enumerate(stationary_nodes):
-                index = self.nodes.index(node)
-                par = QVariable('φ_x' + str(node))
-                parameters.append(par)
-                phase_x = phi_stationary[index]
-                par.set_parameter(phase_value=phase_x, voltage_value=0)
-                self.add_variable(par)
-            return variables, parameters
-
-    def define_extended_period(self):
-        """
-        This method returns approximately reliable number of periods for extended variables.
-        """
-        Phi_0 = h / (2 * e)
-        ECmat = self.capacitance_matrix_legendre_transform() / 2 * (4 * e ** 2) / h / 1e9
-        Elmat = self.inv_inductance_matrix_variables() / 2 * (Phi_0 / (2 * np.pi)) ** 2 / h / 1e9
-
-
-
-    def reset_variables(self):
-        self.variables = []
-
-    def map_nodes_linear(self, coefficients):
-        """
-        Sets the value of node phases and coefficients from Taylor series (and, respectively, their conjugate charges)
-        as a linear combination of the circuit variables.
-        """
-        node_no = len(self.nodes)
-        internal_dof_no = sum(e.num_degrees_of_freedom_dynamic() for e in self.elements if e.type_ == 'TL')
-        nodes_dofs_no = node_no + int(internal_dof_no / 2)
-
-        # parameters
-        stationary_nodes_nu = len(list(self.get_stationary_phase_nodes()))
-
-        if coefficients.shape != tuple([nodes_dofs_no, len(self.variables)]):
-            raise Exception('VariableError',
-                            'Wrong shape of transformation matrix. Got {0}, expected {1}'.format(
-                                coefficients.shape, tuple([nodes_dofs_no, len(self.variables)])))
-        self.linear_coordinate_transform = coefficients
-
-    def grid_shape(self):
-        """
-        Returns shape of the phase grid
-        """
-        return tuple([v.get_nodeNo() for v in self.variables])
-
-    def create_phase_grid(self):
-        """
-        Creates a n-d grid of the phase variables, where n is the number of variables in the circuit, on which the circuit wavefunction depends.
-        """
-        axes = []
-        for variable in self.variables:
-            axes.append(variable.get_phase_grid())
-        return np.meshgrid(*tuple(axes), indexing='ij')
-
-    def create_charge_grid(self):
-        """
-        Creates a n-d grid of the charge variables, where n is the number of variables in the circuit, on which the circuit wavefunction, when transformed into charge representation, depends.
-        """
-        self.invalidation_flag = True
-        axes = []
-        for variable in self.variables:
-            axes.append(variable.get_charge_grid())
-        return np.meshgrid(*tuple(axes), indexing='ij')
-
-    # def grounded_node_ind(self):
-    #     gnd_ind = []
-    #     for elem_id, elem in enumerate(self.elements):
-    #         if elem.type_ in ['Port', 'Short']:
-    #             voltages = self.get_element_dofs(elem)[0]
-    #             for v in voltages:
-    #                 if v not in gnd_ind:
-    #                     gnd_ind.append(v)
-    #     return gnd_ind
 
     def capacitance_matrix(self):
         """
@@ -927,7 +744,7 @@ class TLSystem:
 
         internal_dof_offset = node_no
         for elem_id, elem in enumerate(self.elements):
-            cap_mat = elem.get_capacitance_matrix()
+            cap_mat = np.real(elem.get_capacitance_matrix())
             no_kinetic_internal_dofs = int(elem.num_degrees_of_freedom_dynamic() / 2)
             if type(cap_mat) is not int:
                 elem_terminals = self.terminal_node_mapping[elem_id]
@@ -943,52 +760,7 @@ class TLSystem:
                             capacitance_matrix[internal_dof_offset + dof1][internal_dof_offset + dof2] += \
                                 cap_mat[len(elem_terminals) + dof1][len(elem_terminals) + dof2]
                     internal_dof_offset += no_kinetic_internal_dofs
-
         return capacitance_matrix
-
-    def capacitance_matrix_variables(self):
-        """
-        Calculates the capacitance matrix for the energy term of the qubit Lagrangian in the variable respresentation.
-        """
-        C = np.einsum('ji,jk,kl->il', self.linear_coordinate_transform, self.capacitance_matrix(),
-                      self.linear_coordinate_transform)
-        return C
-
-    def capacitance_matrix_legendre_transform(self):
-        """
-        Calculates the principle pivot transform of the capacitance matrix in variable representation with respect to
-        "variables" as opposed to "parameters" for the Legendre transform
-        """
-        inverted_indeces = [variable_id for variable_id, variable in enumerate(self.variables) if
-                            variable.variable_type == 'variable']
-        print('Inverted indeces', inverted_indeces)
-        noninverted_indeces = [variable_id for variable_id, variable in enumerate(self.variables) if
-                               variable.variable_type == 'parameter']
-        print(noninverted_indeces)
-        print('Noninverted indeces', noninverted_indeces)
-        Aii = self.capacitance_matrix_variables()[tuple(np.meshgrid(inverted_indeces, inverted_indeces))].T
-        Ain = self.capacitance_matrix_variables()[tuple(np.meshgrid(inverted_indeces, noninverted_indeces))].T
-        Ani = self.capacitance_matrix_variables()[tuple(np.meshgrid(noninverted_indeces, inverted_indeces))].T
-        # Ann = self.capacitance_matrix_variables(symbolic)[tuple(np.meshgrid(noninverted_indeces, noninverted_indeces))].T
-        Bii = np.linalg.inv(Aii)
-        Bin = -np.dot(np.linalg.inv(Aii), Ain)
-        Bni = -np.dot(Ani, np.linalg.inv(Aii))
-        Bnn = np.einsum('ij,jk,kl->il', Ani, np.linalg.inv(Aii), Ain)  # -Ann
-        B = np.empty(self.capacitance_matrix_variables().shape)
-        # if sympy could do indexing properly, we would have 3 time less code!!
-        for i1, i2 in enumerate(inverted_indeces):
-            for j1, j2 in enumerate(inverted_indeces):
-                B[j2, i2] = Bii[j1, i1]
-        for i1, i2 in enumerate(noninverted_indeces):
-            for j1, j2 in enumerate(inverted_indeces):
-                B[j2, i2] = Bin[j1, i1]
-        for i1, i2 in enumerate(inverted_indeces):
-            for j1, j2 in enumerate(noninverted_indeces):
-                B[j2, i2] = Bni[j1, i1]
-        for i1, i2 in enumerate(noninverted_indeces):
-            for j1, j2 in enumerate(noninverted_indeces):
-                B[j2, i2] = Bnn[j1, i1]
-        return B
 
     def inv_inductance_matrix(self, jj_lin=True):
         """
@@ -1008,7 +780,7 @@ class TLSystem:
 
         internal_dof_offset = node_no
         for elem_id, elem in enumerate(self.elements):
-            inv_ind_mat = elem.get_inv_inductance_matrix()
+            inv_ind_mat = np.real(elem.get_inv_inductance_matrix())
             no_potential_internal_dofs = int(elem.num_degrees_of_freedom_dynamic() / 2)
             if not jj_lin:
                 if elem.type_ == 'JJ':
@@ -1030,103 +802,6 @@ class TLSystem:
                     internal_dof_offset += no_potential_internal_dofs
         return inv_inductance_matrix
 
-    def inv_inductance_matrix_variables(self, jj_lin=False):
-        """
-        Calculates the inverse inductance matrix for the energy term of the qubit Lagrangian in the variable respresentation.
-        """
-        L_inv = np.einsum('ji,jk,kl->il', self.linear_coordinate_transform, self.inv_inductance_matrix(jj_lin),
-                          self.linear_coordinate_transform)
-        return L_inv
-
-    def calculate_phase_potential(self):
-        """
-        Calculates the potential landspace of the circuit phase-dependent energy in phase representation.
-        :returns: the phase potential landscape on the wavefunction grid.
-        """
-        from scipy.constants import h, e
-        Phi_0 = h / (2 * e)
-        grid_shape = self.grid_shape()
-        grid_size = np.prod(grid_shape)
-        phase_grid = self.create_phase_grid()
-        phase_grid = np.reshape(np.asarray(phase_grid), (len(self.variables), grid_size))  # 2D array
-        self.phase_potential = np.zeros(grid_shape, dtype=complex)
-
-        # fill potential in phase representation from inverse inductance matrix
-        # here ELmat in Hz
-        ELmat = self.inv_inductance_matrix_variables() / 2 * (Phi_0 / (2 * np.pi)) ** 2 / h / 1e9
-        print('ELmat', ELmat)
-        linear_phase_pot = np.diag(np.einsum('ji,jk,kl->il', phase_grid, ELmat, phase_grid))
-        linear_phase_pot = np.reshape(linear_phase_pot, grid_shape)
-        self.phase_potential += linear_phase_pot
-        # fill potential in phase representation from energy terms of junctions
-        for elem_id, elem in enumerate(self.elements):
-            if elem.type_ == 'JJ':
-                element_node_ids = []
-                terminals = self.terminal_node_mapping[elem_id]
-                for t in terminals:
-                    ind = self.nodes.index(t)
-                    element_node_ids.append(ind)
-                node_phases = np.einsum('ij,jk->ik', self.linear_coordinate_transform, phase_grid)[element_node_ids, :]
-                node_phases = np.reshape(node_phases, (len(element_node_ids),) + grid_shape)
-                # in GHz
-                self.phase_potential += elem.nonlinear_potential(node_phases=node_phases,
-                                                                 node_charges=np.zeros(node_phases.shape)) / h / 1e9
-        return self.phase_potential
-
-    def calculate_charge_potential(self):
-        """
-        Calculates the potential landspace of the circuit charge-dependent energy in charge representation.
-        :returns: the charge potential landscape on the wavefunction grid.
-        """
-        from scipy.constants import e
-        grid_shape = self.grid_shape()
-        grid_size = np.prod(grid_shape)
-        charge_grid = np.reshape(np.asarray(self.create_charge_grid()), (len(self.variables), grid_size))
-        # here ECmat in GHz
-        ECmat = self.capacitance_matrix_legendre_transform() / 2 * (4 * e ** 2) / h / 1e9
-        print('ECmat', ECmat)
-        self.charge_potential = np.einsum('ij,ik,kj->j', charge_grid, ECmat, charge_grid)
-        self.charge_potential = np.reshape(self.charge_potential, grid_shape)
-        return self.charge_potential
-
-    def calculate_potentials(self):
-        """
-        Calculate potentials for Fourier-based hamiltonian action.
-        """
-        from scipy.sparse.linalg import LinearOperator
-        self.calculate_phase_potential()
-        self.calculate_charge_potential()
-        self.hamiltonian_Fourier = LinearOperator((np.prod(self.grid_shape()), np.prod(self.grid_shape())),
-                                                  matvec=self.hamiltonian_phase_action)
-        return self.charge_potential, self.phase_potential
-
-    def hamiltonian_phase_action(self, state_vector):
-        """
-        Implements the action of the hamiltonian on the state vector describing the system in phase representation.
-        :param state_vector: wavefunction to act upon
-        :returns: wavefunction after action of the hamiltonian
-        """
-        psi = np.reshape(state_vector, self.charge_potential.shape)
-        phi = np.fft.fftshift(np.fft.fftn(np.fft.fftshift(psi)))
-        Up = self.phase_potential.ravel()*state_vector
-        Tp = np.fft.ifftshift(np.fft.ifftn(np.fft.ifftshift(self.charge_potential*phi))).ravel()
-        return Up+Tp
-
-    def diagonalize_phase(self, num_states=2, use_sparse=True, hamiltonian_type='Fourier', maxiter=1000):
-        """Performs sparse diagonalization of the circuit hamiltonian.
-        :param: number of states, starting from the ground state, to be obtained.
-        :returns: energies and wavefunctions of the first num_states states.
-        """
-        from scipy.sparse.linalg import eigs
-        if hamiltonian_type =='Fourier':
-            energies, wavefunctions = eigs(self.hamiltonian_Fourier, k=num_states, which='SR', maxiter=maxiter)
-        else:
-            raise ValueError('Not supported by tlsim!')
-        energy_order = np.argsort(np.real(energies))
-        energies = energies[energy_order]
-        wavefunctions = wavefunctions[:, energy_order]
-        wavefunctions = np.reshape(wavefunctions, self.charge_potential.shape+(num_states,))
-        return energies, wavefunctions
 
     def transformation_to_normal_variables(self, modes_vectors):
         """
@@ -1161,7 +836,6 @@ class TLSystem:
         where n - number of normal variables and d - number of dynamic degrees of freedom (voltages, currents and
         coefficients from Taylor series)
         """
-        nodes = self.nodes
         node_no = len(self.nodes)
         internal_dof_no = sum(e.num_degrees_of_freedom_dynamic() for e in self.elements if e.type_ == 'TL')
         nodes_dofs_no = node_no + int(internal_dof_no / 2)
@@ -1179,7 +853,7 @@ class TLSystem:
 
         # fill for parameters
         for par in range(stationary_parameters_nu):
-            node = stationary_nodes[par] # node with external stationary phase
+            node = stationary_nodes[par]  # node with external stationary phase
             index = self.nodes.index(node)
             vector = np.zeros(nodes_dofs_no)
             vector[index] = 1
@@ -1192,11 +866,37 @@ class TLSystem:
         Create transformation matrix from nodes variables with stationary phases to periodic and extended variables
         theta_i in the following way:
         φ_i = a_i_1 theta_1 + a_i_1 theta_2 + ... + a_i_m theta_m + φ_i_stationary
+        where ξ_i_stationary exists only if external stationary phase can be added node φ_i
         :param modes_vectors: matrix with eigenvectors related to the normal variables with shape (n, d),
         where n - number of normal variables and d - number of dynamic degrees of freedom (voltages, currents and
-        coefficients from Taylor series)
+        coefficients from Taylor series).
         """
-        pass
+        from numpy.linalg import pinv
+        var_p_e, T_mat = self.get_transformation_mat_sc_islands3(modes_vectors)
+        T_mat_inv = pinv(T_mat)  # phi_i = T_mat_inv_ij theta_j
+
+        per_ext_variables_no = T_mat.shape[0]
+
+        node_no = len(self.nodes)
+        internal_dof_no = sum(e.num_degrees_of_freedom_dynamic() for e in self.elements if e.type_ == 'TL')
+
+        nodes_dofs_no = node_no + int(internal_dof_no / 2)
+
+        stationary_nodes = list(self.get_stationary_phase_nodes())
+        stationary_parameters_nu = len(stationary_nodes)
+        transformation_matrix = np.zeros((nodes_dofs_no, per_ext_variables_no + stationary_parameters_nu), dtype=complex)
+
+        # fill for variables
+        transformation_matrix[:, :per_ext_variables_no] = T_mat_inv
+
+        # fill for parameters
+        for par in range(stationary_parameters_nu):
+            node = stationary_nodes[par]  # node with external stationary phase
+            index = self.nodes.index(node)
+            vector = np.zeros(nodes_dofs_no)
+            vector[index] = 1
+            transformation_matrix[:, par + per_ext_variables_no] = vector
+        return transformation_matrix
 
     def mode_vector_indices(self):
         node_no = len(self.nodes)
@@ -1497,8 +1197,6 @@ class TLSystem:
             self.set_phases(solution.x, subsystem_id)
             print(solution.x)
 
-
-
     def scdc_stationary_phases(self):
         """
         Returns vector of stationary phases phi_stationary according to the minimization of the potential with zero initial
@@ -1515,6 +1213,7 @@ class TLSystem:
 
         for subsystem_id, subsystem in enumerate(subsystems):
             scdc_subnodes, scdc_shorts, scdc_subelements = subsystem
+            print('subsystem', scdc_subnodes, scdc_shorts, scdc_subelements)
             initial = np.zeros(len(scdc_subnodes))
             solution = minimize(lambda x: self.scdc_energy(x, subsystem_id), initial,
                                 jac=lambda x: self.scdc_energy_gradient(x, subsystem_id),
@@ -1523,7 +1222,6 @@ class TLSystem:
             for node_id, node in enumerate(scdc_subnodes):
                 node_ind = self.nodes.index(node)
                 stationary_phases[node_ind] = solution.x[node_id]
-
         return stationary_phases
 
     def i_dc(self):
@@ -1817,13 +1515,12 @@ class TLSystem:
                 kerr_coefficients_matrix = perturbation_matrix / (hbar * 2 * np.pi)  # in Hz
                 JJ_kerr += kerr_coefficients_matrix
         return JJ_kerr
-
     ###################################################################################
     # Cross-kerr and self-kerr couplings
     ###################################################################################
     def check_self_non_linearity(self, omegas, kerr_matrix, epsilon=0.0001):
         """
-        Self non linearity shows type of mode: harmonic(or quasi harmonic) or anharmonic
+        Self non-linearity shows type of mode: harmonic(or quasi harmonic) or anharmonic
         :param omegas: Hz
         :param kerr_matrix: Hz
         :param epsilon:
@@ -1849,7 +1546,7 @@ class TLSystem:
 
     def check_cross_non_linearity(self, omegas, kerr_matrix, epsilon=0.01):
         """
-        Cross non linearity shows how mode1 and mode2 correlated
+        Cross non-linearity shows how mode1 and mode2 correlated
         :param omegas
         :param kerr_matrix:
         :param epsilon:
@@ -1884,7 +1581,8 @@ class TLSystem:
                 quasi_independent_subspaces.append([mode])
         return quasi_independent_subspaces
 
-    def define_modes_parameters(self, omegas, modes, kerr_matrix, dc_phase=None, epsilon_cross=0.001, epsilon_self=0.0001):
+    def define_modes_parameters(self, omegas, modes, kerr_matrix, dc_phase=None, epsilon_cross=0.001,
+                                epsilon_self=0.0001):
         """
         This methods calculate effective hamiltonian for uncoupled or coupled subsystems for all modes presended
         in the circuit
@@ -1948,117 +1646,6 @@ class TLSystem:
             hamiltonian_parameters[str(subspace_id)] = subspace_dict
 
         return hamiltonian_parameters
-
-    # def define_modes_parameters_dc(self, omegas, modes, kerr_matrix, i_dc_list, epsilon_cross=0.001,
-    #                                epsilon_self=0.0001):
-    #     independent_subspaces = self.check_cross_non_linearity(omegas, kerr_matrix, epsilon_cross)
-    #     dict_self = self.check_self_non_linearity(omegas, kerr_matrix, epsilon_self)
-    #     hamiltonian_parameters = dict.fromkeys([str(i) for i in range(len(independent_subspaces))])
-    #     num_junction = len(self.JJs)
-    #     for subspace_id, subspace in enumerate(independent_subspaces):
-    #         num = len(subspace)
-    #         dc_phase_initial = [np.zeros((num_junction, num)) for i in range(len(i_dc_list))]
-    #         subspace_dict_dc = {'subsystem_id': subspace, 'dc_phase': dc_phase_initial}
-    #         for mode_id, mode in enumerate(subspace):
-    #             if num == 1:
-    #                 mode = subspace[0]
-    #                 if (mode in dict_self['Quasi harmonic modes']) or (mode in dict_self['Harmonic modes']):
-    #                     continue
-    #                 else:
-    #                     for i_dc_id, i_dc in enumerate(i_dc_list):
-    #                         dc_phase = self.get_phi_dc(modes, i_dc)
-    #                         for jj_id, jj in enumerate(self.JJs):
-    #                             jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
-    #                             subspace_dict_dc['dc_phase'][i_dc_id][jj_id][mode_id] = np.real(
-    #                                 jj_dc_phase_i - jj_dc_phase_j)
-    #             else:
-    #                 for i_dc_id, i_dc in enumerate(i_dc_list):
-    #                     dc_phase = self.get_phi_dc(modes, i_dc)
-    #                     for jj_id, jj in enumerate(self.JJs):
-    #                         jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
-    #                         subspace_dict_dc['dc_phase'][i_dc_id][jj_id][mode_id] = np.real(
-    #                             jj_dc_phase_i - jj_dc_phase_j)
-    #         hamiltonian_parameters[str(subspace_id)] = subspace_dict_dc
-    #
-    #     return hamiltonian_parameters
-
-    # ###################################################################################
-    # # QCircuit
-    # ###################################################################################
-    # def subsystem_quantum_model1(self, subsystem: dict, node_no, dc_phase: list, cutoff: int = 5, period: int = 1):
-    #     """
-    #     This method create QCircuit object for subsystem with one degree od freedom contains a capacitor, an inductor
-    #     and n_j Josepshon junctions. The method returns phase grid, potential, energies and wavefunctions of the system
-    #     in the phase representation.
-    #     :param subsystem: dictionary with all subsystem's parameters
-    #     :param node_no: number of discrete points on the grid
-    #     :param dc_phase: list of values of external dc stationary phases
-    #     :param cutoff: number of levels
-    #     :param period: number of periods in the phase space
-    #     """
-    #     # define QCircuit object, all variables are in Hz
-    #     cap = 1 / float(subsystem['Ec']) / 8 * h
-    #     ind = 1 / float(subsystem['El']) / 2 * h
-    #     n_j = len(subsystem['Ej'])  # number of junctions
-    #
-    #     subsystem_circuit = QCircuit()
-    #     subsystem_circuit.add_element(QCapacitance('C', cap), ['GND', 1])
-    #     subsystem_circuit.add_element(QInductance('L', ind), ['GND', 1])
-    #
-    #     for jj_id, e_jj in enumerate(subsystem['Ej']):
-    #         alpha_j = np.squeeze(subsystem['alpha'])[jj_id]
-    #         # Here node '2 + jj_id' is a node with external phase
-    #         subsystem_circuit.add_element(QJosephsonJunction('JJ' + str(jj_id), e_jj / h, [alpha_j, 1]), [1, 2 + jj_id])
-    #
-    #     num_nodes = n_j + 2
-    #     num_var = n_j + 1
-    #     nodes = ['GND'] + [i for i in range(1, num_nodes)]
-    #     variables = ['φ'] + ['φ' + str(i) for i in range(num_nodes - 2)]
-    #
-    #     # phi variable
-    #     phi_var = QVariable('φ')
-    #     subsystem_circuit.add_variable(phi_var)
-    #     phi_var.create_grid(nodeNo=node_no, phase_periods=period)
-    #
-    #     # phi_DC, j variables
-    #     phi_vars_dc_j = []
-    #     for jj_id in range(n_j):
-    #         phi_dc_j = QVariable('φ' + str(jj_id))
-    #         phi_vars_dc_j.append(phi_dc_j)
-    #         subsystem_circuit.add_variable(phi_dc_j)
-    #         phi_dc_j.set_parameter(phase_value=dc_phase[jj_id], voltage_value=0)
-    #
-    #     transformation_mat = np.zeros((num_nodes, num_var))
-    #     transformation_mat[1:, ] = np.eye(num_var)
-    #
-    #     # make transformation from node basis to variables
-    #     subsystem_circuit.map_nodes_linear(nodes,
-    #                                        variables,
-    #                                        transformation_mat
-    #                                        )
-    #
-    #     phase_grid = subsystem_circuit.create_phase_grid()
-    #     phi_grid = np.squeeze(phase_grid)[0]
-    #
-    #     charge_pot, phase_pot = subsystem_circuit.calculate_potentials()
-    #     energies, wavefunctions = subsystem_circuit.diagonalize_phase(num_states=cutoff, maxiter=10000)
-    #
-    #     return phi_grid, np.squeeze(phase_pot), energies, wavefunctions
-    #
-    # def subsystem_quantum_model2(self, subsystem: dict, node_no1, node_no2, dc_phase, cutoff: int = 5):
-    #     return 0, 0, 0, 0
-    #
-    # def subsystem_quantum_model(self, subsystem: dict, node_no, dc_phase, cutoff: int = 5, period: int = 1):
-    #     if len(subsystem['subsystem_id']) == 1:
-    #         phi_grid, phase_pot, energies, wavefunctions = self.subsystem_quantum_model1(subsystem, node_no, dc_phase,
-    #                                                                                      cutoff,period)
-    #     elif len(subsystem['subsystem_id']) == 2:
-    #         phi_grid, phase_pot, energies, wavefunctions = self.subsystem_quantum_model2(subsystem, node_no, dc_phase,
-    #                                                                                      cutoff)
-    #     else:
-    #         raise ValueError('Subsystem size is not conventional!')
-    #
-    #     return phi_grid, phase_pot, energies, wavefunctions
 
     ###################################################################################
     # Superconducting islands
@@ -2219,7 +1806,7 @@ class TLSystem:
         islands = self.get_superconducting_islands()
         nu_islands = len(islands)
         nu_extended_var_max = kinetic_dofs - nu_islands
-        print('nu_extended_var_max', nu_extended_var_max)
+        # print('nu_extended_var_max', nu_extended_var_max)
         if nu_extended_var_max >= U_mat_inv.shape[0]:
             nu_extended_var = U_mat_inv.shape[0]
             transformation_mat = np.zeros((nu_extended_var + nu_islands, kinetic_dofs), dtype=complex)
@@ -2253,30 +1840,73 @@ class TLSystem:
                            'extended': [i for i in range(nu_islands, nu_extended_var + nu_islands)]}
         return theta_variables, transformation_mat
 
-    # def get_transformation_mat_sc_islands3(self, modes):
-    #     """
-    #     This method provides transformation from nodes variables to periodic and extended variables such that
-    #     theta_i_(k) = sum_ij T_ij phi_j with scalar product, where k={p, e} where 'p' means periodic with 2*pi and 'e' means extended,
-    #     and defines periodic and extended variables, where T matrix is quadratic matrix.
-    #     """
-    #     # calculate nodes dofs
-    #     kinetic_dofs = sum(e.num_degrees_of_freedom_dynamic()
-    #                        for e in self.elements if e.type_ == 'TL') // 2 + len(self.nodes)
-    #     islands = self.get_superconducting_islands()
-    #     nu_islands = len(islands)
-    #     transformation_mat = np.zeros((kinetic_dofs, kinetic_dofs))
-    #
-    #     # create periodic variable (p) by the following rule theta_p  = sum_i phi_i, if phi_i is in the same island
-    #     for island_id, island in enumerate(islands):
-    #         t_vector = np.zeros((1, kinetic_dofs))
-    #         for n_id, n in enumerate(list(island)):
-    #             t_vector[0][self.nodes.index(n)] = 1
-    #         transformation_mat[island_id, :] = t_vector
-    #
-    #     U_mat = self.transition_matrix(modes)  # transformation matrix from nodes to normal variables
+    def get_transformation_mat_sc_islands3(self, modes, eps: float = 0.95):
+        """
+        This method provides transformation from nodes variables to periodic and extended variables such that
+        theta_i_(k) = sum_ij T_ij phi_j with scalar product, where k={p, e} where 'p' means periodic with 2*pi and 'e'
+        means extended, and defines periodic and extended variables.
+        This method uses the following idea: it defines all periodic variables for a system based on superconducting
+        islands and creates transformation matrix for periodic variables (tranformation_mat_p).
+        Then it defines transformation matrix for extended variables (tranformation_mat_e) based on normal mode vectors.
+        :param eps:
+        """
+        from numpy.linalg import pinv
+        from copy import deepcopy
 
+        U_mat = self.transition_matrix(modes)
+        U_mat_inv = pinv(U_mat)
+        u_vectors = deepcopy(U_mat_inv.T)  # vectors for normal variables
 
+        islands = self.get_superconducting_islands()
+        nu_islands = len(islands)
 
+        # calculate dofs
+        kinetic_dofs = sum(e.num_degrees_of_freedom_dynamic()
+                           for e in self.elements if e.type_ == 'TL') // 2 + len(self.nodes)
+        tranformation_mat_p = np.zeros((nu_islands, kinetic_dofs), dtype=complex)  # transformation matrix for periodic variables
+
+        nu_extended_var = u_vectors.shape[1]
+        tranformation_mat_e = np.zeros((nu_extended_var, kinetic_dofs), dtype=complex)  # transformation matrix for extended variables
+
+        # define periodic variables (p)
+        if islands:
+            for island_id, island in enumerate(islands):
+                t_vector = np.zeros((1, kinetic_dofs))
+                for n_id, n in enumerate(list(island)):
+                    t_vector[0][self.nodes.index(n)] = 1
+                tranformation_mat_p[island_id, :] = t_vector
+
+            e_vectors = deepcopy(tranformation_mat_p.T)  # vectors for periodic varibles
+
+            from numpy.linalg import norm
+            u_vectors_norms = [norm(u_vectors[:, v]) for v in range(u_vectors.shape[1])]
+            projection_mat = np.abs(u_vectors.T @ e_vectors)
+
+            projection_mat_normalized = np.zeros(projection_mat.shape)
+
+            for u_vect_id, u_vect_norm in enumerate(u_vectors_norms):
+                row = projection_mat[u_vect_id, :] / u_vect_norm
+                projection_mat_normalized[u_vect_id, :] = row
+
+            # we need to delete normal variables which are to close to periodic variables
+            k = 0
+            for u_vect_id in range(u_vectors.shape[1]):
+                valid = True
+                for projection in projection_mat_normalized[u_vect_id, :]:
+                    if projection >= eps:
+                        nu_extended_var -= 1
+                        valid = False
+                        break
+                if valid:
+                    tranformation_mat_e[k, :] = U_mat_inv[u_vect_id, :]
+                    k += 1
+            transformation_mat = np.vstack((tranformation_mat_p, tranformation_mat_e[:nu_extended_var, :]))
+        else:
+            transformation_mat = U_mat_inv
+
+        theta_variables = {'periodic': [i for i in range(nu_islands)],
+                           'extended': [i for i in range(nu_islands, nu_islands + nu_extended_var)]}
+        return theta_variables, transformation_mat
 
     def transformation_matrix_normal_var_to_periodic(self, modes):
         """
@@ -2288,121 +1918,13 @@ class TLSystem:
         from numpy.linalg import pinv
         # T matrix
         # v, T_mat = self.get_transformation_mat_sc_islands()
-        v, T_mat = self.get_transformation_mat_sc_islands2(modes)
+        v, T_mat = self.get_transformation_mat_sc_islands3(modes)
         T_mat_inv = pinv(T_mat)
         # U matrix
         U_mat = self.transition_matrix(modes)
         U_mat_inv = pinv(U_mat)
         A_mat = U_mat_inv @ T_mat_inv
         return A_mat
-
-    ###################################################################################
-    # Plot
-    ###################################################################################
-
-    def plot_potential_1d(self, subsystem, phi_grid, dc_phase):
-        """
-        Plot in phase basis, U GHz
-        """
-        u_1d = potential_1d(phi=phi_grid, e_l=subsystem['El'], e_j=subsystem['Ej'],
-                            alpha=subsystem['alpha'], phi_dc=dc_phase)
-        plt.plot(phi_grid, u_1d / h / 1e9)
-        plt.ylabel('Energy, GHz')
-        plt.xlabel('$\\phi$')
-        #plt.show()
-
-    # TODO: solve eigenvalue problem for 2d system
-    def plot_potential_2d(self, num_system: int, phi_start: list = None, phi_stop: list = None,
-                          num_points: list = None):
-        if not phi_start:
-            phi_start = [-np.pi, -np.pi]
-        if not phi_stop:
-            phi_stop = [np.pi, np.pi]
-        if not num_points:
-            num_points = [201, 201]
-        parameters = self.define_modes_parameters()['subsystem' + ' ' + str(num_system)]
-        phi_x = np.linspace(phi_start[0], phi_stop[0], num_points[0])
-        phi_y = np.linspace(phi_start[1], phi_stop[1], num_points[1])
-        xx, yy, u_2d = potential_2d(phi_1=phi_x, phi_2=phi_y, e_l=parameters['El'], e_j=parameters['Ej'],
-                                    alpha=parameters['alpha'])
-        pot_plot = plt.contourf(xx, yy, u_2d / h / 1e9)
-        plt.colorbar(pot_plot)
-        #plt.show()
-        pass
-
-    def solve_hamiltonian_eig_1d(self, subsystem, phi_grid, dc_phase, cutoff=4):
-        from scipy.linalg import eig
-        d = np.abs(phi_grid[0] - phi_grid[1])  # step of grid
-        u = potential_1d(phi=phi_grid, e_l=subsystem['El'], e_j=subsystem['Ej'],
-                         alpha=subsystem['alpha'], phi_dc=dc_phase)
-        # u = np.asarray(
-        #     [potential_1d(phi=phi_i, e_l=subsystem['El'], e_j=subsystem['Ej'], alpha=subsystem['alpha'],
-        #                   phi_0=subsystem['dc_phase']) for phi_i in
-        #      phi_grid])
-        a_x = - 4 * subsystem['Ec'][0][0]
-        # create L operator
-        operator_l = np.diag(u - 2 * a_x / d ** 2)
-        for i in range(len(phi_grid) - 1):
-            operator_l[i][i + 1] = a_x / d ** 2
-        for i in range(1, len(phi_grid)):
-            operator_l[i][i - 1] = a_x / d ** 2
-        # print('l_operator', operator_l)
-        eigenvalues, eigenvectors = eig(operator_l)
-        order = np.argsort(eigenvalues)
-        energies = np.asarray(np.real(eigenvalues))[order][:cutoff]
-        wavefunctions = []
-        for state_id in order[:cutoff]:
-            wavefunctions.append(eigenvectors[:, state_id])
-        return energies, wavefunctions
-
-    def plot_wavefunctions_1d(self, subsystem, phi_grid, dc_phase, cutoff=5):
-        """
-        Returns plotted potential and wavefunctions
-        :param subsystem:
-        :param phi_grid:
-        :param dc_phase:
-        :param cutoff:
-        """
-        u_1d = potential_1d(phi=phi_grid, e_l=subsystem['El'], e_j=subsystem['Ej'],
-                            alpha=subsystem['alpha'], phi_dc=dc_phase)
-        energies, wavefunctions = self.solve_hamiltonian_eig_1d(subsystem, phi_grid, dc_phase, cutoff)
-
-        plt.ylabel('Energy, GHz')
-        plt.xlabel('$\\phi$')
-        for energy_id, energy in enumerate(energies):
-            plt.plot(phi_grid, (energy + 2 * energy * wavefunctions[energy_id]) / h / 1e9)
-            plt.fill_between(phi_grid, energy / h / 1e9, (energy + 2 * energy * wavefunctions[energy_id]) / h / 1e9,
-                             alpha=0.25)
-
-        plt.plot(phi_grid, u_1d / h / 1e9)
-        #plt.show()
-
-    def dc_energy_spectrum_1d(self, num_subsystem, dc_line: TLSystemElement, phi, currents, omegas, modes, kerr_matrix,
-                              cutoff=4):
-        """
-        :param num_subsystem:
-        :param dc_line:
-        :param phi:
-        :param currents:
-        :param cutoff:
-        """
-        energies = np.zeros((len(currents), cutoff))
-        for current_id, current in enumerate(currents):
-            dc_line.idc = current
-            dc_phase = self.get_phi_dc(modes, self.i_dc())
-            modes_subsystems = self.define_modes_parameters(omegas, modes, kerr_matrix, dc_phase)
-            E, wavefunctions = self.solve_hamiltonian_eig_1d(modes_subsystems[str(num_subsystem)], phi, cutoff)
-            energies[current_id, :] = np.asarray(E)
-        return currents, energies
-
-    def dc_plot_energy_spectrum_1d(self, num_subsystem, dc_line: TLSystemElement, phi, currents, omegas, modes,
-                                   kerr_matrix, cutoff=4):
-        currents, energies = self.dc_energy_spectrum_1d(num_subsystem, dc_line, phi, currents, omegas, modes,
-                                                        kerr_matrix, cutoff)
-        for energy_level in range(cutoff):
-            plt.plot(currents, (energies[:, energy_level]) / h / 1e9)
-            plt.ylabel('Energy, GHz')
-            plt.xlabel('$I_{DC}$')
 
     ###################################################################################
     # Second order perturbation analysis
@@ -2986,29 +2508,12 @@ class TLSystem:
         g = nx.Graph()
         edge_labels = {}
         for element, mapping in zip(self.elements, self.terminal_node_mapping):
-            for left_node_id in range(len(mapping)//2):
-                if mapping[left_node_id] == ground_node or mapping[left_node_id + len(mapping)//2] == ground_node:
+            for left_node_id in range(len(mapping) // 2):
+                if mapping[left_node_id] == ground_node or mapping[left_node_id + len(mapping) // 2] == ground_node:
                     continue
-                g.add_edge(mapping[left_node_id], mapping[left_node_id + len(mapping)//2], color='black', weight=2)
-                edge_labels[(mapping[left_node_id], mapping[left_node_id + len(mapping)//2])] = element.name
-                for right_node_id in range(left_node_id+1+len(mapping)//2, len(mapping)):
-                    #g.add_edge(mapping[left_node_id], mapping[right_node_id], color='blue', weight=1)
+                g.add_edge(mapping[left_node_id], mapping[left_node_id + len(mapping) // 2], color='black', weight=2)
+                edge_labels[(mapping[left_node_id], mapping[left_node_id + len(mapping) // 2])] = element.name
+                for right_node_id in range(left_node_id + 1 + len(mapping) // 2, len(mapping)):
+                    # g.add_edge(mapping[left_node_id], mapping[right_node_id], color='blue', weight=1)
                     pass
         return g, edge_labels
-
-
-def potential_1d(phi, e_l, e_j, alpha, phi_dc):
-    potential = 1 / 2 * e_l[0][0] * phi ** 2
-    for jj_id, e_j in enumerate(e_j):
-        phi_dc_jj = phi_dc[jj_id][0]
-        potential += e_j * (1 - np.cos(alpha[jj_id][0] * phi + phi_dc_jj))
-    return potential
-
-
-def potential_2d(phi_1, phi_2, e_l, e_j, alpha):
-    xx, yy = np.meshgrid(phi_1, phi_2)
-    potential = 1 / 2 * e_l[0][0] * xx ** 2 + 1 / 2 * e_l[1][1] * yy ** 2
-    for jj_id, e_j in enumerate(e_j):
-        potential += e_j * (1 - np.cos(alpha[jj_id][0] * xx + alpha[jj_id][1] * yy))
-    return xx, yy, potential
-

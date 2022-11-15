@@ -11,6 +11,8 @@ from abc import abstractmethod
 import itertools
 from scipy.optimize import minimize
 
+from .transmission_line_simulator import TLSystem
+from scipy.constants import h, e
 import matplotlib.pyplot as plt
 
 
@@ -234,14 +236,21 @@ class QCircuit:
     """
     The class containing references to nodes, elements, variables, variable-to-node mappings.
     """
-    def __init__(self, tolerance=1e-18):
+    def __init__(self, tlsys: TLSystem = None, tolerance=1e-18):
         """
         Default constructor.
         :param tolerance: capacitances below this value are considered to be computational errors when determining the inverse capacitance matrix.
+        :param tlsys: TLSystem system
         """
-        self.nodes = [QCircuitNode('GND')]
-        self.elements = []
-        self.wires = []
+        self.tlsys = tlsys
+        if not tlsys:
+            self.nodes = [QCircuitNode('GND')]
+            self.elements = []
+            self.wires = []
+        else:
+            self.nodes = tlsys.nodes
+            self.elements = tlsys.elements
+
         self.variables = []
         self.linear_coordinate_transform = np.asarray(0)
         self.invalidation_flag = True
@@ -254,6 +263,9 @@ class QCircuit:
         self.energies = None
         self.charge_operators = {}
         self.phase_operators = {}
+
+        if self.tlsys:
+            self.stationary_nodes_var = None
 
     def find_element(self, element_name):
         """
@@ -278,7 +290,7 @@ class QCircuit:
         Connect an element to the circuit.
         :param element: QCircuitElement to add.
         :param node_names: list of names of the nodes to which the element should be connected.
-            The nodes are connected in the order of the list.
+        The nodes are connected in the order of the list.
         """
         self.elements.append(element)
         for node_name in node_names:
@@ -296,37 +308,148 @@ class QCircuit:
         self.variables.append(variable)
         self.invalidation_flag = True
 
-    def map_nodes_linear(self, node_names, variable_names, coefficients):
+    # def set_variables(self, variables_names: list, nodeNos: list, periods_type: list = None, centres: list = None):
+    #     """
+    #     Set variables to the circuit from transmission line system and create grids for them.
+    #     :param variables_names: list with variables names
+    #     :param nodeNos: list of points for each variable
+    #     :param periods_type:
+    #     :param centres: list
+    #     """
+    #     # TODO:change set variables to dict type
+    #     if self.tlsys:
+    #         if not centres:
+    #             centres = [0 for i in range(len(variables_names))]
+    #         variables = []  # variables with phase grid
+    #         parameters = []  # parameters
+    #
+    #         # set variables with phase grid
+    #         for v_id, v in enumerate(variables_names):
+    #             var = QVariable(v)
+    #             variables.append(var)
+    #             if periods_type[v_id] == 'periodic':
+    #                 period = 1
+    #             elif periods_type[v_id] == 'extended':
+    #                 period = self.define_extended_period()
+    #             elif type(periods_type[v_id]) == int:
+    #                 period = periods_type[v_id]
+    #             else:
+    #                 raise ValueError('Variables can be only periodic or extended!')
+    #             var.create_grid(nodeNos[v_id], period, centres[v_id])
+    #             self.add_variable(var)
+    #
+    #         # set parameters from stationary phases
+    #         stationary_nodes = list(self.tlsys.get_stationary_phase_nodes())
+    #         self.stationary_nodes_var = stationary_nodes
+    #         print('Stationary variables are connected with nodes {}'.format(self.stationary_nodes_var))
+    #         phi_stationary = np.squeeze(self.tlsys.scdc_stationary_phases())
+    #         for node_id, node in enumerate(stationary_nodes):
+    #             index = self.nodes.index(node)
+    #             par = QVariable('φ_x' + str(node))
+    #             parameters.append(par)
+    #             phase_x = phi_stationary[index]
+    #             par.set_parameter(phase_value=phase_x, voltage_value=0)
+    #             self.add_variable(par)
+    #         return variables, parameters
+    #     else:
+    #         raise ValueError('Variables could not be set without transmission line system!')
+
+    def set_variables(self, variables_dict: dict):
         """
-        Sets the value of node phases (and their conjugate charges) as a linear combination of the circuit variables.
+        Set variables to the circuit from transmission line system and create grids for them.
+        :param variables_dict: dictionary with all information about variables
+        """
+        if self.tlsys:
+            variables = []  # variables with phase grid
+            parameters = []  # parameters
+
+            # set variables with phase grid
+            for var_i in variables_dict.keys():
+                var = QVariable(variables_dict[var_i]['name'])
+                variables.append(var)
+                if variables_dict[var_i]['period_type'] == 'periodic':
+                    period = 1
+                elif variables_dict[var_i]['period_type'] == 'extended':
+                    period = self.define_extended_period()
+                elif type(variables_dict[var_i]['period_type']) == int:
+                    period = variables_dict[var_i]['period_type']
+                else:
+                    raise ValueError('Variables can be only periodic or extended!')
+                var.create_grid(variables_dict[var_i]['nodesNo'], period, variables_dict[var_i]['center'])
+                self.add_variable(var)
+
+            # set parameters from stationary phases
+            stationary_nodes = list(self.tlsys.get_stationary_phase_nodes())
+            self.stationary_nodes_var = stationary_nodes
+            print('Stationary variables are connected with nodes {}'.format(self.stationary_nodes_var))
+            phi_stationary = np.squeeze(self.tlsys.scdc_stationary_phases())
+            for node_id, node in enumerate(stationary_nodes):
+                index = self.nodes.index(node)
+                par = QVariable('φ_x' + str(node))
+                parameters.append(par)
+                phase_x = phi_stationary[index]
+                par.set_parameter(phase_value=phase_x, voltage_value=0)
+                self.add_variable(par)
+            return variables, parameters
+        else:
+            raise ValueError('Variables could not be set without transmission line system!')
+
+    def define_extended_period(self):
+        """
+        This method returns approximately reliable number of periods for extended variables.
+        """
+        # # TODO: define period for extended variables
+        # Phi_0 = h / (2 * e)
+        # ECmat = self.capacitance_matrix_legendre_transform() / 2 * (4 * e ** 2) / h / 1e9
+        # Elmat = self.inv_inductance_matrix_variables() / 2 * (Phi_0 / (2 * np.pi)) ** 2 / h / 1e9
+        return 4
+
+    def reset_variables(self):
+        self.variables = []
+
+    def map_nodes_linear(self, node_names=None, variable_names=None, coefficients=None):
+        """
+        Sets the value of node phases (and their conjugate charges) as a linear combination of the circuit variables if
+        transmission line system is not defined. Else sets the value of node phases and coefficients from Taylor series
+        (and, respectively, their conjugate charges) as a linear combination of the circuit variables.
+        :param coefficients: the transformation matrix
         :param node_names: the names of the nodes to be expressed through the variables,
         in the order of the coefficient matrix rows.
         :param variable_names: the variables to express the node phases through,
         in the order of the coefficient matrix columns.
-        :param coefficients: the transformation matrix
         """
-        node_ids = []
-        variable_ids = []
-        for node_name in node_names:
-            for node_id, node in enumerate(self.nodes):
-                if node.name == node_name:
-                    node_ids.append(node_id)
-        for variable_name in variable_names:
-            for variable_id, variable in enumerate(self.variables):
-                if variable.name == variable_name:
-                    variable_ids.append(variable_id)
-        if len(variable_ids) != len(self.variables):
-            raise Exception('VariableError',
-                            'Wrong number of variables in variable list. Got {0}, expected {1}'.format(
-                                    len(variable_ids), len(self.variables)))
-        if len(node_ids) != len(self.nodes):
-            raise Exception('VariableError',
-                            'Wrong number of nodes in node list. Got {0}, expected {1}'.format(
-                                    len(node_ids), len(self.nodes)))
-        [variable_idx,node_idx] = np.meshgrid(variable_ids, node_ids)
-        self.linear_coordinate_transform = np.zeros(coefficients.shape, coefficients.dtype)
-        self.linear_coordinate_transform[node_idx, variable_idx] = coefficients
-        self.invalidation_flag = True
+        if not self.tlsys:
+            node_ids = []
+            variable_ids = []
+            for node_name in node_names:
+                for node_id, node in enumerate(self.nodes):
+                    if node.name == node_name:
+                        node_ids.append(node_id)
+            for variable_name in variable_names:
+                for variable_id, variable in enumerate(self.variables):
+                    if variable.name == variable_name:
+                        variable_ids.append(variable_id)
+            if len(variable_ids) != len(self.variables):
+                raise Exception('VariableError',
+                                'Wrong number of variables in variable list. Got {0}, expected {1}'.format(
+                                        len(variable_ids), len(self.variables)))
+            if len(node_ids) != len(self.nodes):
+                raise Exception('VariableError',
+                                'Wrong number of nodes in node list. Got {0}, expected {1}'.format(
+                                        len(node_ids), len(self.nodes)))
+            [variable_idx,node_idx] = np.meshgrid(variable_ids, node_ids)
+            self.linear_coordinate_transform = np.zeros(coefficients.shape, coefficients.dtype)
+            self.linear_coordinate_transform[node_idx, variable_idx] = coefficients
+            self.invalidation_flag = True
+        else:
+            node_no = len(self.nodes)
+            internal_dof_no = sum(e.num_degrees_of_freedom_dynamic() for e in self.elements if e.type_ == 'TL')
+            nodes_dofs_no = node_no + int(internal_dof_no / 2)
+            if coefficients.shape != tuple([nodes_dofs_no, len(self.variables)]):
+                raise Exception('VariableError',
+                                'Wrong shape of transformation matrix. Got {0}, expected {1}'.format(
+                                    coefficients.shape, tuple([nodes_dofs_no, len(self.variables)])))
+            self.linear_coordinate_transform = coefficients
 
     def grid_shape(self):
         return tuple([v.get_nodeNo() for v in self.variables])
@@ -370,45 +493,51 @@ class QCircuit:
         to the circuit nodes from the capacitances between them.
         :returns: the capacitance matrix with respect to the nodes, where the rows and columns are sorted accoring to the order in which the nodes are in the nodes attribute.
         """
-        if symbolic:
-            capacitance_matrix = sympy.Matrix(np.zeros((len(self.nodes), len(self.nodes))))
+        if not self.tlsys:
+            if symbolic:
+                capacitance_matrix = sympy.Matrix(np.zeros((len(self.nodes), len(self.nodes))))
+            else:
+                capacitance_matrix = np.zeros((len(self.nodes), len(self.nodes)))
+            for element in self.elements:
+                if element.is_charge():
+                    element_node_ids = []
+                    for wire in self.wires:
+                        if wire[0] == element.name:
+                            for node_id, node in enumerate(self.nodes):
+                                if wire[1]==node.name:
+                                    element_node_ids.append(node_id)
+                    if len(element_node_ids) != 2:
+                        raise Exception('VariableError',
+                                        'Wrong number of ports on capacitance, expected 2, got {0}'.format(len(element_node_ids)))
+                    capacitance_matrix[element_node_ids[0], element_node_ids[0]] += element.get_capacitance()
+                    capacitance_matrix[element_node_ids[0], element_node_ids[1]] += -element.get_capacitance()
+                    capacitance_matrix[element_node_ids[1], element_node_ids[0]] += -element.get_capacitance()
+                    capacitance_matrix[element_node_ids[1], element_node_ids[1]] += element.get_capacitance()
         else:
-            capacitance_matrix = np.zeros((len(self.nodes), len(self.nodes)))
-        for element in self.elements:
-            if element.is_charge():
-                element_node_ids = []
-                for wire in self.wires:
-                    if wire[0] == element.name:
-                        for node_id, node in enumerate(self.nodes):
-                            if wire[1]==node.name:
-                                element_node_ids.append(node_id)
-                if len(element_node_ids) != 2:
-                    raise Exception('VariableError',
-                                    'Wrong number of ports on capacitance, expected 2, got {0}'.format(len(element_node_ids)))
-                capacitance_matrix[element_node_ids[0], element_node_ids[0]] += element.get_capacitance()
-                capacitance_matrix[element_node_ids[0], element_node_ids[1]] += -element.get_capacitance()
-                capacitance_matrix[element_node_ids[1], element_node_ids[0]] += -element.get_capacitance()
-                capacitance_matrix[element_node_ids[1], element_node_ids[1]] += element.get_capacitance()
+            capacitance_matrix = self.tlsys.capacitance_matrix()
         return capacitance_matrix
 
     def capacitance_matrix_variables(self, symbolic=False):
         """
         Calculates the capacitance matrix for the energy term of the qubit Lagrangian in the variable respresentation.
         """
-
         if symbolic:
             C = self.linear_coordinate_transform.T*self.capacitance_matrix(symbolic)*self.linear_coordinate_transform
             C = sympy.Matrix([sympy.nsimplify(sympy.ratsimp(x)) for x in C]).reshape(*(C.shape))
         else:
-            C = np.einsum('ji,jk,kl->il', self.linear_coordinate_transform,self.capacitance_matrix(symbolic),self.linear_coordinate_transform)
+            C = np.einsum('ji,jk,kl->il', self.linear_coordinate_transform, self.capacitance_matrix(symbolic), self.linear_coordinate_transform)
         return C
 
     def capacitance_matrix_legendre_transform(self, symbolic=False):
         """
         Calculates the principle pivot transform of the capacitance matrix in variable representation with respect to "variables" as opposed to "parameters" for the Legendre transform
         """
-        inverted_indeces = [variable_id for variable_id, variable in enumerate(self.variables) if variable.variable_type=='variable' ]
-        noninverted_indeces = [variable_id for variable_id, variable in enumerate(self.variables) if variable.variable_type=='parameter' ]
+        inverted_indeces = [variable_id for variable_id, variable in enumerate(self.variables) if
+                            variable.variable_type == 'variable']
+        print('Inverted indeces', inverted_indeces)
+        noninverted_indeces = [variable_id for variable_id, variable in enumerate(self.variables) if
+                               variable.variable_type == 'parameter']
+        print('Noninverted indeces', noninverted_indeces)
         if symbolic:
             Aii = self.capacitance_matrix_variables(symbolic)[inverted_indeces, inverted_indeces]
             Ain = self.capacitance_matrix_variables(symbolic)[inverted_indeces, noninverted_indeces]
@@ -507,6 +636,14 @@ class QCircuit:
             result += psii
         return result
 
+    def inv_inductance_matrix_variables(self, jj_lin=False):
+        """
+        Calculates the inverse inductance matrix for the energy term of the qubit Lagrangian in the variable respresentation.
+        """
+        L_inv = np.einsum('ji,jk,kl->il', self.linear_coordinate_transform, self.tlsys.inv_inductance_matrix(jj_lin),
+                          self.linear_coordinate_transform)
+        return L_inv
+
     def calculate_phase_potential(self):
         """
         Calculates the potential landspace of the circuit phase-dependent energy in phase representation.
@@ -516,18 +653,44 @@ class QCircuit:
         grid_size = np.prod(grid_shape)
         phase_grid = self.create_phase_grid()
         self.phase_potential = np.zeros(grid_shape)
-        for element in self.elements:
-            element_node_ids = []
-            for wire in self.wires:
-                if wire[0] == element.name:
-                    for node_id, node in enumerate(self.nodes):
-                        if wire[1] == node.name:
-                            element_node_ids.append(node_id)
-            phase_grid = np.reshape(np.asarray(phase_grid), (len(self.variables), grid_size))
-            node_phases = np.einsum('ij,jk->ik', self.linear_coordinate_transform, phase_grid)[element_node_ids, :]
-            node_phases = np.reshape(node_phases, (len(element_node_ids),)+grid_shape)
-            if element.is_phase():
-                self.phase_potential += element.energy_term(node_phases=node_phases, node_charges=np.zeros(node_phases.shape))
+        if not self.tlsys:
+            for element in self.elements:
+                element_node_ids = []
+                for wire in self.wires:
+                    if wire[0] == element.name:
+                        for node_id, node in enumerate(self.nodes):
+                            if wire[1] == node.name:
+                                element_node_ids.append(node_id)
+                phase_grid = np.reshape(np.asarray(phase_grid), (len(self.variables), grid_size))
+                node_phases = np.einsum('ij,jk->ik', self.linear_coordinate_transform, phase_grid)[element_node_ids, :]
+                node_phases = np.reshape(node_phases, (len(element_node_ids),) + grid_shape)
+                if element.is_phase():
+                    self.phase_potential += element.energy_term(node_phases=node_phases,
+                                                                node_charges=np.zeros(node_phases.shape))
+        else:
+            Phi_0 = h / (2 * e)
+            phase_grid = np.reshape(np.asarray(phase_grid), (len(self.variables), grid_size))  # 2D array
+            # fill potential in phase representation from inverse inductance matrix
+            # here ELmat in GHz
+            ELmat = np.real(self.inv_inductance_matrix_variables()) / 2 * (Phi_0 / (2 * np.pi)) ** 2 / h / 1e9
+            print('ELmat', ELmat)
+            linear_phase_pot = np.diag(np.einsum('ji,jk,kl->il', phase_grid, ELmat, phase_grid))
+            linear_phase_pot = np.reshape(linear_phase_pot, grid_shape)
+            self.phase_potential += linear_phase_pot
+            # fill potential in phase representation from energy terms of junctions
+            for elem_id, elem in enumerate(self.elements):
+                if elem.type_ == 'JJ':
+                    element_node_ids = []
+                    terminals = self.tlsys.terminal_node_mapping[elem_id]
+                    for t in terminals:
+                        ind = self.nodes.index(t)
+                        element_node_ids.append(ind)
+                    node_phases = np.einsum('ij,jk->ik', self.linear_coordinate_transform, phase_grid)[element_node_ids, :]
+                    node_phases = np.reshape(node_phases, (len(element_node_ids),) + grid_shape)
+                    # in GHz
+                    self.phase_potential += np.real(elem.nonlinear_potential(node_phases=node_phases,
+                                                                             node_charges=np.zeros(
+                                                                                 node_phases.shape))) / h / 1e9
         return self.phase_potential
 
     def calculate_charge_potential(self):
@@ -538,7 +701,12 @@ class QCircuit:
         grid_shape = self.grid_shape()
         grid_size = np.prod(grid_shape)
         charge_grid = np.reshape(np.asarray(self.create_charge_grid()), (len(self.variables), grid_size))
-        ECmat = 0.5*self.capacitance_matrix_legendre_transform()
+        if not self.tlsys:
+            ECmat = 0.5*self.capacitance_matrix_legendre_transform()
+        else:
+            # here ECmat in GHz
+            ECmat = self.capacitance_matrix_legendre_transform() / 2 * (4 * e ** 2) / h / 1e9
+            print('ECmat', ECmat)
         self.charge_potential = np.einsum('ij,ik,kj->j', charge_grid, ECmat, charge_grid)
         self.charge_potential = np.reshape(self.charge_potential, grid_shape)
         return self.charge_potential
@@ -547,7 +715,6 @@ class QCircuit:
         """
         Calculate potentials for Fourier-based hamiltonian action.
         """
-
         self.calculate_phase_potential()
         self.calculate_charge_potential()
         self.hamiltonian_Fourier = LinearOperator((np.prod(self.grid_shape()), np.prod(self.grid_shape())),
@@ -704,7 +871,10 @@ class QCircuit:
 
         subcircuit = QCircuit()
         subcircuit.nodes = self.nodes
-        subcircuit.wires = self.wires
+        if not self.tlsys:
+            subcircuit.wires = self.wires
+        else:
+            subcircuit.tlsys = self.tlsys
         subcircuit.elements = self.elements
 
         for v in self.variables:
@@ -724,7 +894,6 @@ class QCircuit:
                 subcircuit.add_variable(v)
 
         subcircuit.linear_coordinate_transform = self.linear_coordinate_transform
-
         return subcircuit
 
     def decompose(self, variables):
@@ -754,7 +923,7 @@ class QCircuit:
         Hamiltonian of capacitively coupled subsystems
         """
         dim = [len(s.energies) for s in self.subsystems]
-        h = np.zeros((np.prod(dim), np.prod(dim)), dtype=complex)
+        H = np.zeros((np.prod(dim), np.prod(dim)), dtype=complex)
 
         # diagonal part of hamiltonian
         for i, subcircuit in enumerate(self.subsystems):
@@ -765,10 +934,13 @@ class QCircuit:
                 else:
                     h1 = np.kron(h1, np.diag(subcircuit2.energies))
 
-            h += h1
+            H += h1
         # nondiagonal parts of hamiltonian (charge-coupled)
 
-        cinv = 0.5 * self.capacitance_matrix_legendre_transform()
+        if not self.tlsys:
+            cinv = 0.5 * self.capacitance_matrix_legendre_transform()
+        else:
+            cinv = self.capacitance_matrix_legendre_transform() / 2 * (4 * e ** 2) / h / 1e9
         # off-diagonal part of hamiltonian
         for i, subcircuit in enumerate(self.subsystems):
             for j, subcircuit2 in enumerate(self.subsystems):
@@ -791,8 +963,8 @@ class QCircuit:
                             else:
                                 h2 = np.kron(h2, np.identity(len(subcircuit3.energies)))
 
-                        h += h2
-        return h
+                        H += h2
+        return H
 
 
     def flat_subsystem_state_index(self, nd_state_id):
