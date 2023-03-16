@@ -6,6 +6,7 @@ import numpy as np
 from typing import List, Tuple, Mapping, Dict
 from . import squid3JJ#TODO make this qubit class suitable for any squid types
 from copy import deepcopy
+from .functions import find_normal_point
 
 class Coaxmon(DesignElement):
     """
@@ -26,7 +27,7 @@ class Coaxmon(DesignElement):
                  outer_couplers_radius: float, inner_ground_radius: float, outer_ground_radius: float,
                  layer_configuration: LayerConfiguration, Couplers, jj_params: Dict, transformations: Dict,
                  calculate_capacitance: False, third_JJ=False, hole_in_squid_pad=True,
-                 JJ_pad_connection_shift=False, draw_bandages=False):
+                 JJ_pad_connection_shift=False, draw_bandages=False, coil_type='old', import_jj=False, file_jj=None, cell_jj=None):
         super().__init__(type='qubit', name=name)
         self.third_JJ = third_JJ
         #qubit parameters
@@ -72,6 +73,15 @@ class Coaxmon(DesignElement):
         self.hole_in_squid_pad = hole_in_squid_pad
         self.JJ_pad_connection_shift = JJ_pad_connection_shift
         self.draw_bandages = draw_bandages
+        self.coil_type = coil_type
+        self.import_jj = import_jj
+        self.file_jj = file_jj
+        self.cell_jj = cell_jj
+
+        self.imported_bandages = None
+
+        if self.coil_type == 'tzar-coil':
+            self.tzar_coil_bridge_position = None
 
     def render(self):
         """
@@ -106,19 +116,25 @@ class Coaxmon(DesignElement):
         if self.JJ_params is not None:
             self.JJ_coordinates = (self.center[0] + self.R1 * np.cos(self.JJ_params['angle_qubit']),
                                    self.center[1] + self.R1 * np.sin(self.JJ_params['angle_qubit']))
-            JJ, rect = self.generate_JJ() #TODO change it in a new manner, probably one day
+
+            # TODO change it in a new manner, probably one day
+            if self.import_jj:
+                JJ, rect = self.import_JJ(third_JJ=self.third_JJ, file_name=self.file_jj, cell_name=self.cell_jj)
+            else:
+                JJ, rect = self.generate_JJ()
             result = gdspy.boolean(result, rect, 'or')
             # add flux line
             flux_line = self.connection_to_ground(self.JJ_params['length'], self.JJ_params['width'],
-                                                  JJ_pad_connection_shift=self.JJ_pad_connection_shift)
+                                                  JJ_pad_connection_shift=self.JJ_pad_connection_shift, coil=self.coil_type)
             result = gdspy.boolean(result, flux_line['remove'], 'not')
             result = gdspy.boolean(result, flux_line['positive'], 'or', layer=self.layer_configuration.total_layer)
         if self.draw_bandages:
-            bandages = self.add_bandages()
+            if self.import_jj:
+                bandages = self.import_bandages(file_name=self.file_jj, cell_name=self.cell_jj)
+            else:
+                bandages = self.add_bandages()
         else:
             bandages = None
-
-
         # set terminals for couplers
         self.set_terminals()
         qubit=deepcopy(result)
@@ -182,6 +198,7 @@ class Coaxmon(DesignElement):
         return self.terminals
 
     def generate_JJ(self):
+        # polygonset
         self.JJ = squid3JJ.JJ_2(self.JJ_coordinates[0], self.JJ_coordinates[1],
                                 self.JJ_params['a1'],
                                 self.JJ_params['jj1_width'], self.JJ_params['jj1_height'],
@@ -193,7 +210,7 @@ class Coaxmon(DesignElement):
         result = gdspy.boolean(result, result, 'or', layer=self.layer_configuration.jj_layer)
         angle = self.JJ_params['angle_JJ']
         if self.JJ_pad_connection_shift:
-            connection_shift = self.JJ.contact_pad_b_outer/2
+            connection_shift = self.JJ.contact_pad_b_outer / 2
         else:
             connection_shift = 0
         result.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
@@ -205,51 +222,174 @@ class Coaxmon(DesignElement):
         rect.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
         return result, rect
 
-    def connection_to_ground(self, length, width, JJ_pad_connection_shift=False):
+    def import_JJ(self, third_JJ, file_name, cell_name):
+        """
+        Import SQUID topology for the qubit from GDS file. Transmission line model it defined be user itself.
+        """
+        # TODO: how to make it better? It is temporary solution
+        self.JJ = squid3JJ.JJ_2(self.JJ_coordinates[0], self.JJ_coordinates[1],
+                                self.JJ_params['a1'],
+                                self.JJ_params['jj1_width'], self.JJ_params['jj1_height'],
+                                self.JJ_params['jj2_width'], self.JJ_params['jj2_height'],
+                                self.JJ_params['jj3_width'], self.JJ_params['jj3_height'],
+                                self.JJ_params['c2'], add_JJ=self.third_JJ,
+                                hole_in_squid_pad=self.hole_in_squid_pad)
+        self.JJ.generate_jj()
+
+        import os
+        self.third_JJ = third_JJ
+        path = os.getcwd()
+        path_for_file = path[:path.rindex('QCreator')] + 'QCreator\QCreator\elements\junctions' + file_name
+        # import cell
+        squid = gdspy.GdsLibrary().read_gds(infile=path_for_file).cells[cell_name].remove_polygons(lambda pts, layer,
+                                                                                                          datatype: layer not in [
+            self.layer_configuration.jj_layer])
+        # convert to polygonset
+        squid_polygons = []
+        for p_id, p in enumerate(squid.polygons):
+            points = p.polygons[0]
+            l = p.layers[0]
+            squid_polygons.append(points)
+        squid_polygonset = gdspy.PolygonSet(squid_polygons, layer=self.layer_configuration.jj_layer)
+
+        squid_polygonset.translate(self.JJ_coordinates[0], self.JJ_coordinates[1])
+
+        angle = self.JJ_params['angle_JJ']
+        squid_polygonset.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
+        connection_shift = 0
+        rect = None
+        rect = gdspy.Rectangle((self.JJ_coordinates[0] - self.JJ.contact_pad_a_outer / 2,
+                                self.JJ_coordinates[1] + connection_shift + self.JJ.contact_pad_b_outer),
+                               (self.JJ_coordinates[0] + self.JJ.contact_pad_a_outer / 2,
+                                self.JJ_coordinates[1] + connection_shift - self.JJ.contact_pad_b_outer),
+                               layer=self.layer_configuration.total_layer)
+        rect.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
+        return squid_polygonset, rect
+
+    def connection_to_ground(self, length, width, JJ_pad_connection_shift=False, coil='old'):
         """
         This function generate a connection from JJ rectangulars to a flux line output. Should be changed if you want
         to use another type of JJ or a flux line
         """
         result = None
+        remove = None
+
         for point in [self.JJ.rect1, self.JJ.rect2]:
-            orientation = np.arctan2(-(self.center[1] - (point[1]-length)), -(self.center[0] - point[0]))
+            orientation = np.arctan2(-(self.center[1] - (point[1] - length)), -(self.center[0] - point[0]))
             if JJ_pad_connection_shift:
-                connection_shift = self.JJ.rect_size_b/2
+                connection_shift = self.JJ.rect_size_b
             else:
-                connection_shift=0
-            points =[(point[0], point[1]-connection_shift), (point[0], point[1] - length),
-                 (self.center[0]+self.R2*np.cos(orientation), self.center[1]+self.R2*np.sin(orientation))]
+                connection_shift = 0
+            points = [(point[0], point[1] - connection_shift), (point[0], point[1] - length),
+                      (self.center[0] + self.R2 * np.cos(orientation), self.center[1] + self.R2 * np.sin(orientation))]
+            print(points)
             path = gdspy.FlexPath(deepcopy(points), width, offset=0, layer=self.layer_configuration.total_layer)
             result = gdspy.boolean(path, result, 'or', layer=self.layer_configuration.total_layer)
         orientation = np.arctan2(-(self.center[1] - (self.JJ.rect1[1] - length)), -(self.center[0] - self.JJ.rect1[0]))
-        #to fix rounding bug
-        bug=5
-        connection = (self.center[0]+(self.R2-bug)*np.cos(orientation),self.center[1]+(self.R2-bug)*np.sin(orientation))
-        # add cpw from
-        flux_line_output = (connection[0]+(self.outer_ground-self.R2+bug)*np.cos(orientation),
-                          connection[1]+(self.outer_ground-self.R2+bug)*np.sin(orientation))
-        # to fix rounding bug
-        bug = 1
-        flux_line_output_connection = (flux_line_output[0]+bug*np.cos(np.pi+orientation),
-                                       flux_line_output[1]+bug*np.sin(np.pi+orientation))
-        remove = gdspy.FlexPath(deepcopy([connection, flux_line_output]), [self.gap, self.gap], offset=[-self.core/2-self.gap/2,self.core/2+self.gap/2])
+        if coil == 'old':
+            bug = 5
+            coil_shift = 17
+            connection = (self.center[0] + (self.R2 - bug + coil_shift) * np.cos(orientation),
+                          self.center[1] + (self.R2 - bug + coil_shift) * np.sin(orientation))
+            # add cpw from
+            flux_line_output = (connection[0] + (self.outer_ground - self.R2 - coil_shift + bug) * np.cos(orientation),
+                                connection[1] + (self.outer_ground - self.R2 - coil_shift + bug) * np.sin(orientation))
+            # to fix rounding bug
+            bug = 1
+            connection_0 = find_normal_point(connection, flux_line_output, 20)
+            flux_line_output_connection = (flux_line_output[0] + bug * np.cos(np.pi + orientation),
+                                           flux_line_output[1] + bug * np.sin(np.pi + orientation))
+            remove = gdspy.FlexPath(deepcopy([connection_0, connection, flux_line_output]), [self.gap, self.gap],
+                                    offset=[-self.core / 2 - self.gap / 2, self.core / 2 + self.gap / 2])
+            remove_extra = gdspy.FlexPath(deepcopy([find_normal_point(connection, flux_line_output, 25),
+                                                    find_normal_point(connection, flux_line_output, 15, reverse=True)]),
+                                          [self.gap], offset=[-self.core / 2 - self.gap / 2])
+            remove = gdspy.boolean(remove_extra, remove, 'or', layer=self.layer_configuration.total_layer)
+
+        elif coil == 'tzar-coil':
+            middle_shift = 30
+            bug = 5
+            connection = (self.center[0] + (self.R2 - bug) * np.cos(orientation),
+                          self.center[1] + (self.R2 - bug) * np.sin(orientation))
+
+            flux_line_output = (connection[0] + (self.outer_ground - self.R2 + bug) * np.cos(orientation),
+                                connection[1] + (self.outer_ground - self.R2 + bug) * np.sin(orientation))
+
+            flux_line_output_connection = (flux_line_output[0] + bug * np.cos(np.pi + orientation),
+                                           flux_line_output[1] + bug * np.sin(np.pi + orientation))
+
+            path1 = gdspy.FlexPath(deepcopy([connection, flux_line_output]), [self.gap],
+                                   offset=[-self.core / 2 - self.gap / 2])
+            remove = gdspy.boolean(path1, remove, 'or', layer=self.layer_configuration.total_layer)
+
+            middle_point = (connection[0] + middle_shift * np.cos(orientation),
+                            connection[1] + middle_shift * np.sin(orientation))
+
+            self.tzar_coil_bridge_position = middle_point
+
+            connection_shift_ = 0
+
+            cut = gdspy.FlexPath(deepcopy([connection, middle_point]), [connection_shift_ + length],
+                                 offset=[self.core / 2 + (connection_shift_ + length) / 2])
+            remove = gdspy.boolean(cut, remove, 'or', layer=self.layer_configuration.total_layer)
+
+            middle_point_ = (connection[0] + (middle_shift + self.gap / 2) * np.cos(orientation),
+                             connection[1] + (middle_shift + self.gap / 2) * np.sin(orientation))
+
+            middle_point__ = find_normal_point(middle_point_, flux_line_output,
+                                               connection_shift_ + length + self.core / 2)
+
+            path2 = gdspy.FlexPath(deepcopy([middle_point__, middle_point_, flux_line_output]), [self.gap],
+                                   offset=[self.core / 2 + self.gap / 2])
+
+            remove = gdspy.boolean(path2, remove, 'or', layer=self.layer_configuration.total_layer)
+
+        elif coil == 'new':
+            bug = 5
+            connection = (self.center[0] + (self.R2 - bug) * np.cos(orientation),
+                          self.center[1] + (self.R2 - bug) * np.sin(orientation))
+            # add cpw from
+            flux_line_output = (connection[0] + (self.outer_ground - self.R2 + bug) * np.cos(orientation),
+                                connection[1] + (self.outer_ground - self.R2 + bug) * np.sin(orientation))
+            # to fix rounding bug
+            bug = 1
+            flux_line_output_connection = (flux_line_output[0] + bug * np.cos(np.pi + orientation),
+                                           flux_line_output[1] + bug * np.sin(np.pi + orientation))
+            remove = gdspy.FlexPath(deepcopy([connection, flux_line_output]), [self.gap, self.gap],
+                                    offset=[-self.core / 2 - self.gap / 2, self.core / 2 + self.gap / 2])
+
+        else:
+            raise ValueError('Coil type of flux line is not defined!')
+
         if 'mirror' in self.transformations:
             flux_line_output_connection = mirror_point(flux_line_output_connection, self.transformations['mirror'][0],
-                                                  self.transformations['mirror'][1])
+                                                       self.transformations['mirror'][1])
             qubit_center = mirror_point(deepcopy(self.center), self.transformations['mirror'][0],
                                         self.transformations['mirror'][1])
-            orientation = np.arctan2(flux_line_output_connection[1] - qubit_center[1], flux_line_output_connection[0] - qubit_center[0])+np.pi
+            orientation = np.arctan2(flux_line_output_connection[1] - qubit_center[1],
+                                     flux_line_output_connection[0] - qubit_center[0]) + np.pi
+            if coil == 'tzar-coil':
+                self.tzar_coil_bridge_position = mirror_point(self.tzar_coil_bridge_position,
+                                                              self.transformations['mirror'][0],
+                                                              self.transformations['mirror'][1])
         if 'rotate' in self.transformations:
             flux_line_output_connection = rotate_point(flux_line_output_connection, self.transformations['rotate'][0],
-                                                  self.transformations['rotate'][1])
+                                                       self.transformations['rotate'][1])
             qubit_center = rotate_point(deepcopy(self.center), self.transformations['rotate'][0],
                                         self.transformations['rotate'][1])
 
-            orientation = np.arctan2(flux_line_output_connection[1] - qubit_center[1], flux_line_output_connection[0] - qubit_center[0])+np.pi
+            orientation = np.arctan2(flux_line_output_connection[1] - qubit_center[1],
+                                     flux_line_output_connection[0] - qubit_center[0]) + np.pi
+            if coil == 'tzar-coil':
+                self.tzar_coil_bridge_position = rotate_point(
+                    rotate_point(flux_line_output_connection, self.transformations['rotate'][0],
+                                 self.transformations['rotate'][1]), self.transformations['rotate'][0],
+                    self.transformations['rotate'][1])
         if self.transformations == {}:
-            orientation=orientation+np.pi
-        self.terminals['flux'] = DesignTerminal(flux_line_output_connection, orientation, g=self.grounded.g, s=self.grounded.s,
-                                                     w=self.grounded.w, type='cpw')
+            orientation = orientation + np.pi
+        self.terminals['flux'] = DesignTerminal(flux_line_output_connection, orientation, g=self.grounded.g,
+                                                s=self.grounded.s,
+                                                w=self.grounded.w, type='cpw')
 
         return {'positive': result,
                 'remove': remove,
@@ -275,6 +415,29 @@ class Coaxmon(DesignElement):
         bandages = gdspy.boolean(bandage_to_island, [bandage_to_fluxline, bandage_to_ground], 'or',
                                  layer=self.layer_configuration.bandages_layer)
         return bandages
+
+    def import_bandages(self, file_name, cell_name):
+        """
+        Import bandages topology from a gds file
+        """
+        import os
+        path = os.getcwd()
+        path_for_file = path[:path.rindex('QCreator')] + 'QCreator\QCreator\elements\junctions' + file_name
+        # import cell
+        bandages = gdspy.GdsLibrary().read_gds(infile=path_for_file).cells[cell_name].remove_polygons(lambda pts, layer,
+                                                                                                             datatype: layer not in [
+            self.layer_configuration.bandages_layer])
+        # convert to polygonset
+        bandages_polygons = []
+        for p_id, p in enumerate(bandages.polygons):
+            points = p.polygons[0]
+            l = p.layers[0]
+            bandages_polygons.append(points)
+        bandages_polygonset = gdspy.PolygonSet(bandages_polygons, layer=self.layer_configuration.bandages_layer)
+        bandages_polygonset.translate(self.JJ_coordinates[0], self.JJ_coordinates[1])
+        angle = self.JJ_params['angle_JJ']
+        bandages_polygonset.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
+        return bandages_polygonset
 
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True,
                    cutoff: float = np.inf, epsilon: float = 11.45) -> list:
@@ -316,6 +479,20 @@ class Coaxmon(DesignElement):
         if track_changes:
             self.tls_cache.append(cache + mut_cap + cap_g)
         return cache + mut_cap + cap_g
+
+    def get_center(self):
+        if self.transformations == {}:
+            center = self.center
+        if 'rotate' in self.transformations:
+            center = rotate_point(point=self.center, angle=self.transformations['rotate'][0], origin=self.transformations['rotate'][1])
+        if 'mirror' in self.transformations:
+            center = mirror_point(point=self.center, ref1=self.transformations['rotate'][0], ref2=self.transformations['rotate'][1])
+        return center
+
+
+
+
+
 
 class CoaxmonCoupler:
     """
@@ -404,3 +581,6 @@ def rotate_point(point, angle, origin):
     qx = ox + np.cos(angle) * (px - ox) - np.sin(angle) * (py - oy)
     qy = oy + np.sin(angle) * (px - ox) + np.cos(angle) * (py - oy)
     return qx, qy
+
+
+

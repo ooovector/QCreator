@@ -22,7 +22,8 @@ class Pad(DesignElement):
 
     def __init__(self, name: str, position: Tuple[float, float], orientation: float, cpw_w: float, cpw_s: float,
                  cpw_g: float, pad_w: float, pad_s: float, pad_g: float, pad_length: float, narrowing_length: float,
-                 stub_length: float, z0: float, layer_configuration: LayerConfiguration, chip_geometry: ChipGeometry):
+                 stub_length: float, z0: float, layer_configuration: LayerConfiguration, chip_geometry: ChipGeometry,
+                 inverted_pad=False):
         """
         Contact pad for bonding the chip to the PCB
         :param name: Design element name
@@ -48,6 +49,8 @@ class Pad(DesignElement):
         self.stub_length = stub_length
         self.position = self.terminal.position
         self.orientation = self.terminal.orientation
+
+        self.inverted_pad = inverted_pad
 
     @property
     def z0(self):
@@ -79,7 +82,8 @@ class Pad(DesignElement):
             result[layer_name].rotate(self.orientation, (0, 0))
             result[layer_name].translate(*self.position)
         negative=gdspy.boolean(result['restrict'],result['positive'],'not',layer=self.layer_configuration.inverted)
-        result.update({'inverted': negative})
+        if self.inverted_pad:
+            result.update({'inverted': negative})
         # print(result)
         return result
 

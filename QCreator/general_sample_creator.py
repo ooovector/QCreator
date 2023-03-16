@@ -66,7 +66,7 @@ class Sample:
         """
         self.objects.append(object_)
 
-    def draw_design(self, PP_qubits: bool = False):
+    def draw_design(self, PP_qubits: bool = False, debug = False):
         """
         Renders the design, calling render() if required.
         :param PP_qubits: if True, polygons are not removed from the design prior to drawing
@@ -79,6 +79,8 @@ class Sample:
             self.total_cell.remove_polygons(lambda pts, layer, datatype: True)
             self.restricted_cell.remove_polygons(lambda pts, layer, datatype: True)
         for object_ in self.objects:
+            if debug:
+                print(object_.name)
             result = object_.get()
             if 'test' in result:
                 self.total_cell.add(result['test'])
@@ -258,14 +260,14 @@ class Sample:
         widths = np.asarray(line_o.widths[1:-1])
         return (offsets, widths)
 
-    def connect_all(self, eps=1e-9):
+    def connect_all(self, eps=1e-10):
         """
         Соединяет провода (кроме земли элементов) друг с другом для всех объектов и портов
         eps - точность соприкосновения проводов (если они лежат на одной прямой и расстояние между их центрами меньше этого,
         то считается, что они соприкасаются и фукнция их соединит)
         Возвращает сомнительно соединенные элементы и их порты (те элементы и те их порты, что имеют различное количество проводов
-        и соединений)"""
-        number_of_connections = []
+        и соединений) и само количество соединений порта этого элемента"""
+        number_of_connections = [] # список количества соединений для всех портов всех объектов
         for i in range(0, len(self.objects)):
             number_of_connections.append([0] * len(self.objects[i].get_terminals().keys()))
         possible_not_correctly_connected_objects = []
@@ -275,8 +277,11 @@ class Sample:
                 for j in range(0, i):
                     terminal_j = self.objects[j].get_terminals()
                     for (k_j, port_j) in enumerate(terminal_j.keys()):
+                        # print(self.objects[i], self.objects[i].get_terminals()[port_i], self.objects[j],
+                        #       self.objects[j].get_terminals()[port_j])
                         connects = self.connect(self.objects[i], port_i, self.objects[j], port_j,
                                                 raise_errors=False, eps=eps)
+                        # print(connects)
                         number_of_connections[i][k_i] += connects
                         number_of_connections[j][k_j] += connects
         for i in range(0, len(self.objects)):
@@ -293,7 +298,7 @@ class Sample:
                             (self.objects[i], port_i, number_of_connections[i][k_i]))
         return possible_not_correctly_connected_objects
 
-    def connect(self, o1, p1, o2, p2, raise_errors=True, eps=1e-9):
+    def connect(self, o1, p1, o2, p2, raise_errors=True, eps=1e-10):
         """
         Connects the wires of two objects with given ports. The ports must be at the same location
         :param eps: threshold for the distance between ports
@@ -307,13 +312,19 @@ class Sample:
         особенно удобно, при использовании функции connect_all.)
         """
         if (abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation + np.pi) % (
-                (2 * np.pi))) > eps and
+                (2 * np.pi)))%(2*np.pi) > eps and
             abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation) % (
-                    (2 * np.pi))) > eps):
+                    (2 * np.pi)))%(2*np.pi) > eps):
             if raise_errors:
                 print(o1.name,o1.get_terminals()[p1])
                 print(o2.name,o2.get_terminals()[p2])
                 raise ValueError("Connecting parts do not fill one line, check orientations")
+            # print('ORIENTATION', o1, p1, o2, p2, 0)
+            # print(o1.get_terminals()[p1].orientation,o2.get_terminals()[p2].orientation)
+            # print((abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation + np.pi) % (
+            #     (2 * np.pi))),
+            # abs((o1.get_terminals()[p1].orientation) % (2 * np.pi) - (o2.get_terminals()[p2].orientation) % (
+            #         (2 * np.pi)))))
             return 0
         (offsets1, widths1) = self.find_wires_coordinates(o1, p1)
         (offsets2, widths2) = self.find_wires_coordinates(o2, p2)
@@ -332,6 +343,7 @@ class Sample:
         if abs(delta[0]) > eps:
             if raise_errors:
                 raise ValueError("ERROR: The ports have different positions")
+            # print('DELTA', o1, p1, o2, p2, 0)
             return 0
         positions1 = offsets1
         positions2 = offsets2 + delta[1]
@@ -345,6 +357,7 @@ class Sample:
         if raise_errors:
             if error == 0:
                 raise ValueError('There is no ports to connect')
+        # print('FINAL',o1,p1,o2,p2,error)
         return error
 
     def fanout(self, o: elements.DesignElement, port: str, name: str, grouping: Tuple[int, int],
@@ -596,8 +609,8 @@ class Sample:
         mesh.run_fastcap(os.getcwd() + '/' + 'mesh_4k_results')
         print("Capacitance results have been writen here: ", os.getcwd() + '/' + 'mesh_4k_results')
         caps = np.round(mesh.get_capacitances(self.epsilon), 1)
-        # self.fill_cap_matrix_grounded(qubit, caps)  # TODO: can we improve this way?
-        # self.caps_list.append(caps)
+        self.fill_cap_matrix_grounded(qubit, caps)  # TODO: can we improve this way?
+        self.caps_list.append(caps)
         return caps
 
     def fill_cap_matrix(self, qubit, caps):
@@ -625,7 +638,7 @@ class Sample:
                 i = i + 1
         return True
 
-    def get_tls(self, cutoff=np.inf):
+    def get_tls(self, cutoff=np.inf, num_modes = 2):
         """
         Create a transmission line system of the design
         :return: tls, connections_flat, element_assignments
@@ -664,8 +677,12 @@ class Sample:
                         max_connection_id += 1
                         connections_flat[(object_, terminal_name, conductor_id)] = max_connection_id
                         terminal_node_assignments[terminal_identifier] = max_connection_id
-            element_assignments[object_.name] = object_.add_to_tls(tls, terminal_node_assignments,
-                                                                   cutoff=cutoff, epsilon=self.epsilon)
+            try:
+                element_assignments[object_.name] = object_.add_to_tls(tls, terminal_node_assignments,
+                                                                   cutoff=cutoff, epsilon=self.epsilon, num_modes = num_modes)
+            except:
+                element_assignments[object_.name] = object_.add_to_tls(tls, terminal_node_assignments,
+                                                                       cutoff=cutoff, epsilon=self.epsilon)
         return tls, connections_flat, element_assignments
 
     def get_s21(self, p1: str, p2: str, frequencies: Iterable[float]):
