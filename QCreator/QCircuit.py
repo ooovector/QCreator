@@ -34,7 +34,7 @@ class QVariable:
         self.charge_step = None
         self.nodeNo = None
 
-    def create_grid(self, nodeNo, phase_periods, centre=0):
+    def create_grid(self, nodeNo, phase_periods, centre=0, centre_charge=0):
         """
         Creates a discrete grid for wavefunction variables.
         :param nodeNo: number of discrete points on the grid
@@ -42,9 +42,9 @@ class QVariable:
         """
         self.variable_type = 'variable'
         minNode = np.round(-nodeNo/2)
-        maxNode = np.round(nodeNo/2)
+        maxNode = minNode + nodeNo
         self.phase_grid = np.linspace(-np.pi*phase_periods+centre, np.pi*phase_periods+centre, nodeNo, endpoint=False)
-        self.charge_grid = np.linspace(minNode/phase_periods, maxNode/phase_periods, nodeNo, endpoint=False)
+        self.charge_grid = np.linspace(minNode/phase_periods+centre_charge, maxNode/phase_periods+centre_charge, nodeNo, endpoint=False)
         self.phase_step = 2*np.pi*phase_periods/nodeNo
         self.charge_step = 1.0/phase_periods
         self.nodeNo = nodeNo
@@ -793,7 +793,6 @@ class QCircuit:
 
                         h += h2
         return h
-
 
     def flat_subsystem_state_index(self, nd_state_id):
         dvec = [len(subsystem.energies) for subsystem in self.subsystems]
