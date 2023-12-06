@@ -13,7 +13,7 @@ class Xmon(DesignElement):
     def __init__(self, name: str, center: Tuple[float, float],
                  length: float, width_gap: float, center_width: float,
                  crab_position: Tuple[str, str, str, str], crab_shoulder: float,
-                 crab_thickness: float, crab_terminals: Dict,ground_thickness: float, delete_ground: str,
+                 crab_thickness: float, crab_terminals: Dict, ground_thickness: float, delete_ground: str,
                  jj_position: str, jj_params1: Dict, jj_params2: Dict, aux_jj_params : Dict,
                  layer_configuration: LayerConfiguration, hole_in_squid_pad=True):
         super().__init__(type='qubit', name=name)

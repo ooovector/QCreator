@@ -258,10 +258,15 @@ class Coaxmon(DesignElement):
         squid_polygonset.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
         connection_shift = 0
         rect = None
+        # rect = gdspy.Rectangle((self.JJ_coordinates[0] - self.JJ.contact_pad_a_outer / 2,
+        #                         self.JJ_coordinates[1] + connection_shift + self.JJ.contact_pad_b_outer),
+        #                        (self.JJ_coordinates[0] + self.JJ.contact_pad_a_outer / 2,
+        #                         self.JJ_coordinates[1] + connection_shift - self.JJ.contact_pad_b_outer / 4),
+        #                        layer=self.layer_configuration.total_layer)
         rect = gdspy.Rectangle((self.JJ_coordinates[0] - self.JJ.contact_pad_a_outer / 2,
                                 self.JJ_coordinates[1] + connection_shift + self.JJ.contact_pad_b_outer),
                                (self.JJ_coordinates[0] + self.JJ.contact_pad_a_outer / 2,
-                                self.JJ_coordinates[1] + connection_shift - self.JJ.contact_pad_b_outer),
+                                self.JJ_coordinates[1] + connection_shift - self.JJ.contact_pad_b_outer / 4),
                                layer=self.layer_configuration.total_layer)
         rect.rotate(angle, (self.JJ_coordinates[0], self.JJ_coordinates[1]))
         return squid_polygonset, rect
@@ -282,13 +287,14 @@ class Coaxmon(DesignElement):
                 connection_shift = 0
             points = [(point[0], point[1] - connection_shift), (point[0], point[1] - length),
                       (self.center[0] + self.R2 * np.cos(orientation), self.center[1] + self.R2 * np.sin(orientation))]
-            print(points)
+            # print(points)
             path = gdspy.FlexPath(deepcopy(points), width, offset=0, layer=self.layer_configuration.total_layer)
             result = gdspy.boolean(path, result, 'or', layer=self.layer_configuration.total_layer)
         orientation = np.arctan2(-(self.center[1] - (self.JJ.rect1[1] - length)), -(self.center[0] - self.JJ.rect1[0]))
         if coil == 'old':
             bug = 5
-            coil_shift = 17
+            # coil_shift = 17
+            coil_shift = 16 - 1 - 0.5
             connection = (self.center[0] + (self.R2 - bug + coil_shift) * np.cos(orientation),
                           self.center[1] + (self.R2 - bug + coil_shift) * np.sin(orientation))
             # add cpw from

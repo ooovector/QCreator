@@ -214,7 +214,8 @@ class CPWCoupler(DesignElement):
                 p1.segment(segment['endpoint'])
                 p2.segment(segment['endpoint'])
                 p3.segment(segment['endpoint'])
-        return {'positive': p1.to_polygonset(), 'restrict': p2.to_polygonset(), 'inverted': p3.to_polygonset()}
+        # return {'positive': p1.to_polygonset(), 'restrict': p2.to_polygonset(), 'inverted': p3.to_polygonset()}
+        return {'positive': p1.to_polygonset(), 'restrict': p2.to_polygonset()}
 
     def get_terminals(self):
         return self.terminals
@@ -374,7 +375,8 @@ class CPW(CPWCoupler):
 
                 inverted = gdspy.boolean(restrict, positive, 'not',
                                          layer=self.layer_configuration.inverted)
-        return {'positive': positive, 'restrict': restrict, 'inverted': inverted}
+        # return {'positive': positive, 'restrict': restrict, 'inverted': inverted}
+        return {'positive': positive, 'restrict': restrict}
 
     def __repr__(self):
         return 'CPW "{}", l={:4.3f}'.format(self.name, np.round(self.length, 3))
@@ -477,7 +479,8 @@ class Narrowing(DesignElement):
         polygon_to_remove = gdspy.boolean(restricted_area, result, 'not',
                                           layer=self.layer_configuration.inverted)
 
-        return {'positive': result, 'restrict': [restricted_area], 'inverted': polygon_to_remove}
+        # return {'positive': result, 'restrict': [restricted_area], 'inverted': polygon_to_remove}
+        return {'positive': result, 'restrict': [restricted_area]}
 
     def get_terminals(self):
         return self.terminals
