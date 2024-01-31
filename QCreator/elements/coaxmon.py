@@ -60,6 +60,9 @@ class Coaxmon(DesignElement):
                           #'coupler4': None,
                           #'flux': None,
                           'qubit': None}
+        self.electrode_terminals = {}
+        self.electrode_terminal_map = {'conductor0': [],
+                                       }
         # model evaluation
         self.calculate_capacitance = calculate_capacitance
         self.tls_cache = []
@@ -137,38 +140,55 @@ class Coaxmon(DesignElement):
             bandages = None
         # set terminals for couplers
         self.set_terminals()
-        qubit=deepcopy(result)
+        # set electrode terminals for couplers
+        self.set_electrode_terminals()
+        qubit = deepcopy(result)
+        electrodes = deepcopy(qubit_cap_parts)
         if self.calculate_capacitance is False:
             qubit_cap_parts = None
             qubit = None
         if 'mirror' in self.transformations:
-            render_result = {'positive': result.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
-                    'restrict': result_restricted.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
-                    'qubit': qubit.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]) if qubit is not None else None,
-                    'qubit_cap': qubit_cap_parts,
-                    'JJ': JJ.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1])}
+            electrodes = [e.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]) for e in
+                          electrodes]
+            render_result = {
+                'positive': result.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
+                'restrict': result_restricted.mirror(self.transformations['mirror'][0],
+                                                     self.transformations['mirror'][1]),
+                'qubit': qubit.mirror(self.transformations['mirror'][0],
+                                      self.transformations['mirror'][1]) if qubit is not None else None,
+                'qubit_cap': qubit_cap_parts,
+                'JJ': JJ.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1]),
+                'electrodes': electrodes}
             if self.draw_bandages:
-                render_result.update({'bandages':bandages.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1])})
+                render_result.update(
+                    {'bandages': bandages.mirror(self.transformations['mirror'][0], self.transformations['mirror'][1])})
             return render_result
 
         if 'rotate' in self.transformations:
-            render_result =  {'positive': result.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
-                    'restrict': result_restricted.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
-                    'qubit': qubit.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]) if qubit is not None else None,
-                    'qubit_cap': qubit_cap_parts,
-                    'JJ': JJ.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1])}
+            electrodes = [e.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]) for e in
+                          electrodes]
+            render_result = {
+                'positive': result.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
+                'restrict': result_restricted.rotate(self.transformations['rotate'][0],
+                                                     self.transformations['rotate'][1]),
+                'qubit': qubit.rotate(self.transformations['rotate'][0],
+                                      self.transformations['rotate'][1]) if qubit is not None else None,
+                'qubit_cap': qubit_cap_parts,
+                'JJ': JJ.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1]),
+                'electrodes': electrodes}
             if self.draw_bandages:
                 render_result.update(
                     {'bandages': bandages.rotate(self.transformations['rotate'][0], self.transformations['rotate'][1])})
             return render_result
         elif self.transformations == {}:
-            render_result =  {'positive': result,
-                    'restrict': result_restricted,
-                    'qubit': qubit,
-                    'qubit_cap': qubit_cap_parts,
-                    'JJ': JJ}
+            render_result = {'positive': result,
+                             'restrict': result_restricted,
+                             'qubit': qubit,
+                             'qubit_cap': qubit_cap_parts,
+                             'JJ': JJ,
+                             'electrodes': electrodes}
             if self.draw_bandages:
-                render_result.update({'bandages':bandages})
+                render_result.update({'bandages': bandages})
             return render_result
 
     def set_terminals(self):
@@ -190,12 +210,25 @@ class Coaxmon(DesignElement):
                 self.terminals['coupler'+str(id)] = DesignTerminal(tuple(coupler_connection),
                                                                    coupler_phi, g=coupler.g, s=coupler.s,
                                                                 w=coupler.w, type='cpw')
+                self.electrode_terminal_map['conductor' + str(id + 1)] = ['coupler' + str(id)]
 
         if self.third_JJ == True:
             self.terminals['squid_intermediate'] = None
         return True
+
     def get_terminals(self):
         return self.terminals
+
+    def set_electrode_terminals(self):
+        """
+        Set terminals for each non-grounded electrode of a coaxmon
+        """
+        for id, coupler in enumerate(self.couplers):
+            if coupler.connection is not None:
+                self.electrode_terminals.update({'coupler'+str(id): [self.terminals['coupler'+str(id)]]})
+
+    def get_electrode_terminals(self):
+        return self.electrode_terminals
 
     def generate_JJ(self):
         # polygonset
@@ -539,13 +572,15 @@ class CoaxmonCoupler:
         elif self.coupler_type == 'coupler':
             arc = gdspy.Round(center, r_init, r_final,
                               initial_angle=self.arc_start * np.pi, final_angle=self.arc_finish * np.pi)
-            rect = gdspy.Rectangle((center[0] + r_final-1, center[1] - self.w / 2),# 1 to fix rounding bug
+            rect = gdspy.Rectangle((center[0] + r_final - 1, center[1] - self.w / 2),  # 1 to fix rounding bug
                                    (center[0] + rect_end, center[1] + self.w / 2))
             rect.rotate(self.phi * np.pi, center)
             self.connection = (center[0] + rect_end * np.cos(self.phi * np.pi),
                                center[1] + rect_end * np.sin(self.phi * np.pi))
-            part_to_remove = gdspy.Rectangle((center[0] + r_final, center[1] - self.w - self.g/2),
-                                           (center[0] + outer_ground, center[1] + self.w  + self.g/2))
+            # part_to_remove = gdspy.Rectangle((center[0] + r_final, center[1] - self.w - self.g/2),
+            #                                (center[0] + outer_ground, center[1] + self.w  + self.g/2))
+            part_to_remove = gdspy.Rectangle((center[0] + r_final, center[1] - self.s - self.g / 2),
+                                             (center[0] + outer_ground, center[1] + self.s + self.g / 2))
             remove = part_to_remove.rotate(self.phi * np.pi, center)
             result = gdspy.boolean(arc, rect, 'or')
             self.result_coupler = result
