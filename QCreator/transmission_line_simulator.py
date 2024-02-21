@@ -228,9 +228,13 @@ class Inductor(TLSystemElement):
                             'Inductance {0} has {1} nodes connected instead of 2.'.format(self.name, len(node_phases)))
         return (node_phases[0] - node_phases[1]) ** 2 / (2 * self.L)
 
+    def set_stationary_phase(self, phase):
+        self.stationary_phase = phase
+
     def __init__(self, l=None, name=''):
         super().__init__('L', name)
         self.L = l
+        self.stationary_phase = 0
         pass
 
 
@@ -1195,7 +1199,7 @@ class TLSystem:
                                 jac=lambda x: self.scdc_energy_gradient(x, subsystem_id),
                                 hess=lambda x: self.scdc_energy_hessian(x, subsystem_id))
             self.set_phases(solution.x, subsystem_id)
-            print(solution.x)
+            # print(solution.x)
 
     def scdc_stationary_phases(self):
         """
@@ -1213,7 +1217,7 @@ class TLSystem:
 
         for subsystem_id, subsystem in enumerate(subsystems):
             scdc_subnodes, scdc_shorts, scdc_subelements = subsystem
-            print('subsystem', scdc_subnodes, scdc_shorts, scdc_subelements)
+            # print('subsystem', scdc_subnodes, scdc_shorts, scdc_subelements)
             initial = np.zeros(len(scdc_subnodes))
             solution = minimize(lambda x: self.scdc_energy(x, subsystem_id), initial,
                                 jac=lambda x: self.scdc_energy_gradient(x, subsystem_id),
