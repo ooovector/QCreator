@@ -2333,6 +2333,8 @@ class TLSystem:
             for i in range(1, number_of_modes + 1):
                 operators.extend([i, -i])
 
+            print(operators)
+
             # create a list with perturbation terms: 'n' -- creation operator of mode n,
             # '-n' -- annihilation operator of mode n
 

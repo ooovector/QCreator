@@ -73,3 +73,4 @@ class Bolgar_marks(DesignElement):
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True,
                    cutoff: float = np.inf, epsilon: float = 11.45) -> list:
         return []
+
