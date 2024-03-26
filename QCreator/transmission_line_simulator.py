@@ -1197,7 +1197,9 @@ class TLSystem:
             initial = np.zeros(len(scdc_subnodes))
             solution = minimize(lambda x: self.scdc_energy(x, subsystem_id), initial,
                                 jac=lambda x: self.scdc_energy_gradient(x, subsystem_id),
-                                hess=lambda x: self.scdc_energy_hessian(x, subsystem_id))
+                                # hess=lambda x: self.scdc_energy_hessian(x, subsystem_id),
+                                # method='BFGS'
+                                )
             self.set_phases(solution.x, subsystem_id)
             # print(solution.x)
 
@@ -1221,7 +1223,9 @@ class TLSystem:
             initial = np.zeros(len(scdc_subnodes))
             solution = minimize(lambda x: self.scdc_energy(x, subsystem_id), initial,
                                 jac=lambda x: self.scdc_energy_gradient(x, subsystem_id),
-                                hess=lambda x: self.scdc_energy_hessian(x, subsystem_id))
+                                # hess=lambda x: self.scdc_energy_hessian(x, subsystem_id),
+                                # method='BFGS'
+                                )
 
             for node_id, node in enumerate(scdc_subnodes):
                 node_ind = self.nodes.index(node)

@@ -27,7 +27,8 @@ class Coaxmon(DesignElement):
                  outer_couplers_radius: float, inner_ground_radius: float, outer_ground_radius: float,
                  layer_configuration: LayerConfiguration, Couplers, jj_params: Dict, transformations: Dict,
                  calculate_capacitance: False, third_JJ=False, hole_in_squid_pad=True,
-                 JJ_pad_connection_shift=False, draw_bandages=False, coil_type='old', import_jj=False, file_jj=None, cell_jj=None):
+                 JJ_pad_connection_shift=False, draw_bandages=False, coil_type='old', import_jj=False, file_jj=None,
+                 cell_jj=None, jj_cap=False):
         super().__init__(type='qubit', name=name)
         self.third_JJ = third_JJ
         #qubit parameters
@@ -85,6 +86,8 @@ class Coaxmon(DesignElement):
 
         if self.coil_type == 'tzar-coil':
             self.tzar_coil_bridge_position = None
+
+        self.jj_cap = jj_cap
 
     def render(self):
         """
@@ -271,8 +274,8 @@ class Coaxmon(DesignElement):
 
         import os
         self.third_JJ = third_JJ
-        path = os.getcwd()
-        path_for_file = path[:path.rindex('QCreator')] + 'QCreator\QCreator\elements\junctions' + file_name
+        path = os.path.abspath(__file__)  # os.getcwd()
+        path_for_file = path[:path.rindex('QCreator')] + 'QCreator\elements\junctions' + file_name
         # import cell
         squid = gdspy.GdsLibrary().read_gds(infile=path_for_file).cells[cell_name].remove_polygons(lambda pts, layer,
                                                                                                           datatype: layer not in [
@@ -460,8 +463,10 @@ class Coaxmon(DesignElement):
         Import bandages topology from a gds file
         """
         import os
-        path = os.getcwd()
-        path_for_file = path[:path.rindex('QCreator')] + 'QCreator\QCreator\elements\junctions' + file_name
+        path = os.path.abspath(__file__)  # os.getcwd()
+        path_for_file = path[:path.rindex('QCreator')] + 'QCreator\elements\junctions' + file_name
+        # path = os.getcwd()
+        # path_for_file = path[:path.rindex('QCreator')] + 'QCreator\QCreator\elements\junctions' + file_name
         # import cell
         bandages = gdspy.GdsLibrary().read_gds(infile=path_for_file).cells[cell_name].remove_polygons(lambda pts, layer,
                                                                                                              datatype: layer not in [
@@ -481,13 +486,28 @@ class Coaxmon(DesignElement):
     def add_to_tls(self, tls_instance: tlsim.TLSystem, terminal_mapping: dict, track_changes: bool = True,
                    cutoff: float = np.inf, epsilon: float = 11.45) -> list:
         # scaling factor for C
-        from scipy.constants import hbar, e
+        from scipy.constants import hbar, e, epsilon_0
         scal_C = 1e-15
+
+        def jj_capacitance(s):
+            epsilon_al_ox = 10
+            d = 2e-9  # thickness of Al oxide layer m
+            return epsilon_al_ox * epsilon_0 * s / d
+
         jj1 = tlsim.JosephsonJunction(self.JJ_params['ic1'] * hbar / (2 * e), name=self.name + ' jj1')
         jj2 = tlsim.JosephsonJunction(self.JJ_params['ic2'] * hbar / (2 * e), name=self.name + ' jj2')
+
         m = tlsim.Inductor(self.JJ_params['lm'], name=self.name + ' flux-wire')
         c = tlsim.Capacitor(c=self.C['qubit'] * scal_C, name=self.name + ' qubit-ground')
         cache = [jj1, jj2, m, c]
+        if self.jj_cap:
+            s1 = self.JJ_params['jj1_width'] * self.JJ_params['jj1_height'] * 1e-12
+            s2 = self.JJ_params['jj2_width'] * self.JJ_params['jj2_height'] * 1e-12
+            jj_cap1 = tlsim.Capacitor(c=jj_capacitance(s1), name=self.name + ' Cjj1')
+            jj_cap2 = tlsim.Capacitor(c=jj_capacitance(s2), name=self.name + ' Cjj2')
+            cache.append(jj_cap1)
+            cache.append(jj_cap2)
+
         if self.third_JJ == False:
             squid_top = terminal_mapping['qubit']
         else:
@@ -495,9 +515,17 @@ class Coaxmon(DesignElement):
             jj3 = tlsim.JosephsonJunction(self.JJ_params['ic3'] * hbar / (2 * e), name=self.name + ' jj3')
             tls_instance.add_element(jj3, [squid_top, terminal_mapping['qubit']])
             cache.append(jj3)
+            if self.jj_cap:
+                s3 = self.JJ_params['jj3_width'] * self.JJ_params['jj3_height'] * 1e-12
+                jj_cap3 = tlsim.Capacitor(c=jj_capacitance(s3), name=self.name + ' Cjj3')
+                tls_instance.add_element(jj_cap3, [squid_top, terminal_mapping['qubit']])
+                cache.append(jj_cap3)
 
         tls_instance.add_element(jj1, [0, squid_top])
         tls_instance.add_element(jj2, [terminal_mapping['flux'], squid_top])
+        if self.jj_cap:
+            tls_instance.add_element(jj_cap1, [0, squid_top])
+            tls_instance.add_element(jj_cap2, [terminal_mapping['flux'], squid_top])
         tls_instance.add_element(m, [0, terminal_mapping['flux']])
         tls_instance.add_element(c, [0, terminal_mapping['qubit']])
         mut_cap = []
@@ -514,7 +542,6 @@ class Coaxmon(DesignElement):
                 cap_g.append(c0g)
             # elif coupler.coupler_type =='grounded':
             #     tls_instance.add_element(tlsim.Short(), [terminal_mapping['flux line'], 0])
-
         if track_changes:
             self.tls_cache.append(cache + mut_cap + cap_g)
         return cache + mut_cap + cap_g

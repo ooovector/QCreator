@@ -166,8 +166,10 @@ class SquidInLine(DesignElement):
         self.squid.generate_jj()
 
         import os
-        path = os.getcwd()
-        path_for_file = path[:path.rindex('QCreator')] + 'QCreator\QCreator\elements\junctions' + file_name
+        path = os.path.abspath(__file__)  # os.getcwd()
+        path_for_file = path[:path.rindex('QCreator')] + 'QCreator\elements\junctions' + file_name
+        # path = os.getcwd()
+        # path_for_file = path[:path.rindex('QCreator')] + 'QCreator\QCreator\elements\junctions' + file_name
         # import cell
         squid = gdspy.GdsLibrary().read_gds(infile=path_for_file).cells[cell_name].remove_polygons(lambda pts, layer,
                                                                                                           datatype: layer not in [
