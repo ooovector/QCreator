@@ -951,7 +951,8 @@ class TLSystem:
         return currents_vector
 
     # def harmonic_mode_constants(self, mode, i_dc, jj=False):
-    def harmonic_mode_constants(self, mode, jj=False):
+    # def harmonic_mode_constants(self, mode, jj=False):
+    def harmonic_mode_constants(self, mode, jj=True):
         p_ = self.phases_mode_vector(mode)
         # transition for quadratic form
         capacitance = np.real(np.conj(p_).T @ self.capacitance_matrix() @ p_)
@@ -1608,52 +1609,110 @@ class TLSystem:
         'alpha':
         'dc_phase': dc phases across junctions
         """
-        if not dc_phase:
-            node_no = len(self.nodes)
-            internal_dof_no = sum(e.num_degrees_of_freedom_dynamic() for e in self.elements if e.type_ == 'TL')
-            nodes_dofs_no = node_no + int(internal_dof_no / 2)
-            dc_phase = np.zeros(nodes_dofs_no)
+        # subsystems = self.get_scdc_subsystems()
+        # self.set_scdc_subsystem_phases(subsystems)
+        # if not dc_phase:
+        #     node_no = len(self.nodes)
+        #     internal_dof_no = sum(e.num_degrees_of_freedom_dynamic() for e in self.elements if e.type_ == 'TL')
+        #     nodes_dofs_no = node_no + int(internal_dof_no / 2)
+        #     dc_phase = np.zeros(nodes_dofs_no)
 
         independent_subspaces = self.check_cross_non_linearity(omegas, kerr_matrix, epsilon_cross)
         dict_self = self.check_self_non_linearity(omegas, kerr_matrix, epsilon_self)
-        hamiltonian_parameters = dict.fromkeys([str(i) for i in range(len(independent_subspaces))])
+        hamiltonian_parameters = dict.fromkeys([i for i in range(len(independent_subspaces))])
         num_junction = len(self.JJs)
         for subspace_id, subspace in enumerate(independent_subspaces):
             num = len(subspace)
-            subspace_dict = {'subsystem_id': subspace, 'Ec': np.zeros((num, num)), 'El': np.zeros((num, num)), 'Ej': [],
-                             'alpha': np.zeros((num_junction, num)), 'dc_phase': np.zeros((num_junction, num))}
+            subspace_dict = {'subsystem_id': subspace, 'EC': np.zeros((num, num)), 'EL': np.zeros((num, num)), 'EJ': [],
+                             'alpha': np.zeros((num_junction, num)),
+                             # 'dc_phase': np.zeros((num_junction, num))
+                             }
             for mode_id, mode in enumerate(subspace):
                 # define harmonic constants of a mode
                 # e_c, e_l, i = self.harmonic_mode_constants(modes[mode], self.i_dc())
                 e_c, e_l = self.harmonic_mode_constants(modes[mode])
-                subspace_dict['Ec'][mode_id][mode_id] = e_c
-                subspace_dict['El'][mode_id][mode_id] = e_l
+                subspace_dict['EC'][mode_id][mode_id] = e_c
+                subspace_dict['EL'][mode_id][mode_id] = e_l
                 if num == 1:
                     mode = subspace[0]
                     # check harmonicity of a mode
                     if (mode in dict_self['Quasi harmonic modes']) or (mode in dict_self['Harmonic modes']):
                         for jj in range(num_junction):
-                            subspace_dict['Ej'].append(0)
+                            subspace_dict['EJ'].append(0)
                     else:
                         for jj_id, jj in enumerate(self.JJs):
-                            subspace_dict['Ej'].append(jj.E_J * jj.n_junctions / h / 1e9)
+                            subspace_dict['EJ'].append(jj.E_J * jj.n_junctions / h / 1e9)
                             jj_submode_i, jj_submode_j = self.get_element_submode(jj, modes[mode])[:2]
                             subspace_dict['alpha'][jj_id][mode_id] = np.real(
                                 jj_submode_i - jj_submode_j) / jj.n_junctions
-                            jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
-                            subspace_dict['dc_phase'][jj_id][mode_id] = np.real(
-                                jj_dc_phase_i - jj_dc_phase_j) / jj.n_junctions
+                            # jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
+                            # subspace_dict['dc_phase'][jj_id][mode_id] = np.real(
+                            #     jj_dc_phase_i - jj_dc_phase_j) / jj.n_junctions
                 else:
                     for jj_id, jj in enumerate(self.JJs):
-                        subspace_dict['Ej'].append(jj.E_J * jj.n_junctions / h / 1e9)
+                        subspace_dict['EJ'].append(jj.E_J * jj.n_junctions / h / 1e9)
                         jj_submode_i, jj_submode_j = self.get_element_submode(jj, modes[mode])[:2]
                         subspace_dict['alpha'][jj_id][mode_id] = np.real(jj_submode_i - jj_submode_j) / jj.n_junctions
-                        jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
-                        subspace_dict['dc_phase'][jj_id][mode_id] = np.real(
-                            jj_dc_phase_i - jj_dc_phase_j) / jj.n_junctions
-            hamiltonian_parameters[str(subspace_id)] = subspace_dict
+                        # jj_dc_phase_i, jj_dc_phase_j = self.get_element_dc_phase(jj, dc_phase)
+                        # subspace_dict['dc_phase'][jj_id][mode_id] = np.real(
+                        #     jj_dc_phase_i - jj_dc_phase_j) / jj.n_junctions
+            hamiltonian_parameters[subspace_id] = subspace_dict
 
         return hamiltonian_parameters
+
+    def mode_quantization(self, subsystem, nums, ncut):
+        """
+        This method provides subsystem quantization
+        :param subsystem:
+        :param nums: number of cutoff levels in the oscillator mode
+        :param ncut: number of levels for hamiltonian diagonalization
+        """
+        def tensordot(*args):
+            if len(args) > 1:
+                prod = np.kron(args[0], args[1])
+                for arg in args[2:]:
+                    prod = np.kron(prod, arg)
+            else:
+                prod = args[0]
+            return prod
+        import scipy
+        from scipy.linalg import expm
+        # identity operator for the whole system
+        num_modes = len(subsystem['subsystem_id'])
+        nums = nums * num_modes
+        EC, EL = np.diag(subsystem['EC']), np.diag(subsystem['EL'])
+        EJs = subsystem['EJ']
+        alpha = subsystem['alpha']
+
+        ham = np.zeros((np.prod(nums), np.prod(nums)), dtype=complex)
+        phase_operators = []
+        # linear hamiltonian part
+        for mode_id in range(num_modes):
+            N, Phi = [np.eye(nums[i]) for i in range(num_modes)], \
+                     [np.eye(nums[i]) for i in range(num_modes)]
+            # creation and annihilation operators for an oscillator mode
+            a_i = np.asarray(np.diag([np.sqrt(i) for i in range(1, nums[mode_id])], 1), dtype=complex)
+            a_dag_i = np.asarray(np.diag([np.sqrt(i) for i in range(1, nums[mode_id])], -1), dtype=complex)
+            n_zpf_i = (EL[mode_id] / EC[mode_id] / 32) ** (1 / 4)
+            phi_zpf_i = (2 * EC[mode_id] / EL[mode_id]) ** (1 / 4)
+            n_op_i = 1j * n_zpf_i * (a_i - a_dag_i)
+            phi_op_i = phi_zpf_i * (a_i + a_dag_i)
+
+            N[mode_id], Phi[mode_id] = n_op_i, phi_op_i
+            ham += 4 * EC[mode_id] * tensordot(*N) @ tensordot(*N) + 1 / 2 * EL[mode_id] * tensordot(*Phi) @ tensordot(
+                *Phi)
+            phase_operators.append(tensordot(*Phi))
+
+        # nonlinear hamiltonian part
+        num_JJ = len(EJs) // num_modes
+        for j in range(num_JJ):
+            phi_j = np.zeros((np.prod(nums), np.prod(nums)), dtype=complex)
+            for mode_id in range(num_modes):
+                phi_j += alpha[j, mode_id] * phase_operators[mode_id]
+            ham += - EJs[j] * (expm(1j * phi_j) + expm(-1j * phi_j)) / 2 - 1 / 2 * EJs[j] * phi_j @ phi_j
+
+        eigenvalues, eigenvectors = scipy.sparse.linalg.eigsh(ham, k=ncut, which='SR')
+        return eigenvalues, eigenvectors
 
     ###################################################################################
     # Superconducting islands
@@ -2337,7 +2396,7 @@ class TLSystem:
             for i in range(1, number_of_modes + 1):
                 operators.extend([i, -i])
 
-            print(operators)
+            # print(operators)
 
             # create a list with perturbation terms: 'n' -- creation operator of mode n,
             # '-n' -- annihilation operator of mode n
