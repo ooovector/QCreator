@@ -805,7 +805,6 @@ def get_grounded_qubit_resonator_coupling(resonator,qubit,coupler_name,res_fr,qu
     claw_cap_total = qubit.C[coupler_name][0]+qubit.C[coupler_name][1]
     #resonator's lenght should be in microns
     res_total_cap = resonator[0]*1/2*resonator[2]+claw_cap_total*cap_scal_factor # in case of lambda/4 resonators
-    res_total_cap = resonator[0]*1/2*resonator[2]+claw_cap_total*cap_scal_factor # in case of lambda/4 resonators
     qubit_total_cap = (qubit.C[coupler_name][1] + qubit.C['qubit'])*cap_scal_factor
     coupling_cap= qubit.C[coupler_name][1]*cap_scal_factor
     coupling = coupling_cap/np.sqrt(qubit_total_cap*res_total_cap)*np.sqrt(res_fr*qubit_fr)/2

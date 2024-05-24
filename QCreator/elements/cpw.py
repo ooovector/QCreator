@@ -223,6 +223,7 @@ class CPWCoupler(DesignElement):
             layer += 1
         # return {'positive': p1, 'restrict': p2, 'inverted': p3}
         return {'positive': p1, 'restrict': p2, 'electrodes': electrodes}
+        # return {'positive': p1.to_polygonset(), 'restrict': p2.to_polygonset(), 'inverted': p3.to_polygonset()}
 
     def get_terminals(self):
         return self.terminals
@@ -397,8 +398,8 @@ class CPW(CPWCoupler):
                 electrodes.append(gdspy.PolygonSet([poly_points], layer=layer))
                 layer += 1
         electrodes.insert(0, ground)
-        # return {'positive': positive, 'restrict': restrict, 'inverted': inverted}
         return {'positive': positive, 'restrict': restrict, 'electrodes': electrodes}
+        # return {'positive': positive, 'restrict': restrict, 'inverted': inverted}
 
     def __repr__(self):
         return 'CPW "{}", l={:4.3f}'.format(self.name, np.round(self.length, 3))
@@ -501,8 +502,7 @@ class Narrowing(DesignElement):
         polygon_to_remove = gdspy.boolean(restricted_area, result, 'not',
                                           layer=self.layer_configuration.inverted)
 
-        # return {'positive': result, 'restrict': [restricted_area], 'inverted': polygon_to_remove}
-        return {'positive': result, 'restrict': [restricted_area]}
+        return {'positive': result, 'restrict': [restricted_area], 'inverted': polygon_to_remove}
 
     def get_terminals(self):
         return self.terminals

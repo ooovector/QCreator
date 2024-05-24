@@ -11,13 +11,7 @@ import time
 # module for detecting inner points
 from shapely.geometry.polygon import Polygon
 
-fastcap_paths = [r'C:\Program Files (x86)\layout\fastcap.exe',
-                 r'C:\Program Files (x86)\LayoutEditor\bin\fastcap.exe',
-                 r'C:\layout\bin\fastcap.exe',
-                 r'fastcap.exe',
-                 r'/opt/layout/bin/fastcap',
-                 r'C:\Users\mazho\layout\bin\fastcap.exe',
-                 ]
+fastcap_paths = [r'C:\Users\User\Documents\GitHub\QCreator\designs\Mirowave_state_transfer\fastcap.exe']
 
 class Meshing:
     def __init__(self, path, cell_name, layers):
@@ -67,7 +61,6 @@ class Meshing:
             total_length = 0
             for conductor, volume in zip(polygons, [mesh_volume] * len(polygons)):
                 data = create_mesh(conductor, max_volume=volume)
-                # print(data)
                 mesh_points_list.append(data[0])
                 mesh_tris_list.append(data[1])
                 total_length += len(data[1])
@@ -159,7 +152,23 @@ class Meshing:
         self.results= pd.DataFrame(table)
         return self.results
 
-def simplify(points, adaptive=None):
+# def simplify(points):
+#     """
+#     Parameters
+#     ----------
+#     pol_points : list(list(coord_x, coord_y))
+#     list of points of WSP
+#
+#     Returns
+#     -------
+#     list(new_polygon_1, ...), where
+#     new_polygon_i : list(list(coord_x, coord_y))
+#     """
+#     return list(np.asarray(pyclipper.SimplifyPolygon(list(np.asarray(points)*1000)))/1000)
+#     # return list(np.asarray(pyclipper.SimplifyPolygon(np.asarray(points)), dtype=object))
+#     # return pyclipper.SimplifyPolygon(points)
+
+def simplify(points, adaptive=True):
     """
     Parameters
     ----------
@@ -171,6 +180,7 @@ def simplify(points, adaptive=None):
     list(new_polygon_1, ...), where
     new_polygon_i : list(list(coord_x, coord_y))
     """
+    # adaptive = True
     if not adaptive:
         return pyclipper.SimplifyPolygon(points)
     else:
