@@ -1,4 +1,189 @@
+
+import warnings
 import gdspy
+
+
+class JJ_2_separate:
+    def __init__(self, x0, y0, length_pad_up_to_squid, jj1_width, jj1_height, jj2_width, jj2_height, pad_up_length,
+                 pad_up_width, width_pad_up_to_squid, squid_shift_left, squid_shift_right,
+                 base_width, jj_gap, jj_vertical_length, jj_horizontal_length, side_pad_length, side_pad_width,
+                 base_shift, side_pads_distance):
+        self._x0 = x0
+        self._y0 = y0
+
+        self.length_pad_up_to_squid = length_pad_up_to_squid
+        self.jj1_width = jj1_width
+        self.jj1_height = jj1_height
+        self.jj2_width = jj2_width
+        self.jj2_height = jj2_height
+        self.pad_up_length = pad_up_length
+        self.pad_up_width = pad_up_width
+        self.width_pad_up_to_squid = width_pad_up_to_squid
+        self.squid_shift_right = squid_shift_right
+        self.squid_shift_left = squid_shift_left
+        self.base_width = base_width
+        self.jj_gap = jj_gap
+        self.jj_vertical_length = jj_vertical_length
+        self.jj_horizontal_length = jj_horizontal_length
+        self.side_pad_length = side_pad_length
+        self.side_pad_width = side_pad_width
+        self.base_shift = base_shift
+        self.side_pads_distance = side_pads_distance
+
+    def generate_jj(self):
+
+
+        '''Add upper contact pad'''
+        points0 = [(self._x0 - self.pad_up_length / 2, self._y0 - self.pad_up_width),
+                   (self._x0 - self.pad_up_length / 2, self._y0),
+                   (self._x0 + self.pad_up_length / 2, self._y0),
+                   (self._x0 + self.pad_up_length / 2, self._y0 - self.pad_up_width)]
+
+        x1 = self._x0
+        y1 = self._y0 - self.pad_up_width
+
+
+        # H_a = self.width_pad_up_to_squid
+        # H_b = self.length_pad_up_to_squid
+
+        '''Add connection between upper pad and SQUID'''
+        points1 = [(x1 - self.width_pad_up_to_squid / 2, y1),
+                   (x1 + self.width_pad_up_to_squid / 2, y1),
+                   (x1 + self.width_pad_up_to_squid / 2, y1 - self.length_pad_up_to_squid),
+                   (x1 - self.width_pad_up_to_squid / 2, y1 - self.length_pad_up_to_squid)
+                   ]
+
+        # x2 = x1 - 3* H_a + L_a/4
+        # y2 = y1 - H_b
+
+        '''Add vertical part of JJs in SQUID with П-shape, where | | - vertical parts of JJs'''
+        x2 = x1
+        y2 = y1 - self.length_pad_up_to_squid
+
+        # L_a = self.squid_shift_right or self.squid_shift_left
+        # L_b = self.base_width
+        # h = self.jj_gap
+
+        # connection between jj1 and jj2 vertical parts
+        points2 = [(x2 - self.width_pad_up_to_squid/2 -self.squid_shift_left , y2),
+                   (x2 + self.width_pad_up_to_squid/2 +self.squid_shift_right , y2),
+                   (x2 + self.width_pad_up_to_squid/2 +self.squid_shift_right , y2 - self.base_width),
+                   (x2 - self.width_pad_up_to_squid/2 -self.squid_shift_left , y2 - self.base_width)
+                   ]
+
+        # H1_a = self.jj1_width (left)
+        # H1_b = self.jj_vertical_length
+        # H2_a = self.jj2_width (right)
+        # H2_b = self.jj_vertical_length
+
+        x3 = x2 - self.width_pad_up_to_squid/2 -self.squid_shift_left
+        y3 = y2 - self.base_width
+
+        x4 = x2 + self.width_pad_up_to_squid/2 +self.squid_shift_right
+        y4 = y2 - self.base_width
+
+        ## left jj vertical part
+        points3 = [(x3, y3),
+                   (x3 + self.jj1_width, y3),
+                   (x3 + self.jj1_width, y3 - self.jj_vertical_length),
+                   (x3, y3 - self.jj_vertical_length)
+                   ]
+
+        ## right jj vertical part
+        points4 = [(x4, y4),
+                   (x4 - self.jj2_width, y4),
+                   (x4 - self.jj2_width, y4 - self.jj_vertical_length),
+                   (x4, y4 - self.jj_vertical_length)
+                   ]
+
+        '''Add horizontal part of JJs in SQUID  and left-right contact pads'''
+
+
+        x5 = x3 + self.jj1_width
+        y5 = y3 - self.jj_vertical_length
+
+        x6 = x4 - self.jj2_width
+        y6 = y4 - self.jj_vertical_length
+
+
+        ### left jj horizontal part
+        points5 = [(x5 + self.base_shift, y5 - self.jj_gap),
+                   (x5 + self.base_shift, y5 - self.jj_gap - self.jj1_height),
+                   (x5 - self.jj1_width - self.base_shift, y5 - self.jj_gap - self.jj1_height),
+                   (x5 - self.jj1_width - self.base_shift, y5 - self.jj_gap)
+        ]
+
+
+        ### right jj horizontal part
+        points6 = [(x6 - self.base_shift, y6 - self.jj_gap),
+                   (x6 - self.base_shift, y6 - self.jj_gap - self.jj2_height),
+                   (x6 + self.jj2_width + self.base_shift, y6 - self.jj_gap - self.jj2_height),
+                   (x6 + self.jj2_width + self.base_shift, y6 - self.jj_gap)
+        ]
+
+        #warning for horizontal parts overlap
+        if x5 + self.base_shift >= x6 - self.base_shift:
+            raise Warning('There is horizontal parts JJs overlap')
+
+        x7 = self._x0 - self.side_pads_distance/2
+        y7 = y5 - self.jj_gap
+
+        x8 = self._x0 + self.side_pads_distance/2
+        y8 = y6 - self.jj_gap
+
+        self.rect1 = (x7, y7)
+        self.rect2 = (x8, y8)
+
+        ## variables for bandages
+        self.contact_pad_a_outer = self.pad_up_length
+        self.contact_pad_b_outer = self.pad_up_width
+        self.rect_size_a = self.side_pad_length
+        self.rect_size_b = self.side_pad_width
+
+
+
+
+        # left side pad
+        points7 = [(x7 - self.side_pad_length/2, y7),
+                   (x7 - self.side_pad_length/2, y7 - self.side_pad_width),
+                   (x7 + self.side_pad_length/2, y7 - self.side_pad_width),
+                   (x7 + self.side_pad_length/2, y7)
+        ]
+
+        ## right side pad
+        points8 = [(x8 + self.side_pad_length/2, y8),
+                   (x8 + self.side_pad_length/2, y8 - self.side_pad_width),
+                   (x8 - self.side_pad_length/2, y8 - self.side_pad_width),
+                   (x8 - self.side_pad_length/2, y8)
+        ]
+
+        # connection between contact pads and horizontal jj parts
+
+        points9 = [(x5 - self.jj1_width - self.base_shift, y5 - self.jj_gap),
+                   (x5 - self.jj1_width - self.base_shift, y5 - self.jj_gap - self.base_width),
+                   (x7 + self.side_pad_length / 2, y5 - self.jj_gap - self.base_width),
+                   (x7 + self.side_pad_length / 2, y7)
+        ]
+
+        points10 = [(x6 + self.jj2_width + self.base_shift, y6 - self.jj_gap),
+                    (x6 + self.jj2_width + self.base_shift, y6 - self.jj_gap - self.base_width),
+                    (x8 - self.side_pad_length / 2, y6 - self.jj_gap - self.base_width),
+                    (x8 - self.side_pad_length / 2, y8)
+
+        ]
+
+        #warning for the overlap of the side contact pad and the corresponding horizontal JJ part
+        if x7 + self.side_pad_length / 2 > x5 - self.jj1_width - self.base_shift or\
+                x6 + self.jj2_width + self.base_shift > x8 - self.side_pad_length / 2:
+            raise Warning('There is the overlap of the side contact pad and the corresponding horizontal JJ part')
+
+        squid = gdspy.PolygonSet([points0, points1, points2, points3, points4, points5, points6,
+                                points7, points8, points9, points10])
+
+        return squid
+
+
+
 
 
 class JJ_2:
@@ -30,6 +215,7 @@ class JJ_2:
             contact_pad_a_inner = 0
             contact_pad_b_inner = 0
 
+
         # Add contact pad1
         points0 = [(self._x0 - contact_pad_a_outer / 2, self._y0 - contact_pad_b_outer),
                    (self._x0 - contact_pad_a_outer / 2, self._y0),
@@ -55,7 +241,7 @@ class JJ_2:
 
         # parametr1=H_b
 
-        H_a = 0.5#1
+        H_a = 0.5
         H_b = self._parametr1
 
         L_a = 4#10.7
@@ -89,6 +275,8 @@ class JJ_2:
         x2 = x1 - 3* H_a + L_a/4
         y2 = y1 - H_b
 
+
+
         points2 = [(x2 - L_a / 2, y2),
                    (x2 + L_a / 2, y2),
                    (x2 + L_a / 2, y2 - L_b),
@@ -103,8 +291,10 @@ class JJ_2:
         x3 = x2 - L_a / 2 + H1_a / 2
         y3 = y2 - L_b
 
+
         x4 = x2 + L_a / 2 - H1_a / 2
         y4 = y2 - L_b
+
 
         points3 = [(x3 - H1_a / 2, y3),
                    (x3 + H1_a / 2, y3),
@@ -112,16 +302,19 @@ class JJ_2:
                    (x3 - H1_a / 2, y3 - H1_b)
                    ]
 
+
         points4 = [(x4 - H2_a / 2, y4),
                    (x4 + H2_a / 2, y4),
                    (x4 + H2_a / 2, y4 - H2_b),
                    (x4 - H2_a / 2, y4 - H2_b)
                    ]
 
+
         x5 = x3 + H1_a / 2
         y5 = y3 - H1_b
         x6 = x4 - H2_a / 2
         y6 = y4 - H2_b
+
 
         # parametr2=pad1_a
         # parametr3=pad2_a
@@ -137,11 +330,13 @@ class JJ_2:
                             (x5 - pad1_a, y5)
                             ]
 
+
         points6_for_pad2 = [(x6, y6),
                             (x6 + pad2_a, y6),
                             (x6 + pad2_a, y6 - pad2_b),
                             (x6, y6 - pad2_b)
                             ]
+
 
         contact_pad1_a_outer = L_a+2#6#13
         contact_pad1_b_outer = 2.5#6.4
